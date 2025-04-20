@@ -1,0 +1,1 @@
+Bu dosya sadece Vercel deploy yok sayılmaması için eklendi
