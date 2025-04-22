@@ -4,7 +4,8 @@ import { useRouter } from "next/router";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
 
-export default function Talep() {
+export default function TalepOlustur() {
+  const [form, setForm] = useState({ isim: "", email: "", icerik: "" });
   const router = useRouter();
 
   useEffect(() => {
@@ -20,10 +21,6 @@ export default function Talep() {
   
   // ... geri kalan talep sayfası kodları ...
 }
-
-export default function TalepOlustur() {
-  const [form, setForm] = useState({ isim: "", email: "", icerik: "" });
-  const router = useRouter();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
