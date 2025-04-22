@@ -1,28 +1,47 @@
-// pages/signup.js
+// pages/register.js (veya signup.js)
 import { useState } from "react";
-import { auth } from "../firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/router";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "../firebase";
+import { doc, setDoc } from "firebase/firestore";
 
-export default function Signup() {
+export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const router = useRouter();
 
-  const handleSignup = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      router.push("/login");
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Firestore'da kullanıcı profili oluştur
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        email: user.email,
+        name: name,
+        createdAt: new Date(),
+      });
+
+      router.push("/profile");
     } catch (error) {
-      alert(error.message);
+      console.error("Kayıt Hatası:", error.message);
     }
   };
 
   return (
     <div style={{ padding: "2rem" }}>
       <h1>Kayıt Ol</h1>
-      <form onSubmit={handleSignup}>
+      <form onSubmit={handleRegister}>
+        <input
+          type="text"
+          placeholder="Ad Soyad"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        /><br />
         <input
           type="email"
           placeholder="E-posta"
