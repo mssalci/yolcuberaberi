@@ -4,6 +4,10 @@ import { auth } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/router";
 
+<p style={{ color: "#555", marginBottom: "1rem" }}>
+  Lütfen önce kayıt olun veya giriş yapın. Talep oluşturabilmeniz için giriş yapmış olmanız gerekiyor.
+</p>
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

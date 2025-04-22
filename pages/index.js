@@ -1,5 +1,17 @@
 import Link from "next/link";
 
+<Link
+  href={user ? "/talep" : "#"}
+  onClick={(e) => {
+    if (!user) {
+      e.preventDefault();
+      alert("Talep oluşturmak için giriş yapmalısınız.");
+    }
+  }}
+>
+  Talep Oluştur
+</Link>
+
 export default function Home() {
   return (
     <div style={{ fontFamily: 'sans-serif', padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>

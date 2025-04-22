@@ -1,8 +1,25 @@
 // pages/talep.js
-import { useState } from "react";
-import { db } from "../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useEffect } from "react";
 import { useRouter } from "next/router";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase";
+
+export default function Talep() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        alert("Talep oluşturmak için giriş yapmanız gerekiyor.");
+        router.push("/login");
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+  
+  // ... geri kalan talep sayfası kodları ...
+}
 
 export default function TalepOlustur() {
   const [form, setForm] = useState({ isim: "", email: "", icerik: "" });
