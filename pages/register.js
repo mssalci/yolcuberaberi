@@ -5,10 +5,6 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../firebase";
 import { doc, setDoc } from "firebase/firestore";
 
-<p style={{ color: "#555", marginBottom: "1rem" }}>
-  Lütfen önce kayıt olun veya giriş yapın. Talep oluşturabilmeniz için giriş yapmış olmanız gerekiyor.
-</p>
-
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -65,3 +61,13 @@ export default function Register() {
     </div>
   );
 }
+if (error.code === "auth/email-already-in-use") {
+  alert("Bu e-posta adresi zaten kayıtlı.");
+} else if (error.code === "auth/invalid-email") {
+  alert("Geçersiz e-posta adresi.");
+} else if (error.code === "auth/weak-password") {
+  alert("Şifre en az 6 karakter olmalı.");
+} else {
+  alert("Kayıt yapılırken bir hata oluştu: " + error.message);
+}
+

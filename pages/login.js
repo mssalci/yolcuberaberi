@@ -4,10 +4,6 @@ import { auth } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/router";
 
-<p style={{ color: "#555", marginBottom: "1rem" }}>
-  Lütfen önce kayıt olun veya giriş yapın. Talep oluşturabilmeniz için giriş yapmış olmanız gerekiyor.
-</p>
-
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,3 +42,13 @@ export default function Login() {
     </div>
   );
 }
+if (error.code === "auth/user-not-found") {
+  alert("Bu e-posta adresi ile kayıtlı bir kullanıcı bulunamadı.");
+} else if (error.code === "auth/wrong-password") {
+  alert("Hatalı şifre. Lütfen tekrar deneyin.");
+} else if (error.code === "auth/invalid-email") {
+  alert("Geçersiz e-posta adresi.");
+} else {
+  alert("Giriş yapılırken bir hata oluştu: " + error.message);
+}
+

@@ -1,75 +1,60 @@
-// pages/talep.js
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-export default function TalepOlustur() {
-  const [form, setForm] = useState({ isim: "", email: "", icerik: "" });
+export default function Talep() {
   const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [talep, setTalep] = useState("");
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
         alert("Talep oluşturmak için giriş yapmanız gerekiyor.");
         router.push("/login");
+      } else {
+        setUser(currentUser);
       }
     });
 
     return () => unsubscribe();
   }, []);
-  
-  // ... geri kalan talep sayfası kodları ...
-}
-
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!talep) return alert("Lütfen bir talep girin.");
+
     try {
       await addDoc(collection(db, "talepler"), {
-        ...form,
+        uid: user.uid,
+        talep,
         createdAt: serverTimestamp(),
       });
-      alert("Talep başarıyla oluşturuldu!");
-      router.push("/");
-    } catch (err) {
-      console.error("Hata:", err);
-      alert("Bir hata oluştu.");
+      alert("Talebiniz başarıyla oluşturuldu!");
+      setTalep("");
+    } catch (error) {
+      console.error("Talep Hatası:", error.message);
+      alert("Talep gönderilirken bir hata oluştu.");
     }
   };
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>
+    <div style={{ padding: "2rem" }}>
       <h1>Talep Oluştur</h1>
       <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          name="isim"
-          placeholder="İsminiz"
-          value={form.isim}
-          onChange={handleChange}
-          required
-        /><br /><br />
-        <input
-          type="email"
-          name="email"
-          placeholder="E-posta"
-          value={form.email}
-          onChange={handleChange}
-          required
-        /><br /><br />
         <textarea
-          name="icerik"
-          placeholder="Talep detayları"
-          value={form.icerik}
-          onChange={handleChange}
-          required
-        /><br /><br />
+          value={talep}
+          onChange={(e) => setTalep(e.target.value)}
+          placeholder="Talebinizi buraya yazın"
+          style={{ width: "100%", height: "100px", marginBottom: "1rem" }}
+        />
         <button type="submit">Gönder</button>
       </form>
     </div>
   );
 }
+if (!talep) return alert("Lütfen bir talep girin.");
+alert("Talep oluşturmak için giriş yapmanız gerekiyor.");
+router.push("/login");
