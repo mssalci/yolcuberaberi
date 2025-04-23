@@ -11,11 +11,22 @@ export default function Register() {
   const [name, setName] = useState("");
   const router = useRouter();
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+const handleRegister = async (e) => {
+  e.preventDefault();
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    router.push("/");
+  } catch (error) {
+    if (error.code === "auth/email-already-in-use") {
+      alert("Bu e-posta adresi zaten kullanımda.");
+    } else if (error.code === "auth/weak-password") {
+      alert("Şifre çok zayıf. Lütfen daha güçlü bir şifre seçin.");
+    } else {
+      alert("Kayıt sırasında bir hata oluştu: " + error.message);
+    }
+  }
+};
+
 
       // Firestore'da kullanıcı profili oluştur
       await setDoc(doc(db, "users", user.uid), {
@@ -60,14 +71,5 @@ export default function Register() {
       </form>
     </div>
   );
-}
-if (error.code === "auth/email-already-in-use") {
-  alert("Bu e-posta adresi zaten kayıtlı.");
-} else if (error.code === "auth/invalid-email") {
-  alert("Geçersiz e-posta adresi.");
-} else if (error.code === "auth/weak-password") {
-  alert("Şifre en az 6 karakter olmalı.");
-} else {
-  alert("Kayıt yapılırken bir hata oluştu: " + error.message);
 }
 
