@@ -9,15 +9,23 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const router = useRouter();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push("/");
-    } catch (error) {
-      alert("Giriş başarısız: " + error.message);
+const handleLogin = async (e) => {
+  e.preventDefault();
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    router.push("/");
+  } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      alert("Bu e-posta adresi ile kayıtlı bir kullanıcı bulunamadı.");
+    } else if (error.code === "auth/wrong-password") {
+      alert("Hatalı şifre. Lütfen tekrar deneyin.");
+    } else if (error.code === "auth/invalid-email") {
+      alert("Geçersiz e-posta adresi.");
+    } else {
+      alert("Giriş yapılırken bir hata oluştu: " + error.message);
     }
-  };
+  }
+};
 
   return (
     <div style={{ padding: "2rem" }}>
@@ -41,14 +49,5 @@ export default function Login() {
       </form>
     </div>
   );
-}
-if (error.code === "auth/user-not-found") {
-  alert("Bu e-posta adresi ile kayıtlı bir kullanıcı bulunamadı.");
-} else if (error.code === "auth/wrong-password") {
-  alert("Hatalı şifre. Lütfen tekrar deneyin.");
-} else if (error.code === "auth/invalid-email") {
-  alert("Geçersiz e-posta adresi.");
-} else {
-  alert("Giriş yapılırken bir hata oluştu: " + error.message);
 }
 
