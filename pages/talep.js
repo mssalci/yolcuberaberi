@@ -1,3 +1,4 @@
+// pages/talep.js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { onAuthStateChanged } from "firebase/auth";
@@ -7,7 +8,12 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 export default function Talep() {
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const [talep, setTalep] = useState("");
+  const [talepData, setTalepData] = useState({
+    baslik: "",
+    aciklama: "",
+    nereden: "",
+    tahminiTarih: "",
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -22,18 +28,28 @@ export default function Talep() {
     return () => unsubscribe();
   }, []);
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setTalepData((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!talep) return alert("Lütfen bir talep girin.");
+    const { baslik, aciklama, nereden, tahminiTarih } = talepData;
+
+    if (!baslik || !aciklama || !nereden) {
+      alert("Lütfen tüm gerekli alanları doldurun.");
+      return;
+    }
 
     try {
       await addDoc(collection(db, "talepler"), {
         uid: user.uid,
-        talep,
+        ...talepData,
         createdAt: serverTimestamp(),
       });
       alert("Talebiniz başarıyla oluşturuldu!");
-      setTalep("");
+      setTalepData({ baslik: "", aciklama: "", nereden: "", tahminiTarih: "" });
     } catch (error) {
       console.error("Talep Hatası:", error.message);
       alert("Talep gönderilirken bir hata oluştu.");
@@ -42,15 +58,38 @@ export default function Talep() {
 
   return (
     <div style={{ padding: "2rem" }}>
-      <h1>Talep Oluştur</h1>
+      <h1>Yeni Talep Oluştur</h1>
       <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          name="baslik"
+          value={talepData.baslik}
+          onChange={handleChange}
+          placeholder="Talep Başlığı"
+          required
+        /><br />
         <textarea
-          value={talep}
-          onChange={(e) => setTalep(e.target.value)}
-          placeholder="Talebinizi buraya yazın"
-          style={{ width: "100%", height: "100px", marginBottom: "1rem" }}
-        />
-        <button type="submit">Gönder</button>
+          name="aciklama"
+          value={talepData.aciklama}
+          onChange={handleChange}
+          placeholder="Ayrıntılı Açıklama"
+          required
+        /><br />
+        <input
+          type="text"
+          name="nereden"
+          value={talepData.nereden}
+          onChange={handleChange}
+          placeholder="Nereden (ülke, şehir vs.)"
+          required
+        /><br />
+        <input
+          type="date"
+          name="tahminiTarih"
+          value={talepData.tahminiTarih}
+          onChange={handleChange}
+        /><br />
+        <button type="submit">Talebi Gönder</button>
       </form>
     </div>
   );
