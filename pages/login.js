@@ -1,4 +1,5 @@
 // pages/login.js
+
 import { useState } from "react";
 import { auth } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
@@ -9,23 +10,25 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const router = useRouter();
 
-const handleLogin = async (e) => {
-  e.preventDefault();
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-    router.push("/");
-  } catch (error) {
-    if (error.code === "auth/user-not-found") {
-      alert("Bu e-posta adresi ile kayıtlı bir kullanıcı bulunamadı.");
-    } else if (error.code === "auth/wrong-password") {
-      alert("Hatalı şifre. Lütfen tekrar deneyin.");
-    } else if (error.code === "auth/invalid-email") {
-      alert("Geçersiz e-posta adresi.");
-    } else {
-      alert("Giriş yapılırken bir hata oluştu: " + error.message);
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      alert("Giriş başarılı!");
+      router.push("/");
+    } catch (error) {
+      // Hata koduna göre mesaj göster
+      if (error.code === "auth/user-not-found") {
+        alert("Bu e-posta adresiyle kayıtlı bir kullanıcı bulunamadı.");
+      } else if (error.code === "auth/wrong-password") {
+        alert("Hatalı şifre. Lütfen tekrar deneyin.");
+      } else if (error.code === "auth/invalid-email") {
+        alert("Geçersiz e-posta adresi.");
+      } else {
+        alert("Giriş yapılırken bir hata oluştu: " + error.message);
+      }
     }
-  }
-};
+  };
 
   return (
     <div style={{ padding: "2rem" }}>
@@ -50,4 +53,3 @@ const handleLogin = async (e) => {
     </div>
   );
 }
-
