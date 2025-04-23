@@ -55,6 +55,3 @@ export default function Talep() {
     </div>
   );
 }
-if (!talep) return alert("Lütfen bir talep girin.");
-alert("Talep oluşturmak için giriş yapmanız gerekiyor.");
-router.push("/login");
