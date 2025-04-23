@@ -1,22 +1,23 @@
 import Link from "next/link";
+// pages/index.js
 import SEO from "../components/SEO";
 
 export default function Home() {
   return (
-   <>
+    <>
       <SEO
-        title="Yolcu Beraberi – Yurt dışından parça ve eşya getirtmek artık kolay!"
-        description="Yurt dışından gelen yolcularla buluş, ihtiyacın olan ürünü kolayca sipariş et. Yolcu Beraberi ile masrafsız alışveriş!"
-        keywords="yurt dışı alışveriş, yolcu beraberinde eşya, yurtdışı parça getirtme, yurtdışı sipariş"
+        title="Yolcu Beraberi | Yurt Dışından Ucuza Ürün Getir"
+        description="Yurt dışından gelen yolcularla ürünlerinizi getirtin, kazançlı alışverişin tadını çıkarın!"
         url="https://www.yolcuberaberi.com.tr"
       />
-      <main style={{ padding: "2rem" }}>
-        <h1>Hoş geldiniz!</h1>
-        <p>Platformumuz üzerinden yurtdışından eşya getirmenin yeni yolunu keşfedin.</p>
-      </main>
+      <div style={{ padding: "2rem" }}>
+        <h1>Yolcu Beraberi'ne Hoş Geldiniz</h1>
+        <p>Uygun fiyatlı yurt dışı alışverişin yeni yolu burada.</p>
+      </div>
     </>
   );
 }
+
  <div style={{ fontFamily: 'sans-serif', padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
       <h1 style={{ fontSize: '2.5rem', color: '#333' }}>Yolcu Beraberi</h1>
       <h2 style={{ fontSize: '1.5rem', color: '#666' }}>Yurtdışından alışveriş artık daha kolay ve ekonomik</h2>

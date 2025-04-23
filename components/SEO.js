@@ -1,26 +1,19 @@
+// components/SEO.js
 import Head from "next/head";
 
-export default function SEO({ title, description, keywords, url }) {
+export default function SEO({ title, description, url }) {
   return (
     <Head>
-      <title>{title}</title>
-      <meta name="description" content={description} />
-      <meta name="keywords" content={keywords} />
-      <meta name="robots" content="index, follow" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-      <meta property="og:title" content={title} />
-      <meta property="og:description" content={description} />
+      <title>{title || "Yolcu Beraberi - Uygun Yurt Dışı Alışverişi"}</title>
+      <meta name="description" content={description || "Yurt dışı alışverişlerinizi kolaylaştıran platform"} />
+      <meta property="og:title" content={title || "Yolcu Beraberi"} />
+      <meta property="og:description" content={description || "Yurt dışı alışverişlerinizi kolaylaştıran platform"} />
+      <meta property="og:url" content={url || "https://www.yolcuberaberi.com.tr"} />
       <meta property="og:type" content="website" />
-      <meta property="og:url" content={url} />
-      <meta property="og:image" content="/logo.png" />
-
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={title} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content="/logo.png" />
-
-      <link rel="canonical" href={url} />
+      <meta name="twitter:title" content={title || "Yolcu Beraberi"} />
+      <meta name="twitter:description" content={description || "Yurt dışı alışverişlerinizi kolaylaştıran platform"} />
+      <link rel="canonical" href={url || "https://www.yolcuberaberi.com.tr"} />
     </Head>
   );
 }
