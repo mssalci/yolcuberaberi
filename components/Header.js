@@ -42,6 +42,8 @@ export default function Header() {
           <Link href="/">Ana Sayfa</Link>
           <Link href="/talep">Talep Oluştur</Link>
 <Link href="/talepler">Tüm Talepler</Link>
+<Link href="/tekliflerim">Gelen Teklifler</Link>
+
 
           {user ? (
             <>
