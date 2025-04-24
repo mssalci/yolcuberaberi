@@ -1,9 +1,8 @@
 // pages/talepler.js
 import { useEffect, useState } from "react";
 import { db, auth } from "../firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 export default function Talepler() {
   const [talepler, setTalepler] = useState([]);
@@ -67,8 +66,3 @@ const handleTeklifVer = async (talepId) => {
     </div>
   );
 }
-{currentUser?.uid !== talep.uid && (
-  <button onClick={() => handleTeklifVer(talep.id)} style={{ marginTop: "1rem" }}>
-    ✈️ Getirebilirim
-  </button>
-)}
