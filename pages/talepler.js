@@ -13,7 +13,8 @@ export default function Talepler() {
       setCurrentUser(user);
     });
 
-    const fetchTalepler = async () => {
+    
+const fetchTalepler = async () => {
       const snapshot = await getDocs(collection(db, "talepler"));
       const taleplerList = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -21,6 +22,7 @@ export default function Talepler() {
       }));
       setTalepler(taleplerList);
     };
+
 const handleTeklifVer = async (talepId) => {
   if (!currentUser) {
     alert("Teklif vermek için giriş yapmalısınız.");
@@ -39,6 +41,7 @@ const handleTeklifVer = async (talepId) => {
     alert("Teklif verilirken bir hata oluştu.");
   }
 };
+
     fetchTalepler();
   }, []);
 
