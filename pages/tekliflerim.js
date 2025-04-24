@@ -1,4 +1,3 @@
-// pages/tekliflerim.js
 import { useEffect, useState } from "react";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -14,33 +13,45 @@ import {
 
 export default function Tekliflerim() {
   const [user, setUser] = useState(null);
-  const [teklifler, setTeklifler] = useState([]);
+  const [gelenTeklifler, setGelenTeklifler] = useState([]);
+  const [verdigimTeklifler, setVerdigimTeklifler] = useState([]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+
+        // Kullanıcının taleplerine gelen teklifler
         const taleplerSnapshot = await getDocs(
           query(collection(db, "talepler"), where("uid", "==", currentUser.uid))
         );
         const talepIdler = taleplerSnapshot.docs.map((doc) => doc.id);
 
         const teklifSnapshot = await getDocs(collection(db, "teklifler"));
-        const gelenTeklifler = [];
+        const gelen = [];
+        const verdiklerim = [];
 
         for (let teklifDoc of teklifSnapshot.docs) {
           const data = teklifDoc.data();
+          const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
+
+          const teklifData = {
+            ...data,
+            id: teklifDoc.id,
+            talep: talepDoc.data(),
+          };
+
           if (talepIdler.includes(data.talepId)) {
-            const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
-            gelenTeklifler.push({
-              ...data,
-              id: teklifDoc.id,
-              talep: talepDoc.data(),
-            });
+            gelen.push(teklifData);
+          }
+
+          if (data.teklifVerenUid === currentUser.uid) {
+            verdiklerim.push(teklifData);
           }
         }
 
-        setTeklifler(gelenTeklifler);
+        setGelenTeklifler(gelen);
+        setVerdigimTeklifler(verdiklerim);
       }
     });
 
@@ -72,16 +83,16 @@ export default function Tekliflerim() {
     }
   };
 
-  const bekleyenler = teklifler.filter((t) => !t.durum || t.durum === "beklemede");
-  const eslesmeler = teklifler.filter((t) => t.durum === "kabul edildi");
+  const gelenBekleyen = gelenTeklifler.filter(t => !t.durum || t.durum === "beklemede");
+  const gelenKabul = gelenTeklifler.filter(t => t.durum === "kabul edildi");
 
   return (
     <div style={{ padding: "2rem" }}>
-      <h1>Bana Gelen Teklifler</h1>
+      <h1>Teklif Yönetimi</h1>
 
-      <h2>Bekleyen Teklifler</h2>
-      {bekleyenler.length === 0 ? <p>Bekleyen teklif yok.</p> : (
-        bekleyenler.map((teklif) => (
+      <h2>Bana Gelen Teklifler</h2>
+      {gelenBekleyen.length === 0 ? <p>Bekleyen teklif yok.</p> : (
+        gelenBekleyen.map((teklif) => (
           <div key={teklif.id} style={{ border: "1px solid #ccc", marginBottom: "1rem", padding: "1rem" }}>
             <strong>Talep:</strong> {teklif.talep?.baslik} <br />
             <strong>Teklifi Veren:</strong> {teklif.teklifVerenUid} <br />
@@ -94,8 +105,8 @@ export default function Tekliflerim() {
       )}
 
       <h2 style={{ marginTop: "2rem" }}>Eşleşmeler (Kabul Edilen Teklifler)</h2>
-      {eslesmeler.length === 0 ? <p>Henüz eşleşme yok.</p> : (
-        eslesmeler.map((teklif) => (
+      {gelenKabul.length === 0 ? <p>Henüz eşleşme yok.</p> : (
+        gelenKabul.map((teklif) => (
           <div key={teklif.id} style={{ border: "1px solid green", marginBottom: "1rem", padding: "1rem" }}>
             <strong>Talep:</strong> {teklif.talep?.baslik} <br />
             <strong>Teklifi Veren:</strong> {teklif.teklifVerenUid} <br />
@@ -103,6 +114,19 @@ export default function Tekliflerim() {
           </div>
         ))
       )}
+
+      <h2 style={{ marginTop: "2rem" }}>Verdiğim Teklifler</h2>
+      {verdigimTeklifler.length === 0 ? <p>Henüz teklif vermediniz.</p> : (
+        verdigimTeklifler.map((teklif) => (
+          <div key={teklif.id} style={{ border: "1px solid #666", marginBottom: "1rem", padding: "1rem" }}>
+            <strong>Talep:</strong> {teklif.talep?.baslik} <br />
+            <strong>Durum:</strong> {teklif.durum || "beklemede"} <br />
+            {teklif.durum === "karşı teklif" && teklif.mesaj && (
+              <p><em>Karşı Teklif Mesajı:</em> {teklif.mesaj}</p>
+            )}
+          </div>
+        ))
+      )}
     </div>
   );
-}
+                                      }
