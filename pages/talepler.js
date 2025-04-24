@@ -7,22 +7,6 @@ import { onAuthStateChanged } from "firebase/auth";
 export default function Talepler() {
   const [talepler, setTalepler] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
-
-  useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-    });
-
-    
-const fetchTalepler = async () => {
-      const snapshot = await getDocs(collection(db, "talepler"));
-      const taleplerList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setTalepler(taleplerList);
-    };
-
 const handleTeklifVer = async (talepId) => {
   if (!currentUser) {
     alert("Teklif vermek için giriş yapmalısınız.");
@@ -41,6 +25,22 @@ const handleTeklifVer = async (talepId) => {
     alert("Teklif verilirken bir hata oluştu.");
   }
 };
+  useEffect(() => {
+    onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+
+    
+const fetchTalepler = async () => {
+      const snapshot = await getDocs(collection(db, "talepler"));
+      const taleplerList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setTalepler(taleplerList);
+    };
+
+
 
     fetchTalepler();
   }, []);
