@@ -41,6 +41,8 @@ export default function Header() {
         <div style={{ display: "flex", gap: "1rem" }}>
           <Link href="/">Ana Sayfa</Link>
           <Link href="/talep">Talep Oluştur</Link>
+<Link href="/talepler">Tüm Talepler</Link>
+
           {user ? (
             <>
               <Link href="/profile">Profil</Link>

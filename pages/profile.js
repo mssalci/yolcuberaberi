@@ -1,39 +1,53 @@
 // pages/profile.js
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 export default function Profile() {
   const [user, setUser] = useState(null);
-  const [profileData, setProfileData] = useState({});
-  const router = useRouter();
+  const [taleplerim, setTaleplerim] = useState([]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) {
-        router.push("/login");
-      } else {
+      if (currentUser) {
         setUser(currentUser);
-        const docRef = doc(db, "users", currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProfileData(docSnap.data());
-        }
+
+        const q = query(collection(db, "talepler"), where("uid", "==", currentUser.uid));
+        const querySnapshot = await getDocs(q);
+        const talepler = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setTaleplerim(talepler);
+      } else {
+        setUser(null);
       }
     });
 
     return () => unsubscribe();
   }, []);
 
-  if (!user) return <p>Yükleniyor...</p>;
-
   return (
     <div style={{ padding: "2rem" }}>
-      <h1>Profil Bilgileri</h1>
-      <p><strong>Ad:</strong> {profileData.name}</p>
-      <p><strong>Email:</strong> {user.email}</p>
+      <h1>Profilim</h1>
+      {user && <p>📧 {user.email}</p>}
+
+      <h2 style={{ marginTop: "2rem" }}>Oluşturduğunuz Talepler</h2>
+      {taleplerim.length === 0 ? (
+        <p>Henüz bir talep oluşturmadınız.</p>
+      ) : (
+        <ul>
+          {taleplerim.map((talep) => (
+            <li key={talep.id} style={{ marginBottom: "1rem", border: "1px solid #ccc", padding: "1rem" }}>
+              <strong>{talep.baslik}</strong><br />
+              {talep.aciklama}<br />
+              <em>Nereden:</em> {talep.nereden}<br />
+              <em>Tahmini Teslim Tarihi:</em> {talep.tahminiTarih || "-"}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
