@@ -1,46 +1,68 @@
 // pages/talepler.js
 import { useEffect, useState } from "react";
 import { db, auth } from "../firebase";
-import { collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+  query,
+  where
+} from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function Talepler() {
   const [talepler, setTalepler] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
-const handleTeklifVer = async (talepId) => {
-  if (!currentUser) {
-    alert("Teklif vermek için giriş yapmalısınız.");
-    return;
-  }
 
-  try {
-    await addDoc(collection(db, "teklifler"), {
-      talepId,
-      teklifVerenUid: currentUser.uid,
-      createdAt: serverTimestamp(),
-    });
-    alert("Teklifiniz iletildi!");
-  } catch (error) {
-    console.error("Teklif hatası:", error.message);
-    alert("Teklif verilirken bir hata oluştu.");
-  }
-};
+  // Teklif verme fonksiyonu
+  const handleTeklifVer = async (talepId) => {
+    if (!currentUser) {
+      alert("Teklif vermek için giriş yapmalısınız.");
+      return;
+    }
+
+    // Aynı kullanıcı aynı talebe teklif vermesin kontrolü
+    const querySnapshot = await getDocs(
+      query(
+        collection(db, "teklifler"),
+        where("talepId", "==", talepId),
+        where("teklifVerenUid", "==", currentUser.uid)
+      )
+    );
+
+    if (!querySnapshot.empty) {
+      alert("Bu talebe zaten teklif verdiniz.");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "teklifler"), {
+        talepId,
+        teklifVerenUid: currentUser.uid,
+        createdAt: serverTimestamp(),
+      });
+      alert("Teklifiniz iletildi!");
+    } catch (error) {
+      console.error("Teklif hatası:", error.message);
+      alert("Teklif verilirken bir hata oluştu.");
+    }
+  };
+
+  // Talepleri çek ve kullanıcıyı izle
   useEffect(() => {
     onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
     });
 
-    
-const fetchTalepler = async () => {
+    const fetchTalepler = async () => {
       const snapshot = await getDocs(collection(db, "talepler"));
-      const taleplerList = snapshot.docs.map(doc => ({
+      const taleplerList = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
       setTalepler(taleplerList);
     };
-
-
 
     fetchTalepler();
   }, []);
@@ -60,8 +82,8 @@ const fetchTalepler = async () => {
 
             {currentUser?.uid !== talep.uid && (
               <button style={{ marginTop: "1rem" }} onClick={() => handleTeklifVer(talep.id)}>
-  ✈️ Getirebilirim
-</button>
+                ✈️ Getirebilirim
+              </button>
             )}
           </div>
         ))
