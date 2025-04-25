@@ -18,7 +18,7 @@ export default function ChatRoom() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
-
+  const q = query(messagesRef, orderBy("timestamp", "asc"));
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
