@@ -10,7 +10,7 @@ import {
   getDocs,
   getDoc,
   doc,
-  updateDoc,
+  updateDoc
 } from "firebase/firestore";
 
 export default function Profile() {
@@ -23,67 +23,71 @@ export default function Profile() {
   const [taleplerim, setTaleplerim] = useState([]);
   const [verdigimTeklifler, setVerdigimTeklifler] = useState([]);
   const [eslesmeler, setEslesmeler] = useState([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setUserName((prev) => prev || data.name || "");
-          setIban((prev) => prev || data.iban || "");
-          setPaypal((prev) => prev || data.paypal || "");
-        }
 
-        const q = query(collection(db, "talepler"), where("uid", "==", currentUser.uid));
-        const taleplerSnapshot = await getDocs(q);
-        setTaleplerim(taleplerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-
-        const teklifSnap = await getDocs(
-          query(collection(db, "teklifler"), where("teklifVerenUid", "==", currentUser.uid))
-        );
-
-        const teklifler = [];
-        const eslesenler = [];
-
-        for (let teklifDoc of teklifSnap.docs) {
-          const data = teklifDoc.data();
-          const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
-          const teklifData = {
-            id: teklifDoc.id,
-            ...data,
-            talep: talepDoc.exists() ? talepDoc.data() : null,
-          };
-          teklifler.push(teklifData);
-          if (data.durum === "kabul edildi") {
-            eslesenler.push(teklifData);
+        if (!loaded) {
+          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUserName(data.name || "");
+            setIban(data.iban || "");
+            setPaypal(data.paypal || "");
           }
-        }
 
-        const gelenTekliflerSnap = await getDocs(
-          query(collection(db, "teklifler"), where("durum", "==", "kabul edildi"))
-        );
+          const q = query(collection(db, "talepler"), where("uid", "==", currentUser.uid));
+          const taleplerSnapshot = await getDocs(q);
+          setTaleplerim(taleplerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-        for (let teklifDoc of gelenTekliflerSnap.docs) {
-          const data = teklifDoc.data();
-          const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
-          if (talepDoc.exists() && talepDoc.data().uid === currentUser.uid) {
-            eslesenler.push({
+          const teklifSnap = await getDocs(
+            query(collection(db, "teklifler"), where("teklifVerenUid", "==", currentUser.uid))
+          );
+          const teklifler = [];
+          const eslesenler = [];
+
+          for (let teklifDoc of teklifSnap.docs) {
+            const data = teklifDoc.data();
+            const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
+            const teklifData = {
               id: teklifDoc.id,
               ...data,
-              talep: talepDoc.data(),
-            });
+              talep: talepDoc.exists() ? talepDoc.data() : null,
+            };
+            teklifler.push(teklifData);
+            if (data.durum === "kabul edildi") {
+              eslesenler.push(teklifData);
+            }
           }
-        }
 
-        setVerdigimTeklifler(teklifler);
-        setEslesmeler(eslesenler);
+          const gelenTekliflerSnap = await getDocs(
+            query(collection(db, "teklifler"), where("durum", "==", "kabul edildi"))
+          );
+
+          for (let teklifDoc of gelenTekliflerSnap.docs) {
+            const data = teklifDoc.data();
+            const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
+            if (talepDoc.exists() && talepDoc.data().uid === currentUser.uid) {
+              eslesenler.push({
+                id: teklifDoc.id,
+                ...data,
+                talep: talepDoc.data(),
+              });
+            }
+          }
+
+          setVerdigimTeklifler(teklifler);
+          setEslesmeler(eslesenler);
+          setLoaded(true);
+        }
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [loaded]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -94,7 +98,7 @@ export default function Profile() {
       await updateDoc(doc(db, "users", user.uid), {
         name: userName,
         iban: iban,
-        paypal: paypal,
+        paypal: paypal
       });
       alert("Bilgileriniz güncellendi.");
     }
@@ -178,4 +182,4 @@ export default function Profile() {
       )}
     </div>
   );
-        }
+                                                          }
