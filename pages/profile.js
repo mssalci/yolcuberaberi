@@ -37,12 +37,6 @@ export default function Profile() {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (user && activeTab === "hesap") {
-      fetchUserInfo(user);
-    }
-  }, [activeTab, user]);
-
   const fetchUserInfo = async (currentUser) => {
     const userDoc = await getDoc(doc(db, "users", currentUser.uid));
     if (userDoc.exists()) {
