@@ -1,4 +1,4 @@
-// pages/profile.js import { useEffect, useState } from "react"; import { auth, db } from "../firebase"; import { onAuthStateChanged, signOut } from "firebase/auth"; import { collection, query, where, getDocs, getDoc, doc, updateDoc } from "firebase/firestore"; import { useRouter } from "next/router";
+// pages/profile.js import { useEffect, useState } from "react"; import { useRouter } from "next/router"; import { auth, db } from "../firebase"; import { onAuthStateChanged, signOut } from "firebase/auth"; import { collection, query, where, getDocs, getDoc, doc, updateDoc } from "firebase/firestore";
 
 export default function Profile() { const router = useRouter(); const [user, setUser] = useState(null); const [userName, setUserName] = useState(""); const [iban, setIban] = useState(""); const [paypal, setPaypal] = useState(""); const [activeTab, setActiveTab] = useState("hesap"); const [taleplerim, setTaleplerim] = useState([]); const [verdigimTeklifler, setVerdigimTeklifler] = useState([]); const [eslesmeler, setEslesmeler] = useState([]);
 
@@ -12,7 +12,7 @@ const handleLogout = async () => { await signOut(auth); };
 
 const handleSaveInfo = async () => { if (user) { await updateDoc(doc(db, "users", user.uid), { name: userName, iban: iban, paypal: paypal }); alert("Bilgileriniz güncellendi."); } };
 
-const startChat = (uid1, uid2) => { const chatId = [uid1, uid2].sort().join("_"); router.push(`/chat/${chatId}`); };
+const startChat = (uid1, uid2) => { const chatId = [uid1, uid2].sort().join("_"); router.push(/chat/${chatId}); };
 
 if (!user) return <p style={{ padding: "2rem" }}>Giriş yapmalısınız.
 
