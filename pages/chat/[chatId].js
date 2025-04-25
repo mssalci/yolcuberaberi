@@ -28,13 +28,13 @@ export default function ChatRoom() {
     });
 
     return () => unsubscribeAuth();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!chatId) return;
 
     const messagesRef = collection(db, "chats", chatId, "messages");
-    const q = query(messagesRef, orderBy("timestamp", "asc")); // ÖNEMLİ!
+    const q = query(messagesRef, orderBy("timestamp", "asc"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -48,11 +48,13 @@ export default function ChatRoom() {
     e.preventDefault();
     if (!newMessage.trim() || !currentUser || !chatId) return;
 
+    const messagesRef = collection(db, "chats", chatId, "messages");
+
     try {
-      await addDoc(collection(db, "chats", chatId, "messages"), {
+      await addDoc(messagesRef, {
         text: newMessage,
         senderUid: currentUser.uid,
-        timestamp: serverTimestamp(), // Zaman damgası ekleniyor
+        timestamp: serverTimestamp(),
       });
       setNewMessage("");
     } catch (error) {
