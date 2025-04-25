@@ -10,7 +10,7 @@ import {
   getDocs,
   getDoc,
   doc,
-  updateDoc
+  updateDoc,
 } from "firebase/firestore";
 
 export default function Profile() {
@@ -25,79 +25,68 @@ export default function Profile() {
   const [eslesmeler, setEslesmeler] = useState([]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        fetchAllData(currentUser);
-      } else {
-        setUser(null);
+        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setUserName((prev) => prev || data.name || "");
+          setIban((prev) => prev || data.iban || "");
+          setPaypal((prev) => prev || data.paypal || "");
+        }
+
+        const q = query(collection(db, "talepler"), where("uid", "==", currentUser.uid));
+        const taleplerSnapshot = await getDocs(q);
+        setTaleplerim(taleplerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+        const teklifSnap = await getDocs(
+          query(collection(db, "teklifler"), where("teklifVerenUid", "==", currentUser.uid))
+        );
+
+        const teklifler = [];
+        const eslesenler = [];
+
+        for (let teklifDoc of teklifSnap.docs) {
+          const data = teklifDoc.data();
+          const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
+          const teklifData = {
+            id: teklifDoc.id,
+            ...data,
+            talep: talepDoc.exists() ? talepDoc.data() : null,
+          };
+          teklifler.push(teklifData);
+          if (data.durum === "kabul edildi") {
+            eslesenler.push(teklifData);
+          }
+        }
+
+        const gelenTekliflerSnap = await getDocs(
+          query(collection(db, "teklifler"), where("durum", "==", "kabul edildi"))
+        );
+
+        for (let teklifDoc of gelenTekliflerSnap.docs) {
+          const data = teklifDoc.data();
+          const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
+          if (talepDoc.exists() && talepDoc.data().uid === currentUser.uid) {
+            eslesenler.push({
+              id: teklifDoc.id,
+              ...data,
+              talep: talepDoc.data(),
+            });
+          }
+        }
+
+        setVerdigimTeklifler(teklifler);
+        setEslesmeler(eslesenler);
       }
     });
 
     return () => unsubscribe();
   }, []);
 
-  const fetchUserInfo = async (currentUser) => {
-    const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      setUserName(data.name || "");
-      setIban(data.iban || "");
-      setPaypal(data.paypal || "");
-    }
-  };
-
-  const fetchAllData = async (currentUser) => {
-    await fetchUserInfo(currentUser);
-
-    const q = query(collection(db, "talepler"), where("uid", "==", currentUser.uid));
-    const taleplerSnapshot = await getDocs(q);
-    setTaleplerim(taleplerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-
-    const teklifSnap = await getDocs(
-      query(collection(db, "teklifler"), where("teklifVerenUid", "==", currentUser.uid))
-    );
-
-    const teklifler = [];
-    const eslesenler = [];
-
-    for (let teklifDoc of teklifSnap.docs) {
-      const data = teklifDoc.data();
-      const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
-      const teklifData = {
-        id: teklifDoc.id,
-        ...data,
-        talep: talepDoc.exists() ? talepDoc.data() : null,
-      };
-      teklifler.push(teklifData);
-      if (data.durum === "kabul edildi") {
-        eslesenler.push(teklifData);
-      }
-    }
-
-    const gelenTekliflerSnap = await getDocs(
-      query(collection(db, "teklifler"), where("durum", "==", "kabul edildi"))
-    );
-
-    for (let teklifDoc of gelenTekliflerSnap.docs) {
-      const data = teklifDoc.data();
-      const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
-      if (talepDoc.exists() && talepDoc.data().uid === currentUser.uid) {
-        eslesenler.push({
-          id: teklifDoc.id,
-          ...data,
-          talep: talepDoc.data(),
-        });
-      }
-    }
-
-    setVerdigimTeklifler(teklifler);
-    setEslesmeler(eslesenler);
-  };
-
   const handleLogout = async () => {
     await signOut(auth);
-    router.push("/login");
   };
 
   const handleSaveInfo = async () => {
@@ -105,7 +94,7 @@ export default function Profile() {
       await updateDoc(doc(db, "users", user.uid), {
         name: userName,
         iban: iban,
-        paypal: paypal
+        paypal: paypal,
       });
       alert("Bilgileriniz güncellendi.");
     }
@@ -122,7 +111,7 @@ export default function Profile() {
     <div style={{ padding: "2rem" }}>
       <h1>Profilim</h1>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem" }}>
+      <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
         <button onClick={() => setActiveTab("hesap")}>Hesap Bilgileri</button>
         <button onClick={() => setActiveTab("talepler")}>Taleplerim</button>
         <button onClick={() => setActiveTab("teklifler")}>Verdiğim Teklifler</button>
@@ -134,12 +123,15 @@ export default function Profile() {
           <label>Ad Soyad:<br />
             <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} />
           </label><br /><br />
+
           <label>IBAN:<br />
             <input type="text" value={iban} onChange={(e) => setIban(e.target.value)} />
           </label><br /><br />
+
           <label>PayPal:<br />
             <input type="email" value={paypal} onChange={(e) => setPaypal(e.target.value)} />
           </label><br /><br />
+
           <button onClick={handleSaveInfo}>Kaydet</button>
           <p><strong>E-posta:</strong> {user.email}</p>
           <button onClick={handleLogout}>Çıkış Yap</button>
@@ -186,4 +178,4 @@ export default function Profile() {
       )}
     </div>
   );
-                }
+        }
