@@ -1,5 +1,5 @@
 // pages/profile.js
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -10,7 +10,7 @@ import {
   getDocs,
   getDoc,
   doc,
-  updateDoc
+  updateDoc,
 } from "firebase/firestore";
 
 export default function Profile() {
@@ -23,14 +23,17 @@ export default function Profile() {
   const [taleplerim, setTaleplerim] = useState([]);
   const [verdigimTeklifler, setVerdigimTeklifler] = useState([]);
   const [eslesmeler, setEslesmeler] = useState([]);
-  const [loaded, setLoaded] = useState(false);
+
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
 
-        if (!loaded) {
+        if (!hasFetchedRef.current) {
+          hasFetchedRef.current = true;
+
           const userDoc = await getDoc(doc(db, "users", currentUser.uid));
           if (userDoc.exists()) {
             const data = userDoc.data();
@@ -39,12 +42,23 @@ export default function Profile() {
             setPaypal(data.paypal || "");
           }
 
-          const q = query(collection(db, "talepler"), where("uid", "==", currentUser.uid));
+          const q = query(
+            collection(db, "talepler"),
+            where("uid", "==", currentUser.uid)
+          );
           const taleplerSnapshot = await getDocs(q);
-          setTaleplerim(taleplerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          setTaleplerim(
+            taleplerSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }))
+          );
 
           const teklifSnap = await getDocs(
-            query(collection(db, "teklifler"), where("teklifVerenUid", "==", currentUser.uid))
+            query(
+              collection(db, "teklifler"),
+              where("teklifVerenUid", "==", currentUser.uid)
+            )
           );
           const teklifler = [];
           const eslesenler = [];
@@ -66,7 +80,6 @@ export default function Profile() {
           const gelenTekliflerSnap = await getDocs(
             query(collection(db, "teklifler"), where("durum", "==", "kabul edildi"))
           );
-
           for (let teklifDoc of gelenTekliflerSnap.docs) {
             const data = teklifDoc.data();
             const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
@@ -81,13 +94,12 @@ export default function Profile() {
 
           setVerdigimTeklifler(teklifler);
           setEslesmeler(eslesenler);
-          setLoaded(true);
         }
       }
     });
 
     return () => unsubscribe();
-  }, [loaded]);
+  }, []);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -98,7 +110,7 @@ export default function Profile() {
       await updateDoc(doc(db, "users", user.uid), {
         name: userName,
         iban: iban,
-        paypal: paypal
+        paypal: paypal,
       });
       alert("Bilgileriniz güncellendi.");
     }
@@ -125,17 +137,26 @@ export default function Profile() {
       {activeTab === "hesap" && (
         <div>
           <label>Ad Soyad:<br />
-            <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} />
+            <input
+              type="text"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+            />
           </label><br /><br />
-
           <label>IBAN:<br />
-            <input type="text" value={iban} onChange={(e) => setIban(e.target.value)} />
+            <input
+              type="text"
+              value={iban}
+              onChange={(e) => setIban(e.target.value)}
+            />
           </label><br /><br />
-
           <label>PayPal:<br />
-            <input type="email" value={paypal} onChange={(e) => setPaypal(e.target.value)} />
+            <input
+              type="email"
+              value={paypal}
+              onChange={(e) => setPaypal(e.target.value)}
+            />
           </label><br /><br />
-
           <button onClick={handleSaveInfo}>Kaydet</button>
           <p><strong>E-posta:</strong> {user.email}</p>
           <button onClick={handleLogout}>Çıkış Yap</button>
@@ -182,4 +203,4 @@ export default function Profile() {
       )}
     </div>
   );
-                                                          }
+                }
