@@ -63,29 +63,51 @@ export default function ChatRoom() {
   };
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>Mesajlaşma</h1>
-      <div style={{ maxHeight: "400px", overflowY: "auto", border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
+    <div style={{ padding: "1rem", maxWidth: "600px", margin: "auto" }}>
+      <h2 style={{ textAlign: "center" }}>Mesajlaşma</h2>
+
+      <div
+        style={{
+          height: "60vh",
+          overflowY: "auto",
+          border: "1px solid #ccc",
+          padding: "1rem",
+          marginBottom: "1rem",
+          borderRadius: "8px",
+          backgroundColor: "#fafafa",
+        }}
+      >
         {messages.map((msg) => (
-          <div key={msg.id} style={{
-            marginBottom: "0.5rem",
-            background: msg.senderUid === currentUser?.uid ? "#dcf8c6" : "#f1f1f1",
-            padding: "0.5rem",
-            borderRadius: "8px"
-          }}>
+          <div
+            key={msg.id}
+            style={{
+              marginBottom: "0.5rem",
+              background: msg.senderUid === currentUser?.uid ? "#dcf8c6" : "#e4e6eb",
+              padding: "0.6rem 1rem",
+              borderRadius: "12px",
+              alignSelf: msg.senderUid === currentUser?.uid ? "flex-end" : "flex-start",
+              maxWidth: "80%",
+            }}
+          >
             <strong>{msg.senderUid === currentUser?.uid ? "Ben" : "Karşı taraf"}</strong>: {msg.text}
           </div>
         ))}
       </div>
-      <form onSubmit={handleSend} style={{ display: "flex", gap: "1rem" }}>
+
+      <form onSubmit={handleSend} style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Mesajınızı yazın"
-          style={{ flex: 1 }}
+          style={{
+            flex: "1 1 auto",
+            padding: "0.5rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc"
+          }}
         />
-        <button type="submit">Gönder</button>
+        <button type="submit" style={{ padding: "0.5rem 1rem" }}>Gönder</button>
       </form>
     </div>
   );
