@@ -107,9 +107,9 @@ export default function Profile() {
   };
 
   const startChat = (uid1, uid2) => {
-    const chatId = [uid1, uid2].sort().join("_");
-    router.push(`/chat/${chatId}`);
-  };
+  const chatId = [uid1, uid2].sort().join("_");
+  router.push(`/chat/${chatId}`);
+};
 
   if (!user) return <p style={{ padding: "2rem" }}>Giriş yapmalısınız.</p>;
 
