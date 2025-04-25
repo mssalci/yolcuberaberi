@@ -12,7 +12,7 @@ const handleLogout = async () => { await signOut(auth); };
 
 const handleSaveInfo = async () => { if (user) { await updateDoc(doc(db, "users", user.uid), { name: userName, iban: iban, paypal: paypal }); alert("Bilgileriniz güncellendi."); } };
 
-const startChat = (uid1, uid2) => { const chatId = [uid1, uid2].sort().join("_"); router.push(/chat/${chatId}); };
+const startChat = (uid1, uid2) => { const chatId = [uid1, uid2].sort().join("_"); router.push(`/chat/${chatId}`); };
 
 if (!user) return <p style={{ padding: "2rem" }}>Giriş yapmalısınız.
 
