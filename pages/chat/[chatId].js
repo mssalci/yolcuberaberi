@@ -1,4 +1,3 @@
-// pages/chat/[chatId].js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { db, auth } from "../../firebase";
@@ -18,7 +17,7 @@ export default function ChatRoom() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
-  const q = query(messagesRef, orderBy("timestamp", "asc"));
+
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -35,7 +34,7 @@ export default function ChatRoom() {
     if (!chatId) return;
 
     const messagesRef = collection(db, "chats", chatId, "messages");
-    const q = query(messagesRef, orderBy("timestamp"));
+    const q = query(messagesRef, orderBy("timestamp", "asc")); // ÖNEMLİ!
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -47,13 +46,13 @@ export default function ChatRoom() {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !currentUser) return;
+    if (!newMessage.trim() || !currentUser || !chatId) return;
 
     try {
       await addDoc(collection(db, "chats", chatId, "messages"), {
         text: newMessage,
         senderUid: currentUser.uid,
-        timestamp: serverTimestamp(),
+        timestamp: serverTimestamp(), // Zaman damgası ekleniyor
       });
       setNewMessage("");
     } catch (error) {
@@ -66,7 +65,12 @@ export default function ChatRoom() {
       <h1>Mesajlaşma</h1>
       <div style={{ maxHeight: "400px", overflowY: "auto", border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
         {messages.map((msg) => (
-          <div key={msg.id} style={{ marginBottom: "0.5rem", background: msg.senderUid === currentUser?.uid ? "#dcf8c6" : "#f1f1f1", padding: "0.5rem", borderRadius: "8px" }}>
+          <div key={msg.id} style={{
+            marginBottom: "0.5rem",
+            background: msg.senderUid === currentUser?.uid ? "#dcf8c6" : "#f1f1f1",
+            padding: "0.5rem",
+            borderRadius: "8px"
+          }}>
             <strong>{msg.senderUid === currentUser?.uid ? "Ben" : "Karşı taraf"}</strong>: {msg.text}
           </div>
         ))}
