@@ -1,5 +1,5 @@
 // pages/profile.js
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -23,71 +23,68 @@ export default function Profile() {
   const [taleplerim, setTaleplerim] = useState([]);
   const [verdigimTeklifler, setVerdigimTeklifler] = useState([]);
   const [eslesmeler, setEslesmeler] = useState([]);
+  const fetchedRef = useRef(false); // Bu veri bir kez yüklendi mi kontrolü
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser && !fetchedRef.current) {
         setUser(currentUser);
-        fetchData(currentUser);
+        fetchedRef.current = true;
+
+        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setUserName(data.name || "");
+          setIban(data.iban || "");
+          setPaypal(data.paypal || "");
+        }
+
+        const q = query(collection(db, "talepler"), where("uid", "==", currentUser.uid));
+        const taleplerSnapshot = await getDocs(q);
+        setTaleplerim(taleplerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+        const teklifSnap = await getDocs(
+          query(collection(db, "teklifler"), where("teklifVerenUid", "==", currentUser.uid))
+        );
+        const teklifler = [];
+        const eslesenler = [];
+
+        for (let teklifDoc of teklifSnap.docs) {
+          const data = teklifDoc.data();
+          const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
+          const teklifData = {
+            id: teklifDoc.id,
+            ...data,
+            talep: talepDoc.exists() ? talepDoc.data() : null,
+          };
+          teklifler.push(teklifData);
+          if (data.durum === "kabul edildi") {
+            eslesenler.push(teklifData);
+          }
+        }
+
+        const gelenTekliflerSnap = await getDocs(
+          query(collection(db, "teklifler"), where("durum", "==", "kabul edildi"))
+        );
+        for (let teklifDoc of gelenTekliflerSnap.docs) {
+          const data = teklifDoc.data();
+          const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
+          if (talepDoc.exists() && talepDoc.data().uid === currentUser.uid) {
+            eslesenler.push({
+              id: teklifDoc.id,
+              ...data,
+              talep: talepDoc.data(),
+            });
+          }
+        }
+
+        setVerdigimTeklifler(teklifler);
+        setEslesmeler(eslesenler);
       }
     });
 
     return () => unsubscribe();
   }, []);
-
-  const fetchData = async (currentUser) => {
-    const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      setUserName(data.name || "");
-      setIban(data.iban || "");
-      setPaypal(data.paypal || "");
-    }
-
-    const q = query(collection(db, "talepler"), where("uid", "==", currentUser.uid));
-    const taleplerSnapshot = await getDocs(q);
-    setTaleplerim(taleplerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-
-    const teklifSnap = await getDocs(
-      query(collection(db, "teklifler"), where("teklifVerenUid", "==", currentUser.uid))
-    );
-
-    const teklifler = [];
-    const eslesenler = [];
-
-    for (let teklifDoc of teklifSnap.docs) {
-      const data = teklifDoc.data();
-      const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
-      const teklifData = {
-        id: teklifDoc.id,
-        ...data,
-        talep: talepDoc.exists() ? talepDoc.data() : null,
-      };
-      teklifler.push(teklifData);
-      if (data.durum === "kabul edildi") {
-        eslesenler.push(teklifData);
-      }
-    }
-
-    const gelenTekliflerSnap = await getDocs(
-      query(collection(db, "teklifler"), where("durum", "==", "kabul edildi"))
-    );
-
-    for (let teklifDoc of gelenTekliflerSnap.docs) {
-      const data = teklifDoc.data();
-      const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
-      if (talepDoc.exists() && talepDoc.data().uid === currentUser.uid) {
-        eslesenler.push({
-          id: teklifDoc.id,
-          ...data,
-          talep: talepDoc.data(),
-        });
-      }
-    }
-
-    setVerdigimTeklifler(teklifler);
-    setEslesmeler(eslesenler);
-  };
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -128,15 +125,12 @@ export default function Profile() {
           <label>Ad Soyad:<br />
             <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} />
           </label><br /><br />
-
           <label>IBAN:<br />
             <input type="text" value={iban} onChange={(e) => setIban(e.target.value)} />
           </label><br /><br />
-
           <label>PayPal:<br />
             <input type="email" value={paypal} onChange={(e) => setPaypal(e.target.value)} />
           </label><br /><br />
-
           <button onClick={handleSaveInfo}>Kaydet</button>
           <p><strong>E-posta:</strong> {user.email}</p>
           <button onClick={handleLogout}>Çıkış Yap</button>
