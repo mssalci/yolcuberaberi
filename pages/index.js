@@ -1,111 +1,94 @@
-// pages/index.js
-import Head from 'next/head';
+import React from "react";
 
 export default function Home() {
   return (
-    <>
-      <Head>
-        <title>Yolcu Beraberi - Yurtdışından Parça Getir</title>
-      </Head>
+    <div className="flex flex-col min-h-screen">
+      {/* Navbar */}
+      <header className="flex items-center justify-between px-6 py-4 shadow-md">
+        <div className="text-2xl font-bold text-primary">Yolcu Beraberi</div>
+        <div className="flex items-center gap-4">
+          <button className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary-dark">
+            Giriş Yap
+          </button>
+          <button className="px-4 py-2 border border-primary text-primary rounded-xl hover:bg-primary-light">
+            Kayıt Ol
+          </button>
+        </div>
+      </header>
 
-      <main className="min-h-screen bg-gray-50 flex flex-col items-center p-4">
-        {/* Üst Menü */}
-        <header className="w-full flex justify-between items-center py-4 px-6 bg-white shadow-sm">
-          <div className="text-2xl font-bold text-black">yolcuberaberi.com</div>
-          <div className="flex gap-4">
-            <button className="text-black">Gönderi Oluştur</button>
-            <button className="text-black">Yolcu İlanı Oluştur</button>
-            <button className="border px-4 py-2 rounded">Giriş Yap</button>
-            <button className="border px-4 py-2 rounded">Kayıt Ol</button>
-          </div>
-        </header>
+      {/* Hero Section */}
+      <section className="flex flex-col items-center justify-center text-center py-16 px-6 bg-gray-50">
+        <h1 className="text-4xl md:text-5xl font-bold mb-6">
+          Yurtdışından uygun fiyata parça mı getirmek istiyorsun? <br /> Yolcunu bul!
+        </h1>
 
-        {/* Ana Başlık */}
-        <section className="text-center my-12">
-          <h1 className="text-3xl md:text-5xl font-bold max-w-3xl mx-auto">
-            Yurtdışından uygun fiyata parça mı getirmek istiyorsun? Yolcunu bul!
-          </h1>
-        </section>
-
-        {/* Arama Alanı */}
-        <section className="bg-white rounded-lg shadow-md p-6 flex flex-col md:flex-row gap-4 items-center mb-16 w-full max-w-4xl">
-          <select className="border p-3 rounded w-full md:w-1/2">
-            <option>Ülke seç</option>
-            {/* Ülkeler gelecek */}
-          </select>
+        {/* Search Box */}
+        <div className="flex flex-wrap gap-4 justify-center w-full max-w-3xl mt-8">
           <input
             type="text"
-            placeholder="Tarih Aralığı"
-            className="border p-3 rounded w-full md:w-1/2"
+            placeholder="Nereden?"
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-300"
           />
-          <button className="bg-blue-600 text-white px-6 py-3 rounded w-full md:w-auto">
+          <input
+            type="text"
+            placeholder="Nereye?"
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-300"
+          />
+          <input
+            type="date"
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-300"
+          />
+          <button className="px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary-dark">
             Ara
           </button>
-        </section>
+        </div>
+      </section>
 
-        {/* Nasıl Çalışır */}
-        <section className="text-center mb-16">
-          <h2 className="text-2xl font-bold mb-8">Nasıl Çalışır?</h2>
-          <div className="flex flex-col md:flex-row gap-8 justify-center">
-            <div className="flex flex-col items-center">
-              <div className="text-4xl mb-2">📄</div>
-              <h3 className="font-bold">Gönderi İlanı Oluştur</h3>
-              <p className="text-gray-600">Kritik belgeleri doldur ve ilanı ver.</p>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-4xl mb-2">✈️</div>
-              <h3 className="font-bold">Yolcunu Bul</h3>
-              <p className="text-gray-600">Uygun yolcu ile eşleş ve anlaş.</p>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-4xl mb-2">📦</div>
-              <h3 className="font-bold">Eşyayı Teslim Al</h3>
-              <p className="text-gray-600">Kolayca eşyana kavuş.</p>
-            </div>
+      {/* How It Works Section */}
+      <section className="py-16 px-6 bg-white">
+        <h2 className="text-3xl font-bold text-center mb-12">Nasıl Çalışır?</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {/* Step 1 */}
+          <div className="flex flex-col items-center text-center p-6 shadow-lg rounded-xl">
+            <div className="text-4xl mb-4">✈️</div>
+            <h3 className="text-xl font-semibold mb-2">Yolcu Bul</h3>
+            <p>Yurt dışından dönen yolcuları kolayca bul.</p>
           </div>
-        </section>
+          {/* Step 2 */}
+          <div className="flex flex-col items-center text-center p-6 shadow-lg rounded-xl">
+            <div className="text-4xl mb-4">🛍️</div>
+            <h3 className="text-xl font-semibold mb-2">Sipariş Ver</h3>
+            <p>İstediğin ürünü yolcudan rica et.</p>
+          </div>
+          {/* Step 3 */}
+          <div className="flex flex-col items-center text-center p-6 shadow-lg rounded-xl">
+            <div className="text-4xl mb-4">💬</div>
+            <h3 className="text-xl font-semibold mb-2">Anlaş ve Teslim Al</h3>
+            <p>Yolcu ile anlaşıp ürününü kolayca teslim al.</p>
+          </div>
+        </div>
+      </section>
 
-        {/* Öne Çıkan Gönderiler */}
-        <section className="w-full max-w-5xl mb-16">
-          <h2 className="text-2xl font-bold mb-8 text-center">Öne Çıkan Gönderiler/Yolcular</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Kartlar */}
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold">Berlin → İstanbul</h3>
-              <p className="text-gray-600">10–20 Mayıs</p>
-              <p className="text-gray-600">1 kg eşya • 50 €</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold">New York → Ankara</h3>
-              <p className="text-gray-600">5–12 Haziran</p>
-              <p className="text-gray-600">8 kg boş alan • 150 $</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold">İzmir → Paris</h3>
-              <p className="text-gray-600">20–25 Nisan</p>
-              <p className="text-gray-600">3 kg eşya • 40 €</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold">Londra → Adana</h3>
-              <p className="text-gray-600">1–4 Temmuz</p>
-              <p className="text-gray-600">12 kg boş alan • 200 £</p>
-            </div>
+      {/* Featured Listings */}
+      <section className="py-16 px-6 bg-gray-50">
+        <h2 className="text-3xl font-bold text-center mb-12">Öne Çıkanlar</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {/* Example Card */}
+          <div className="border p-6 rounded-xl shadow-md bg-white">
+            <h3 className="font-semibold text-lg mb-2">iPhone 15 Pro Max</h3>
+            <p className="text-gray-500 mb-4">New York → İstanbul</p>
+            <button className="mt-auto px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary-dark">
+              İlanı Gör
+            </button>
           </div>
-        </section>
+          {/* Diğer kartlar da böyle... */}
+        </div>
+      </section>
 
-        {/* Footer */}
-        <footer className="text-center py-8 text-gray-500">
-          <div className="flex justify-center gap-4 mb-2">
-            <a href="#">Hakkımızda</a>
-            <a href="#">KVKK</a>
-            <a href="#">İletişim</a>
-          </div>
-          <div className="flex justify-center gap-4">
-            <a href="#">Facebook</a>
-            <a href="#">Instagram</a>
-          </div>
-        </footer>
-      </main>
-    </>
+      {/* Footer */}
+      <footer className="py-8 px-6 bg-primary text-white text-center">
+        © 2025 Yolcu Beraberi. Tüm hakları saklıdır.
+      </footer>
+    </div>
   );
 }
