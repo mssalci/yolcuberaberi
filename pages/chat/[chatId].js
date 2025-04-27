@@ -1,9 +1,6 @@
-import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { db, auth } from "../../firebase";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
 
 function ChatRoom() {
   const router = useRouter();
@@ -13,49 +10,17 @@ function ChatRoom() {
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    if (!router.isReady) return; // router hazır değilse çalıştırma
-
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setCurrentUser(user);
-      } else {
-        router.push("/login");
-      }
-    });
-
-    return () => unsubscribeAuth();
-  }, [router.isReady]);
-
-  useEffect(() => {
     if (!router.isReady || !chatId) return;
 
-    const messagesRef = collection(db, "chats", chatId, "messages");
-    const q = query(messagesRef, orderBy("timestamp", "asc"));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setMessages(msgList);
-    });
-
-    return () => unsubscribe();
+    // Örnek: chatId'ye göre mesajları çekmek için
+    console.log("Aktif Chat ID:", chatId);
+    // İstersen buraya veritabanı bağlantısı koyabilirsin
   }, [router.isReady, chatId]);
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !currentUser || !chatId) return;
-
-    const messagesRef = collection(db, "chats", chatId, "messages");
-
-    try {
-      await addDoc(messagesRef, {
-        text: newMessage,
-        senderUid: currentUser.uid,
-        timestamp: serverTimestamp(),
-      });
-      setNewMessage("");
-    } catch (error) {
-      console.error("Mesaj gönderme hatası:", error.message);
-    }
+  const handleSendMessage = () => {
+    if (newMessage.trim() === "") return;
+    setMessages((prev) => [...prev, { text: newMessage, sender: "Me" }]);
+    setNewMessage("");
   };
 
   if (!router.isReady) {
@@ -63,50 +28,27 @@ function ChatRoom() {
   }
 
   return (
-    <div style={{ padding: "1rem", maxWidth: "600px", margin: "auto" }}>
-      <h2 style={{ textAlign: "center" }}>Mesajlaşma</h2>
-
-      <div style={{
-        height: "60vh",
-        overflowY: "auto",
-        border: "1px solid #ccc",
-        padding: "1rem",
-        marginBottom: "1rem",
-        borderRadius: "8px",
-        backgroundColor: "#fafafa",
-      }}>
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            style={{
-              marginBottom: "0.5rem",
-              background: msg.senderUid === currentUser?.uid ? "#dcf8c6" : "#e4e6eb",
-              padding: "0.6rem 1rem",
-              borderRadius: "12px",
-              alignSelf: msg.senderUid === currentUser?.uid ? "flex-end" : "flex-start",
-              maxWidth: "80%",
-            }}
-          >
-            <strong>{msg.senderUid === currentUser?.uid ? "Ben" : "Karşı taraf"}</strong>: {msg.text}
+    <div style={{ padding: "20px" }}>
+      <h1>Chat Room: {chatId}</h1>
+      
+      <div style={{ marginBottom: "20px" }}>
+        {messages.map((msg, index) => (
+          <div key={index} style={{ marginBottom: "10px" }}>
+            <strong>{msg.sender}:</strong> {msg.text}
           </div>
         ))}
       </div>
 
-      <form onSubmit={handleSend} style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Mesajınızı yazın"
-          style={{
-            flex: "1 1 auto",
-            padding: "0.5rem",
-            borderRadius: "6px",
-            border: "1px solid #ccc"
-          }}
-        />
-        <button type="submit" style={{ padding: "0.5rem 1rem" }}>Gönder</button>
-      </form>
+      <input
+        type="text"
+        value={newMessage}
+        onChange={(e) => setNewMessage(e.target.value)}
+        placeholder="Mesaj yaz..."
+        style={{ padding: "10px", width: "80%" }}
+      />
+      <button onClick={handleSendMessage} style={{ padding: "10px 20px", marginLeft: "10px" }}>
+        Gönder
+      </button>
     </div>
   );
 }
