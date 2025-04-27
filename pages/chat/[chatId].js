@@ -2,17 +2,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import { db, auth } from "../../firebase";
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  serverTimestamp
-} from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
-function ChatRoomComponent() {
+function ChatRoom() {
   const router = useRouter();
   const { chatId } = router.query;
   const [messages, setMessages] = useState([]);
@@ -20,6 +13,8 @@ function ChatRoomComponent() {
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
+    if (!router.isReady) return; // router hazır değilse çalıştırma
+
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         setCurrentUser(user);
@@ -29,10 +24,10 @@ function ChatRoomComponent() {
     });
 
     return () => unsubscribeAuth();
-  }, [router]);
+  }, [router.isReady]);
 
   useEffect(() => {
-    if (!chatId) return;
+    if (!router.isReady || !chatId) return;
 
     const messagesRef = collection(db, "chats", chatId, "messages");
     const q = query(messagesRef, orderBy("timestamp", "asc"));
@@ -43,7 +38,7 @@ function ChatRoomComponent() {
     });
 
     return () => unsubscribe();
-  }, [chatId]);
+  }, [router.isReady, chatId]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -63,21 +58,23 @@ function ChatRoomComponent() {
     }
   };
 
+  if (!router.isReady) {
+    return <div>Yükleniyor...</div>;
+  }
+
   return (
     <div style={{ padding: "1rem", maxWidth: "600px", margin: "auto" }}>
       <h2 style={{ textAlign: "center" }}>Mesajlaşma</h2>
 
-      <div
-        style={{
-          height: "60vh",
-          overflowY: "auto",
-          border: "1px solid #ccc",
-          padding: "1rem",
-          marginBottom: "1rem",
-          borderRadius: "8px",
-          backgroundColor: "#fafafa",
-        }}
-      >
+      <div style={{
+        height: "60vh",
+        overflowY: "auto",
+        border: "1px solid #ccc",
+        padding: "1rem",
+        marginBottom: "1rem",
+        borderRadius: "8px",
+        backgroundColor: "#fafafa",
+      }}>
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -114,4 +111,4 @@ function ChatRoomComponent() {
   );
 }
 
-export default dynamic(() => Promise.resolve(ChatRoomComponent), { ssr: false });
+export default dynamic(() => Promise.resolve(ChatRoom), { ssr: false });
