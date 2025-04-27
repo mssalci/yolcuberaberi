@@ -1,67 +1,60 @@
-// pages/register.js
-
+import dynamic from "next/dynamic";
 import { useState } from "react";
-import { auth, db } from "../firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/router";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import firebaseApp from "../firebase/firebaseConfig"; // kendi config dosyanı import et
 
-export default function Register() {
-  const [name, setName] = useState("");
+function RegisterPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const router = useRouter();
+  const [error, setError] = useState("");
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    const auth = getAuth(firebaseApp);
 
     try {
-      // Kullanıcıyı Firebase Authentication ile oluştur
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Firestore'da kullanıcı profili oluştur
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        email: user.email,
-        name: name,
-      });
-
-      alert("Kayıt başarılı! Giriş yapabilirsiniz.");
-      router.push("/login");
-    } catch (error) {
-      console.error("Kayıt Hatası:", error.message);
-      alert("Kayıt sırasında bir hata oluştu: " + error.message);
+      await createUserWithEmailAndPassword(auth, email, password);
+      router.push("/login"); // kayıt başarılı, login sayfasına yönlendir
+    } catch (err) {
+      setError(err.message);
     }
   };
 
   return (
-    <div style={{ padding: "2rem" }}>
+    <div style={{ padding: "20px" }}>
       <h1>Kayıt Ol</h1>
-      <form onSubmit={handleRegister}>
-        <input
-          type="text"
-          placeholder="Ad Soyad"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        /><br />
+      <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column" }}>
         <input
           type="email"
           placeholder="E-posta"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-        /><br />
+          style={{ marginBottom: "10px", padding: "10px" }}
+        />
         <input
           type="password"
           placeholder="Şifre"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-        /><br />
-        <button type="submit">Kayıt Ol</button>
+          style={{ marginBottom: "10px", padding: "10px" }}
+        />
+        <button type="submit" style={{ padding: "10px" }}>
+          Kayıt Ol
+        </button>
       </form>
+
+      {error && (
+        <p style={{ color: "red", marginTop: "10px" }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }
+
+// Build hatası almamak için SSR kapalı!
+export default dynamic(() => Promise.resolve(RegisterPage), { ssr: false });
