@@ -113,9 +113,9 @@ export default function ChatRoom() {
   );
 }
 
-// Bunu mutlaka ekliyoruz, yoksa build hatası alırsın
-export async function getServerSideProps(context) {
+// --- BURASI EKLENDİ: ---
+export async function getServerSideProps() {
   return {
-    props: {},
+    props: {}, // boş props veriyoruz ki build hatası olmasın
   };
-}
+          }
