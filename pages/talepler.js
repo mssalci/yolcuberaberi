@@ -1,93 +1,39 @@
 // pages/talepler.js
-import { useEffect, useState } from "react";
-import { db, auth } from "../firebase";
-import {
-  collection,
-  getDocs,
-  addDoc,
-  serverTimestamp,
-  query,
-  where
-} from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import Head from "next/head";
+import Link from "next/link";
 
 export default function Talepler() {
-  const [talepler, setTalepler] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
-
-  // Teklif verme fonksiyonu
-  const handleTeklifVer = async (talepId) => {
-    if (!currentUser) {
-      alert("Teklif vermek için giriş yapmalısınız.");
-      return;
-    }
-
-    // Aynı kullanıcı aynı talebe teklif vermesin kontrolü
-    const querySnapshot = await getDocs(
-      query(
-        collection(db, "teklifler"),
-        where("talepId", "==", talepId),
-        where("teklifVerenUid", "==", currentUser.uid)
-      )
-    );
-
-    if (!querySnapshot.empty) {
-      alert("Bu talebe zaten teklif verdiniz.");
-      return;
-    }
-
-    try {
-      await addDoc(collection(db, "teklifler"), {
-        talepId,
-        teklifVerenUid: currentUser.uid,
-        createdAt: serverTimestamp(),
-      });
-      alert("Teklifiniz iletildi!");
-    } catch (error) {
-      console.error("Teklif hatası:", error.message);
-      alert("Teklif verilirken bir hata oluştu.");
-    }
-  };
-
-  // Talepleri çek ve kullanıcıyı izle
-  useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-    });
-
-    const fetchTalepler = async () => {
-      const snapshot = await getDocs(collection(db, "talepler"));
-      const taleplerList = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setTalepler(taleplerList);
-    };
-
-    fetchTalepler();
-  }, []);
-
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>Tüm Talepler</h1>
-      {talepler.length === 0 ? (
-        <p>Henüz bir talep oluşturulmamış.</p>
-      ) : (
-        talepler.map((talep) => (
-          <div key={talep.id} style={{ marginBottom: "2rem", border: "1px solid #ccc", padding: "1rem" }}>
-            <h2>{talep.baslik}</h2>
-            <p><strong>Açıklama:</strong> {talep.aciklama}</p>
-            <p><strong>Nereden:</strong> {talep.nereden}</p>
-            <p><strong>Tahmini Teslim Tarihi:</strong> {talep.tahminiTarih || "-"}</p>
+    <>
+      <Head>
+        <title>Tüm Talepler - Yolcu Beraberi</title>
+      </Head>
 
-            {currentUser?.uid !== talep.uid && (
-              <button style={{ marginTop: "1rem" }} onClick={() => handleTeklifVer(talep.id)}>
-                ✈️ Getirebilirim
-              </button>
-            )}
+      <main className="bg-white text-gray-800 min-h-screen">
+        <section className="py-20 px-6 max-w-6xl mx-auto">
+          <h1 className="text-3xl font-bold mb-10 text-center">Tüm Talepler</h1>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="border p-6 rounded-lg shadow-sm hover:shadow-md transition">
+              <h3 className="text-xl font-semibold mb-2">MacBook Air M2</h3>
+              <p className="mb-4">ABD'den Türkiye'ye getirilecek. Hızlı teslimat gerekiyor.</p>
+              <Link href="/chat/1" className="text-blue-600 hover:underline">Detayları Gör</Link>
+            </div>
+
+            <div className="border p-6 rounded-lg shadow-sm hover:shadow-md transition">
+              <h3 className="text-xl font-semibold mb-2">Zara Mont</h3>
+              <p className="mb-4">İspanya'dan İstanbul'a getirilecek.</p>
+              <Link href="/chat/2" className="text-blue-600 hover:underline">Detayları Gör</Link>
+            </div>
+
+            <div className="border p-6 rounded-lg shadow-sm hover:shadow-md transition">
+              <h3 className="text-xl font-semibold mb-2">Apple Watch Ultra</h3>
+              <p className="mb-4">ABD siparişi. Hızlı iletişim bekleniyor.</p>
+              <Link href="/chat/3" className="text-blue-600 hover:underline">Detayları Gör</Link>
+            </div>
           </div>
-        ))
-      )}
-    </div>
+        </section>
+      </main>
+    </>
   );
 }
