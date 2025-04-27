@@ -1,55 +1,60 @@
-// pages/login.js
-
+import dynamic from "next/dynamic";
 import { useState } from "react";
-import { auth } from "../firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/router";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import firebaseApp from "../firebase/firebaseConfig"; // kendi firebaseConfig dosyanı import et
 
-export default function Login() {
+function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const router = useRouter();
+  const [error, setError] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    const auth = getAuth(firebaseApp);
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      alert("Giriş başarılı!");
-      router.push("/");
-    } catch (error) {
-      // Hata koduna göre mesaj göster
-      if (error.code === "auth/user-not-found") {
-        alert("Bu e-posta adresiyle kayıtlı bir kullanıcı bulunamadı.");
-      } else if (error.code === "auth/wrong-password") {
-        alert("Hatalı şifre. Lütfen tekrar deneyin.");
-      } else if (error.code === "auth/invalid-email") {
-        alert("Geçersiz e-posta adresi.");
-      } else {
-        alert("Giriş yapılırken bir hata oluştu: " + error.message);
-      }
+      router.push("/"); // giriş başarılı, ana sayfaya yönlendir
+    } catch (err) {
+      setError(err.message); // hata varsa ekrana yaz
     }
   };
 
   return (
-    <div style={{ padding: "2rem" }}>
+    <div style={{ padding: "20px" }}>
       <h1>Giriş Yap</h1>
-      <form onSubmit={handleLogin}>
+      <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column" }}>
         <input
           type="email"
           placeholder="E-posta"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-        /><br />
+          style={{ marginBottom: "10px", padding: "10px" }}
+        />
         <input
           type="password"
           placeholder="Şifre"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-        /><br />
-        <button type="submit">Giriş Yap</button>
+          style={{ marginBottom: "10px", padding: "10px" }}
+        />
+        <button type="submit" style={{ padding: "10px" }}>
+          Giriş Yap
+        </button>
       </form>
+
+      {error && (
+        <p style={{ color: "red", marginTop: "10px" }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }
+
+// Build hatası almamak için SSR kapalı!
+export default dynamic(() => Promise.resolve(LoginPage), { ssr: false });
