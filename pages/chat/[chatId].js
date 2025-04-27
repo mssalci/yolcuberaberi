@@ -112,3 +112,8 @@ export default function ChatRoom() {
     </div>
   );
 }
+export async function getServerSideProps(context) {
+  return {
+    props: {}, // boş props
+  };
+}
