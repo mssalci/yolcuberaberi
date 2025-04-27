@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import dynamic from "next/dynamic";
 import { db, auth } from "../../firebase";
 import {
   collection,
@@ -11,7 +12,7 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
-export default function ChatRoom() {
+function ChatRoomComponent() {
   const router = useRouter();
   const { chatId } = router.query;
   const [messages, setMessages] = useState([]);
@@ -113,9 +114,4 @@ export default function ChatRoom() {
   );
 }
 
-// --- BURASI EKLENDİ: ---
-export async function getServerSideProps() {
-  return {
-    props: {}, // boş props veriyoruz ki build hatası olmasın
-  };
-          }
+export default dynamic(() => Promise.resolve(ChatRoomComponent), { ssr: false });
