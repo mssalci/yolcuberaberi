@@ -1,56 +1,81 @@
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
+import { auth, db } from "../../firebase/firebaseConfig";
+import { doc, getDoc, collection, addDoc, query, where, getDocs, serverTimestamp } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
-function ChatRoom() {
+export default function ChatPage() {
   const router = useRouter();
   const { chatId } = router.query;
+  const [user, setUser] = useState(null);
+  const [chat, setChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
-  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    if (!router.isReady || !chatId) return;
+    if (!chatId) return;
 
-    // Örnek: chatId'ye göre mesajları çekmek için
-    console.log("Aktif Chat ID:", chatId);
-    // İstersen buraya veritabanı bağlantısı koyabilirsin
-  }, [router.isReady, chatId]);
+    const fetchChatData = async () => {
+      const chatDocRef = doc(db, "chats", chatId);
+      const chatSnap = await getDoc(chatDocRef);
+      if (chatSnap.exists()) {
+        setChat(chatSnap.data());
+      }
 
-  const handleSendMessage = () => {
+      const messagesQuery = query(collection(db, "messages"), where("chatId", "==", chatId));
+      const messagesSnapshot = await getDocs(messagesQuery);
+      const messagesList = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMessages(messagesList);
+    };
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        fetchChatData();
+      } else {
+        router.push("/login");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [chatId]);
+
+  const sendMessage = async (e) => {
+    e.preventDefault();
     if (newMessage.trim() === "") return;
-    setMessages((prev) => [...prev, { text: newMessage, sender: "Me" }]);
+
+    await addDoc(collection(db, "messages"), {
+      chatId: chatId,
+      senderId: user.uid,
+      text: newMessage,
+      createdAt: serverTimestamp(),
+    });
+
     setNewMessage("");
+    // Mesajı hemen eklemek için fetch tekrar çalıştırılabilir ya da real-time dinleme kurulabilir.
   };
 
-  if (!router.isReady) {
-    return <div>Yükleniyor...</div>;
-  }
+  if (!chat) return <div>Yükleniyor...</div>;
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Chat Room: {chatId}</h1>
-      
-      <div style={{ marginBottom: "20px" }}>
-        {messages.map((msg, index) => (
-          <div key={index} style={{ marginBottom: "10px" }}>
-            <strong>{msg.sender}:</strong> {msg.text}
+    <div>
+      <h1>Chat</h1>
+      <div>
+        {messages.map((msg) => (
+          <div key={msg.id}>
+            <strong>{msg.senderId}</strong>: {msg.text}
           </div>
         ))}
       </div>
-
-      <input
-        type="text"
-        value={newMessage}
-        onChange={(e) => setNewMessage(e.target.value)}
-        placeholder="Mesaj yaz..."
-        style={{ padding: "10px", width: "80%" }}
-      />
-      <button onClick={handleSendMessage} style={{ padding: "10px 20px", marginLeft: "10px" }}>
-        Gönder
-      </button>
+      <form onSubmit={sendMessage}>
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          placeholder="Mesajınızı yazın..."
+        />
+        <button type="submit">Gönder</button>
+      </form>
     </div>
   );
 }
-
-export default dynamic(() => Promise.resolve(ChatRoom), { ssr: false });
