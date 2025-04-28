@@ -1,67 +1,84 @@
-export const dynamic = 'force-dynamic';
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { auth, db } from "../../firebase/firebaseConfig";
-import { onAuthStateChanged } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { db, auth } from '../../firebase/firebaseConfig';
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+
+export const dynamic = 'force-dynamic';
 
 export default function ChatRoom() {
   const router = useRouter();
   const { chatId } = router.query;
-  const [chat, setChat] = useState(null);
+
   const [messages, setMessages] = useState([]);
-  const [user, setUser] = useState(null);
+  const [newMessage, setNewMessage] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     if (!router.isReady || !chatId) return;
 
-    const fetchChatData = async () => {
-      try {
-        const chatDocRef = doc(db, "chats", chatId);
-        const chatSnap = await getDoc(chatDocRef);
-        if (chatSnap.exists()) {
-          setChat(chatSnap.data());
-        }
-
-        const messagesQuery = query(
-          collection(db, "messages"),
-          where("chatId", "==", chatId)
-        );
-        const messagesSnapshot = await getDocs(messagesQuery);
-        const messagesList = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setMessages(messagesList);
-      } catch (error) {
-        console.error("Chat verileri çekilemedi:", error);
-      }
-    };
-
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        fetchChatData();
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser(user);
       } else {
-        router.push("/login");
+        router.push('/login');
       }
     });
 
-    return () => unsubscribe();
+    const messagesRef = collection(db, 'chats', chatId, 'messages');
+    const q = query(messagesRef, orderBy('createdAt', 'asc'));
+
+    const unsubscribeMessages = onSnapshot(q, (querySnapshot) => {
+      const fetchedMessages = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setMessages(fetchedMessages);
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeMessages();
+    };
   }, [router.isReady, chatId]);
 
-  if (!user || !chat) {
-    return <div>Yükleniyor...</div>;
+  const sendMessage = async () => {
+    if (!newMessage.trim()) return;
+
+    await addDoc(collection(db, 'chats', chatId, 'messages'), {
+      text: newMessage,
+      createdAt: serverTimestamp(),
+      uid: currentUser.uid,
+      displayName: currentUser.displayName || currentUser.email,
+    });
+
+    setNewMessage('');
+  };
+
+  if (!router.isReady || !chatId) {
+    return <div>Loading chat...</div>;
   }
 
   return (
-    <div>
-      <h1>Chat Başlığı: {chat.title || "Başlıksız"}</h1>
-      <div>
-        {messages.map((message) => (
-          <div key={message.id}>
-            <strong>{message.senderName}</strong>: {message.text}
+    <div style={{ padding: '20px' }}>
+      <h2>Chat Room</h2>
+      <div style={{ maxHeight: '300px', overflowY: 'scroll', border: '1px solid #ccc', marginBottom: '10px' }}>
+        {messages.map((msg) => (
+          <div key={msg.id} style={{ marginBottom: '5px' }}>
+            <strong>{msg.displayName}: </strong>{msg.text}
           </div>
         ))}
       </div>
+      <input
+        type="text"
+        value={newMessage}
+        onChange={(e) => setNewMessage(e.target.value)}
+        placeholder="Write a message..."
+        style={{ width: '80%', marginRight: '10px' }}
+      />
+      <button onClick={sendMessage}>Send</button>
     </div>
   );
 }
