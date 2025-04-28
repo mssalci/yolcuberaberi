@@ -1,31 +1,37 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { auth, db } from "../../firebase/firebaseConfig";
-import { doc, getDoc, collection, addDoc, query, where, getDocs, serverTimestamp } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 
-export default function ChatPage() {
+export default function ChatRoom() {
   const router = useRouter();
   const { chatId } = router.query;
-  const [user, setUser] = useState(null);
   const [chat, setChat] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    if (!chatId) return;
+    if (!router.isReady || !chatId) return; // ÖNEMLİ: router.isReady kontrolü
 
     const fetchChatData = async () => {
-      const chatDocRef = doc(db, "chats", chatId);
-      const chatSnap = await getDoc(chatDocRef);
-      if (chatSnap.exists()) {
-        setChat(chatSnap.data());
-      }
+      try {
+        const chatDocRef = doc(db, "chats", chatId);
+        const chatSnap = await getDoc(chatDocRef);
+        if (chatSnap.exists()) {
+          setChat(chatSnap.data());
+        }
 
-      const messagesQuery = query(collection(db, "messages"), where("chatId", "==", chatId));
-      const messagesSnapshot = await getDocs(messagesQuery);
-      const messagesList = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMessages(messagesList);
+        const messagesQuery = query(
+          collection(db, "messages"),
+          where("chatId", "==", chatId)
+        );
+        const messagesSnapshot = await getDocs(messagesQuery);
+        const messagesList = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setMessages(messagesList);
+      } catch (error) {
+        console.error("Chat verileri çekilemedi:", error);
+      }
     };
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -38,44 +44,22 @@ export default function ChatPage() {
     });
 
     return () => unsubscribe();
-  }, [chatId]);
+  }, [router.isReady, chatId]); // <-- router.isReady eklendi
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (newMessage.trim() === "") return;
-
-    await addDoc(collection(db, "messages"), {
-      chatId: chatId,
-      senderId: user.uid,
-      text: newMessage,
-      createdAt: serverTimestamp(),
-    });
-
-    setNewMessage("");
-    // Mesajı hemen eklemek için fetch tekrar çalıştırılabilir ya da real-time dinleme kurulabilir.
-  };
-
-  if (!chat) return <div>Yükleniyor...</div>;
+  if (!user || !chat) {
+    return <div>Yükleniyor...</div>;
+  }
 
   return (
     <div>
-      <h1>Chat</h1>
+      <h1>Chat Başlığı: {chat.title || "Başlıksız"}</h1>
       <div>
-        {messages.map((msg) => (
-          <div key={msg.id}>
-            <strong>{msg.senderId}</strong>: {msg.text}
+        {messages.map((message) => (
+          <div key={message.id}>
+            <strong>{message.senderName}</strong>: {message.text}
           </div>
         ))}
       </div>
-      <form onSubmit={sendMessage}>
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Mesajınızı yazın..."
-        />
-        <button type="submit">Gönder</button>
-      </form>
     </div>
   );
 }
