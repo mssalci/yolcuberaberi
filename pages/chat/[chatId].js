@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { auth, db } from "../../firebase/firebaseConfig";
@@ -12,7 +14,7 @@ export default function ChatRoom() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    if (!router.isReady || !chatId) return; // ÖNEMLİ: router.isReady kontrolü
+    if (!router.isReady || !chatId) return;
 
     const fetchChatData = async () => {
       try {
@@ -44,7 +46,7 @@ export default function ChatRoom() {
     });
 
     return () => unsubscribe();
-  }, [router.isReady, chatId]); // <-- router.isReady eklendi
+  }, [router.isReady, chatId]);
 
   if (!user || !chat) {
     return <div>Yükleniyor...</div>;
