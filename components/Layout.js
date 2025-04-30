@@ -1,3 +1,4 @@
+// components/Layout.js
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { getAuth, signOut } from 'firebase/auth';
