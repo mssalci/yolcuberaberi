@@ -1,7 +1,7 @@
-import Link from 'next/link';
-import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import { getAuth, signOut } from 'firebase/auth';
+import Link from 'next/link';
 import { FileText, Mail, PlusCircle, LogOut } from 'lucide-react';
 
 export default function Layout({ children }) {
@@ -36,7 +36,7 @@ export default function Layout({ children }) {
               <FileText size={20} /> Tüm Talepler
             </Link>
             <Link href="/tekliflerim" className="flex items-center gap-2 hover:text-yellow-300">
-              <Mail size={20} /> Tekliflerim
+              <Mail size={20} /> Eşleşmeler
             </Link>
             <Link href="/talep" className="flex items-center gap-2 hover:text-yellow-300">
               <PlusCircle size={20} /> Talep Oluştur
@@ -52,9 +52,7 @@ export default function Layout({ children }) {
       </aside>
 
       {/* Ana İçerik */}
-      <main className="flex-1 bg-gray-50 p-8 overflow-y-auto">
-        {children}
-      </main>
+      <main className="flex-1 bg-gray-50 p-8 overflow-y-auto">{children}</main>
     </div>
   );
 }
