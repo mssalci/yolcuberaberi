@@ -1,55 +1,18 @@
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
-import { auth } from '../firebase/firebaseConfig';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { useEffect, useState } from 'react'; import { useRouter } from 'next/router'; import { getAuth, signOut } from 'firebase/auth'; import Link from 'next/link'; import { FileText, PlusCircle, LogOut } from 'lucide-react';
 
-export default function Header() {
-  const router = useRouter();
-  const [user, setUser] = useState(null);
+export default function HomePage() { const auth = getAuth(); const router = useRouter(); const [user, setUser] = useState(null);
 
-  useEffect(() => {
-    // Kullanıcı bilgisini dinle
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
+useEffect(() => { const unsubscribe = auth.onAuthStateChanged(currentUser => { if (!currentUser) { router.push('/login'); } else { setUser(currentUser); } }); return () => unsubscribe(); }, []);
 
-    return () => unsubscribe();
-  }, []);
+const handleLogout = async () => { await signOut(auth); router.push('/login'); };
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.push('/login');
-    } catch (error) {
-      console.error('Çıkış yapılırken hata:', error.message);
-    }
-  };
+return ( 
 
-  return (
-    <header style={{ padding: '10px', borderBottom: '1px solid #ccc' }}>
-      <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <Link href="/">Ana Sayfa</Link>
-          <Link href="/tekliflerim" style={{ marginLeft: '10px' }}>Tekliflerim</Link>
-        </div>
+{/* Sol Menü */} 
 
-        <div>
-          {user ? (
-            <>
-              <span style={{ marginRight: '10px' }}>
-                {user.email}
-              </span>
-              <button onClick={handleLogout}>Çıkış Yap</button>
-            </>
-          ) : (
-            <>
-              <Link href="/login">Giriş Yap</Link>
-              <Link href="/register" style={{ marginLeft: '10px' }}>Kayıt Ol</Link>
-            </>
-          )}
-        </div>
-      </nav>
-    </header>
-  );
-}
+Yolcu Beraberi Tüm Talepler Tekliflerim Talep Oluştur 
+
+Çıkış Yap {/* Ana İçerik */} <main className="flex-1 bg-gray-50 p-8 overflow-y-auto"> <h1 className="text-3xl font-bold mb-4 text-gray-800">Hoş Geldiniz!</h1> <p className="text-gray-700">Soldaki menüden talepleri görüntüleyebilir, yeni talepler oluşturabilir veya tekliflerinizi yönetebilirsiniz.</p> </main> </div> 
+
+); }
+
