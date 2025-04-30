@@ -1,11 +1,24 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
 import { getAuth, signOut } from 'firebase/auth';
-import { LogOut } from 'lucide-react';
+import { FileText, Mail, PlusCircle, LogOut } from 'lucide-react';
 
 export default function Layout({ children }) {
-  const router = useRouter();
   const auth = getAuth();
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(currentUser => {
+      if (!currentUser) {
+        router.push('/login');
+      } else {
+        setUser(currentUser);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -19,17 +32,26 @@ export default function Layout({ children }) {
         <div>
           <h2 className="text-2xl font-bold mb-6">Yolcu Beraberi</h2>
           <nav className="space-y-4">
-            <Link href="/talepler" className="block hover:text-yellow-300">Tüm Talepler</Link>
-            <Link href="/eslesmeler" className="block hover:text-yellow-300">Tekliflerim</Link>
-            <Link href="/talep" className="block hover:text-yellow-300">Talep Oluştur</Link>
+            <Link href="/talepler" className="flex items-center gap-2 hover:text-yellow-300">
+              <FileText size={20} /> Tüm Talepler
+            </Link>
+            <Link href="/tekliflerim" className="flex items-center gap-2 hover:text-yellow-300">
+              <Mail size={20} /> Tekliflerim
+            </Link>
+            <Link href="/talep" className="flex items-center gap-2 hover:text-yellow-300">
+              <PlusCircle size={20} /> Talep Oluştur
+            </Link>
           </nav>
         </div>
-        <button onClick={handleLogout} className="text-red-400 hover:text-red-600 flex items-center gap-2">
-          <LogOut size={18} /> Çıkış Yap
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 text-red-400 hover:text-red-600"
+        >
+          <LogOut size={20} /> Çıkış Yap
         </button>
       </aside>
 
-      {/* Sağ İçerik */}
+      {/* Ana İçerik */}
       <main className="flex-1 bg-gray-50 p-8 overflow-y-auto">
         {children}
       </main>
