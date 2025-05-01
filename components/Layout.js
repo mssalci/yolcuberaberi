@@ -1,4 +1,3 @@
-// components/Layout.js
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { auth } from '../firebase/firebaseConfig';
@@ -29,7 +28,11 @@ export default function Layout({ children }) {
       {/* Sol Menü */}
       <aside className="w-full md:w-64 bg-gray-900 text-white p-4 flex flex-col justify-between">
         <div>
-          <h2 className="text-xl font-bold mb-6">Yolcu Beraberi</h2>
+          <Link href="/">
+            <span className="text-xl font-bold mb-6 block cursor-pointer hover:text-yellow-300">
+              Yolcu Beraberi
+            </span>
+          </Link>
           <nav className="space-y-4">
             <Link href="/talepler" className="block hover:text-yellow-300">
               Tüm Talepler
