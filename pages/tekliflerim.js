@@ -1,6 +1,6 @@
-// pages/tekliflerim.js
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { auth, db } from '../firebase/firebaseConfig';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 
@@ -14,12 +14,10 @@ export default function Tekliflerim() {
     if (!user) return;
 
     const fetchData = async () => {
-      // Kullanıcının yaptığı teklifler
       const q1 = query(collection(db, 'teklifler'), where('teklifVeren', '==', user.uid));
       const snapshot1 = await getDocs(q1);
       setTeklifEttiklerim(snapshot1.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-      // Kullanıcının taleplerine gelen teklifler
       const taleplerSnapshot = await getDocs(query(collection(db, 'talepler'), where('talepSahibi', '==', user.uid)));
       const talepIDs = taleplerSnapshot.docs.map(doc => doc.id);
 
@@ -42,7 +40,6 @@ export default function Tekliflerim() {
       <main className="bg-white text-gray-800 min-h-screen p-6 max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 text-center">Eşleşmelerim</h1>
 
-        {/* Tabs */}
         <div className="flex gap-4 justify-center mb-8">
           <button
             className={`py-2 px-6 rounded-full ${
@@ -62,16 +59,29 @@ export default function Tekliflerim() {
           </button>
         </div>
 
-        {/* Tab İçerikleri */}
         {activeTab === 'ettiklerim' && (
           <div className="grid md:grid-cols-2 gap-6">
             {teklifEttiklerim.length === 0 ? (
               <p>Henüz teklif verdiğiniz bir talep yok.</p>
             ) : (
               teklifEttiklerim.map(teklif => (
-                <div key={teklif.id} className="border p-4 rounded-lg shadow-sm">
-                  <h3 className="font-bold mb-1">Talep: {teklif.urunAdi || 'Ürün adı yok'}</h3>
-                  <p className="text-sm">Not: {teklif.mesaj || 'Mesaj yok'}</p>
+                <div key={teklif.id} className="border p-4 rounded-lg shadow-sm space-y-2">
+                  <h3 className="font-bold text-lg">Talep: {teklif.urunAdi || 'Ürün adı yok'}</h3>
+                  <p className="text-sm text-gray-700">Not: {teklif.mesaj || 'Mesaj yok'}</p>
+                  <div className="flex gap-4 mt-2">
+                    <Link
+                      href={`/teklif/${teklif.id}`}
+                      className="text-blue-600 underline hover:text-blue-800"
+                    >
+                      Detayları Gör
+                    </Link>
+                    <Link
+                      href={`/chat/${teklif.id}`}
+                      className="text-green-600 underline hover:text-green-800"
+                    >
+                      Mesajlaş
+                    </Link>
+                  </div>
                 </div>
               ))
             )}
@@ -84,9 +94,23 @@ export default function Tekliflerim() {
               <p>Henüz taleplerinize gelen bir teklif yok.</p>
             ) : (
               talebimeGelenler.map(teklif => (
-                <div key={teklif.id} className="border p-4 rounded-lg shadow-sm">
-                  <h3 className="font-bold mb-1">Teklif Sahibi: {teklif.teklifVeren || 'Bilinmiyor'}</h3>
-                  <p className="text-sm">Mesaj: {teklif.mesaj || 'Mesaj yok'}</p>
+                <div key={teklif.id} className="border p-4 rounded-lg shadow-sm space-y-2">
+                  <h3 className="font-bold text-lg">Teklif Sahibi: {teklif.teklifVeren || 'Bilinmiyor'}</h3>
+                  <p className="text-sm text-gray-700">Mesaj: {teklif.mesaj || 'Mesaj yok'}</p>
+                  <div className="flex gap-4 mt-2">
+                    <Link
+                      href={`/teklif/${teklif.id}`}
+                      className="text-blue-600 underline hover:text-blue-800"
+                    >
+                      Detayları Gör
+                    </Link>
+                    <Link
+                      href={`/chat/${teklif.id}`}
+                      className="text-green-600 underline hover:text-green-800"
+                    >
+                      Mesajlaş
+                    </Link>
+                  </div>
                 </div>
               ))
             )}
@@ -95,4 +119,4 @@ export default function Tekliflerim() {
       </main>
     </>
   );
-}
+          }
