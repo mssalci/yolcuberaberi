@@ -1,43 +1,50 @@
+// pages/giris.js
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { auth } from "../firebase/firebaseConfig";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase/firebaseConfig";
 
-export default function Login() {
-  const router = useRouter();
+export default function Giris() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [sifre, setSifre] = useState("");
+  const [hata, setHata] = useState(null);
+  const router = useRouter();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push("/profile");
+      await signInWithEmailAndPassword(auth, email, sifre);
+      router.push("/"); // Giriş başarılıysa anasayfaya yönlendir
     } catch (error) {
-      console.error("Login error:", error.message);
-      alert(error.message);
+      setHata("Giriş başarısız: " + error.message);
     }
   };
 
   return (
-    <div>
-      <h1>Giriş Yap</h1>
-      <form onSubmit={handleLogin}>
+    <div className="max-w-md mx-auto py-12">
+      <h1 className="text-2xl font-bold mb-6">Giriş Yap</h1>
+      <form onSubmit={handleLogin} className="space-y-4">
         <input
           type="email"
           placeholder="E-posta"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          required
+          className="w-full border px-4 py-2 rounded"
         />
         <input
           type="password"
           placeholder="Şifre"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
+          value={sifre}
+          onChange={(e) => setSifre(e.target.value)}
+          className="w-full border px-4 py-2 rounded"
         />
-        <button type="submit">Giriş Yap</button>
+        {hata && <p className="text-red-500">{hata}</p>}
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+        >
+          Giriş Yap
+        </button>
       </form>
     </div>
   );
