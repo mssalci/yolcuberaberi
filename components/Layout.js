@@ -25,9 +25,9 @@ export default function Layout({ children }) {
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="min-h-screen flex flex-col md:flex-row">
       {/* Sol Menü */}
-      <aside className="w-64 bg-gray-900 text-white p-4 flex flex-col justify-between">
+      <aside className="w-full md:w-64 bg-gray-900 text-white p-4 flex flex-col justify-between">
         <div>
           <Link href="/" className="text-2xl font-bold block mb-6 hover:text-yellow-300">
             Yolcu Beraberi
@@ -40,14 +40,16 @@ export default function Layout({ children }) {
         </div>
         <button
           onClick={handleLogout}
-          className="text-red-400 hover:text-red-600"
+          className="text-red-400 hover:text-red-600 mt-4 md:mt-0"
         >
           Çıkış Yap
         </button>
       </aside>
 
       {/* Ana İçerik */}
-      <main className="flex-1 bg-gray-50 p-6 overflow-y-auto">{children}</main>
+      <main className="flex-1 bg-gray-50 p-6 overflow-y-auto">
+        {children}
+      </main>
     </div>
   );
 }
