@@ -1,14 +1,13 @@
-// components/Layout.js
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { getAuth, signOut } from 'firebase/auth';
 import Link from 'next/link';
 import { FileText, Mail, PlusCircle, LogOut } from 'lucide-react';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebase/firebaseConfig'; // Doğru config dosyası
 
 export default function Layout({ children }) {
+  const auth = getAuth();
   const router = useRouter();
-  const [user, setUser] = useState(undefined); // null yerine undefined başlangıç için
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(currentUser => {
@@ -26,13 +25,10 @@ export default function Layout({ children }) {
     router.push('/login');
   };
 
-  // Kullanıcı kontrolü tamamlanana kadar children'ı render etme
-  if (user === undefined) return null;
-
   return (
-    <div className="flex h-screen">
+    <div className="flex flex-col md:flex-row min-h-screen">
       {/* Sol Menü */}
-      <aside className="w-64 bg-gray-900 text-white p-4 flex flex-col justify-between">
+      <aside className="w-full md:w-64 bg-gray-900 text-white p-4 flex flex-col justify-between">
         <div>
           <h2 className="text-2xl font-bold mb-6">Yolcu Beraberi</h2>
           <nav className="space-y-4">
@@ -49,14 +45,14 @@ export default function Layout({ children }) {
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 text-red-400 hover:text-red-600"
+          className="flex items-center gap-2 text-red-400 hover:text-red-600 mt-4"
         >
           <LogOut size={20} /> Çıkış Yap
         </button>
       </aside>
 
       {/* Ana İçerik */}
-      <main className="flex-1 bg-gray-50 p-8 overflow-y-auto">
+      <main className="flex-1 bg-gray-50 p-4 md:p-8 overflow-y-auto">
         {children}
       </main>
     </div>
