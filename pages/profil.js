@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, deleteUser } from "firebase/auth";
 import { auth, db } from "../firebase/firebaseConfig";
 import { useRouter } from "next/router";
 import {
   doc,
   getDoc,
   setDoc,
+  deleteDoc
 } from "firebase/firestore";
 
 export default function Profil() {
@@ -44,7 +45,25 @@ export default function Profil() {
       iban,
       email: user.email,
     });
-    alert("Profil bilgileri kaydedildi ✅");
+
+    alert("Bilgiler güncellendi ✅");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!confirm("Hesabınızı kalıcı olarak silmek istediğinize emin misiniz?")) return;
+
+    try {
+      // Firestore'daki kullanıcı verisini sil
+      await deleteDoc(doc(db, "kullanicilar", user.uid));
+
+      // Auth hesabını sil
+      await deleteUser(user);
+
+      alert("Hesabınız silindi");
+      router.push("/kayit");
+    } catch (error) {
+      alert("Hesap silme hatası: " + error.message);
+    }
   };
 
   if (loading || !user) return null;
@@ -76,7 +95,7 @@ export default function Profil() {
         </div>
 
         <div>
-          <label className="block text-sm text-gray-600">E-Posta</label>
+          <label className="block text-sm text-gray-600">E-posta</label>
           <input
             type="text"
             value={user.email}
@@ -85,12 +104,22 @@ export default function Profil() {
           />
         </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700"
-        >
-          Kaydet
-        </button>
+        <div className="flex justify-between items-center mt-6">
+          <button
+            type="submit"
+            className="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700"
+          >
+            Bilgileri Kaydet
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDeleteAccount}
+            className="bg-red-600 text-white py-2 px-6 rounded-md hover:bg-red-700"
+          >
+            Hesabı Sil
+          </button>
+        </div>
       </form>
     </main>
   );
