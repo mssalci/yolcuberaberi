@@ -1,12 +1,10 @@
-// components/Header.js
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-import app from "@/firebase"; // firebase.js dosyanıza göre düzenleyin
+import { auth } from "@/firebaseConfig"; // kendi yoluna göre ayarla
 
 export default function Header() {
   const [user, setUser] = useState(null);
-  const auth = getAuth(app);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -20,20 +18,54 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white border-b shadow-sm py-4 px-6 flex justify-between items-center">
-      <Link href="/" className="text-xl font-bold text-blue-600">YolcuBeraberi</Link>
+    <header className="w-full flex items-center justify-between px-6 py-4 border-b shadow-sm bg-white">
+      {/* Sol - Domain Adı */}
+      <Link href="/" className="text-xl font-semibold text-black hover:underline">
+        www.yolcuberaberi.com
+      </Link>
 
-      <nav className="flex gap-4 items-center">
-        <Link href="/talepler" className="hover:underline">Talepler</Link>
+      {/* Orta - Sayfa Sekmeleri */}
+      <nav className="space-x-6 text-sm font-medium text-gray-800">
+        <Link href="/talep" className="hover:text-blue-600">Talep Oluştur</Link>
+        <Link href="/talepler" className="hover:text-blue-600">Talepler</Link>
+        <Link href="/tekliflerim" className="hover:text-blue-600">Tekliflerim</Link>
+      </nav>
+
+      {/* Sağ - Kullanıcı veya Auth Butonları */}
+      <div className="space-x-2 text-sm">
         {user ? (
           <>
-            <Link href="/profil" className="hover:underline">{user.displayName || "Profil"}</Link>
-            <button onClick={handleLogout} className="text-red-600 hover:underline">Çıkış Yap</button>
+            <Link
+              href="/profil"
+              className="text-gray-700 hover:text-blue-600"
+              title="Profil"
+            >
+              👤 {user.email?.split("@")[0] || user.uid.substring(0, 6)}
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="border px-3 py-1 rounded-md text-red-500 hover:bg-gray-100"
+            >
+              Çıkış Yap
+            </button>
           </>
         ) : (
-          <Link href="/giris" className="hover:underline">Giriş Yap / Kayıt Ol</Link>
+          <>
+            <Link
+              href="/giris"
+              className="border px-4 py-1 rounded-md hover:bg-gray-100"
+            >
+              Giriş Yap
+            </Link>
+            <Link
+              href="/kayit"
+              className="border px-4 py-1 rounded-md hover:bg-gray-100"
+            >
+              Kayıt Ol
+            </Link>
+          </>
         )}
-      </nav>
+      </div>
     </header>
   );
 }
