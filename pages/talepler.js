@@ -1,8 +1,23 @@
 // pages/talepler.js
 import Head from "next/head";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { db } from "../firebase/firebaseConfig";
 
 export default function Talepler() {
+  const [talepler, setTalepler] = useState([]);
+
+  useEffect(() => {
+    const fetchTalepler = async () => {
+      const q = query(collection(db, "talepler"), orderBy("tarih", "desc"));
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setTalepler(data);
+    };
+    fetchTalepler();
+  }, []);
+
   return (
     <>
       <Head>
@@ -14,23 +29,14 @@ export default function Talepler() {
           <h1 className="text-3xl font-bold mb-10 text-center">Tüm Talepler</h1>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="border p-6 rounded-lg shadow-sm hover:shadow-md transition">
-              <h3 className="text-xl font-semibold mb-2">MacBook Air M2</h3>
-              <p className="mb-4">ABD'den Türkiye'ye getirilecek. Hızlı teslimat gerekiyor.</p>
-              <Link href="/chat/1" className="text-blue-600 hover:underline">Detayları Gör</Link>
-            </div>
-
-            <div className="border p-6 rounded-lg shadow-sm hover:shadow-md transition">
-              <h3 className="text-xl font-semibold mb-2">Zara Mont</h3>
-              <p className="mb-4">İspanya'dan İstanbul'a getirilecek.</p>
-              <Link href="/chat/2" className="text-blue-600 hover:underline">Detayları Gör</Link>
-            </div>
-
-            <div className="border p-6 rounded-lg shadow-sm hover:shadow-md transition">
-              <h3 className="text-xl font-semibold mb-2">Apple Watch Ultra</h3>
-              <p className="mb-4">ABD siparişi. Hızlı iletişim bekleniyor.</p>
-              <Link href="/chat/3" className="text-blue-600 hover:underline">Detayları Gör</Link>
-            </div>
+            {talepler.map((talep) => (
+              <div key={talep.id} className="border p-6 rounded-lg shadow-sm hover:shadow-md transition">
+                <h3 className="text-xl font-semibold mb-2">{talep.baslik}</h3>
+                <p className="mb-2">{talep.aciklama}</p>
+                <p className="text-sm text-gray-600 mb-4">Ülke: {talep.ulke}</p>
+                <Link href={`/chat/${talep.id}`} className="text-blue-600 hover:underline">Detayları Gör</Link>
+              </div>
+            ))}
           </div>
         </section>
       </main>
