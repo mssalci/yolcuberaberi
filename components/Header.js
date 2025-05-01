@@ -1,42 +1,39 @@
-import Link from 'next/link';
-import { LogOut } from 'lucide-react';
-import { getAuth, signOut } from 'firebase/auth';
-import { useRouter } from 'next/router';
+// components/Header.js
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import app from "@/firebase"; // firebase.js dosyanıza göre düzenleyin
 
 export default function Header() {
-  const auth = getAuth();
-  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const auth = getAuth(app);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleLogout = async () => {
     await signOut(auth);
-    router.push('/login');
   };
 
   return (
-    <div className="flex h-screen">
-      {/* Sol Menü */}
-      <aside className="w-64 bg-gray-900 text-white p-4 flex flex-col justify-between">
-        <div>
-          <h2 className="text-2xl font-bold mb-6">Yolcu Beraberi</h2>
-          <nav className="space-y-4">
-            <Link href="/talepler" className="flex items-center gap-2 hover:text-yellow-300">
-              Tüm Talepler
-            </Link>
-            <Link href="/eslesmeler" className="flex items-center gap-2 hover:text-yellow-300">
-              Tekliflerim
-            </Link>
-            <Link href="/talep" className="flex items-center gap-2 hover:text-yellow-300">
-              Talep Oluştur
-            </Link>
-          </nav>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 text-red-400 hover:text-red-600"
-        >
-          <LogOut size={20} /> Çıkış Yap
-        </button>
-      </aside>
-    </div>
+    <header className="bg-white border-b shadow-sm py-4 px-6 flex justify-between items-center">
+      <Link href="/" className="text-xl font-bold text-blue-600">YolcuBeraberi</Link>
+
+      <nav className="flex gap-4 items-center">
+        <Link href="/talepler" className="hover:underline">Talepler</Link>
+        {user ? (
+          <>
+            <Link href="/profil" className="hover:underline">{user.displayName || "Profil"}</Link>
+            <button onClick={handleLogout} className="text-red-600 hover:underline">Çıkış Yap</button>
+          </>
+        ) : (
+          <Link href="/giris" className="hover:underline">Giriş Yap / Kayıt Ol</Link>
+        )}
+      </nav>
+    </header>
   );
 }
