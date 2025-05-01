@@ -1,14 +1,14 @@
 // components/Layout.js
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { getAuth, signOut } from 'firebase/auth';
 import Link from 'next/link';
 import { FileText, Mail, PlusCircle, LogOut } from 'lucide-react';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase/firebaseConfig'; // Doğru config dosyası
 
 export default function Layout({ children }) {
-  const auth = getAuth();
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(undefined); // null yerine undefined başlangıç için
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(currentUser => {
@@ -25,6 +25,9 @@ export default function Layout({ children }) {
     await signOut(auth);
     router.push('/login');
   };
+
+  // Kullanıcı kontrolü tamamlanana kadar children'ı render etme
+  if (user === undefined) return null;
 
   return (
     <div className="flex h-screen">
@@ -53,7 +56,9 @@ export default function Layout({ children }) {
       </aside>
 
       {/* Ana İçerik */}
-      <main className="flex-1 bg-gray-50 p-8 overflow-y-auto">{children}</main>
+      <main className="flex-1 bg-gray-50 p-8 overflow-y-auto">
+        {children}
+      </main>
     </div>
   );
 }
