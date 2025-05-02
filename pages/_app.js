@@ -1,10 +1,13 @@
 import '../styles/globals.css';
-import Layout from '../components/Layout';
+import Header from '../components/Header';
 
 export default function MyApp({ Component, pageProps }) {
   return (
-    <Layout>
-      <Component {...pageProps} />
-    </Layout>
+    <>
+      <Header />
+      <main className="min-h-screen bg-gray-50">
+        <Component {...pageProps} />
+      </main>
+    </>
   );
 }
