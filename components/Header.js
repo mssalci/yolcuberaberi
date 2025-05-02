@@ -1,5 +1,5 @@
-// components/Header.js
 import Link from "next/link";
+import Image from "next/image"; // ⭐️ Eklendi
 import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../firebase/firebaseConfig";
@@ -20,16 +20,27 @@ export default function Header() {
 
   return (
     <header className="w-full flex items-center justify-between px-6 py-4 border-b shadow-sm bg-white">
-      <Link href="/" className="text-xl font-semibold text-black hover:underline">
-        www.yolcuberaberi.com
+      {/* Sol: Logo ve isim */}
+      <Link href="/" className="flex items-center gap-2">
+        <Image
+          src="/favicon.ico" // veya: "/og-image.webp"
+          alt="YolcuBeraberi Logo"
+          width={32}
+          height={32}
+        />
+        <span className="text-xl font-semibold text-black hover:underline">
+          www.yolcuberaberi.com
+        </span>
       </Link>
 
+      {/* Orta: Sekmeler */}
       <nav className="space-x-6 text-sm font-medium text-gray-800">
         <Link href="/talep" className="hover:text-blue-600">Talep Oluştur</Link>
         <Link href="/talepler" className="hover:text-blue-600">Talepler</Link>
         <Link href="/tekliflerim" className="hover:text-blue-600">Tekliflerim</Link>
       </nav>
 
+      {/* Sağ: Giriş/Profil */}
       <div className="space-x-2 text-sm">
         {user ? (
           <>
