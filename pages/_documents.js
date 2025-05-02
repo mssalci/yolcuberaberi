@@ -10,6 +10,8 @@ export default function Document() {
         <meta name="theme-color" content="#ffffff" />
         <meta name="robots" content="index, follow" />
         <link rel="icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#2563eb" />
       </Head>
       <body className="bg-white text-gray-800 antialiased">
         <Main />
