@@ -38,7 +38,15 @@ export default function Talep() {
   return (
     <>
       <Head>
-        <title>Talep Oluştur - Yolcu Beraberi</title>
+        <title>Talep Oluştur | Yolcu Beraberi</title>
+        <meta
+          name="description"
+          content="Yurt dışından getirilecek ürün için talep oluşturun. Yolcular sizin için getirip kazansın."
+        />
+        <meta property="og:title" content="Talep Oluştur" />
+        <meta property="og:description" content="İstediğiniz ürünü kolayca talep edin, uygun yolcu bulunsun." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://www.yolcuberaberi.com.tr/talep" />
       </Head>
 
       <main className="bg-white text-gray-800 min-h-screen">
