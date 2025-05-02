@@ -50,10 +50,10 @@ export default function Talepler() {
       </Head>
 
       <main className="bg-white text-gray-800 min-h-screen">
-        <section className="py-20 px-6 max-w-6xl mx-auto">
+        <section className="py-20 px-4 sm:px-6 max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold mb-10 text-center">Tüm Talepler</h1>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {talepler.map((talep) => (
               <div key={talep.id} className="border p-6 rounded-lg shadow-sm hover:shadow-md transition">
                 <h3 className="text-xl font-semibold mb-2">{talep.baslik}</h3>
