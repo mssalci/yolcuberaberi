@@ -15,13 +15,18 @@ export default function HomePage() {
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://www.yolcuberaberi.com.tr/" />
         <meta property="og:image" content="/og-image.png" />
-            <link rel="manifest" href="/manifest.json" />
-<meta name="theme-color" content="#2563eb" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#2563eb" />
       </Head>
-      <h1 className="text-3xl font-bold mb-4 text-gray-800">Hoş Geldiniz!</h1>
-      <p className="text-gray-700">
-        Yukarıdaki menüden talepleri görüntüleyebilir, yeni talepler oluşturabilir veya eşleşmeleri yönetebilirsiniz.
-      </p>
+
+      <main className="min-h-screen flex items-center justify-center bg-white px-6 text-center text-gray-800">
+        <div className="max-w-xl">
+          <h1 className="text-4xl sm:text-5xl font-bold mb-6">Hoş Geldiniz!</h1>
+          <p className="text-lg sm:text-xl leading-relaxed">
+            Yukarıdaki menüden talepleri görüntüleyebilir, yeni talepler oluşturabilir veya eşleşmeleri yönetebilirsiniz.
+          </p>
+        </div>
+      </main>
     </>
   );
-}
+            }
