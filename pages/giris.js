@@ -15,7 +15,7 @@ export default function Giris() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        router.push("/"); // Giriş yapılmışsa anasayfaya yönlendir
+        router.replace("/"); // Zaten giriş yaptıysa anasayfaya yönlendir
       }
     });
     return () => unsubscribe();
@@ -46,7 +46,7 @@ export default function Giris() {
 
       <Header />
 
-      <div className="max-w-md mx-auto py-12">
+      <div className="max-w-md mx-auto py-12 px-4">
         <h1 className="text-2xl font-bold mb-6">Giriş Yap</h1>
         <form onSubmit={handleLogin} className="space-y-4">
           <input
@@ -63,7 +63,7 @@ export default function Giris() {
             onChange={(e) => setSifre(e.target.value)}
             className="w-full border px-4 py-2 rounded"
           />
-          {hata && <p className="text-red-500">{hata}</p>}
+          {hata && <p className="text-red-500 text-sm">{hata}</p>}
           <button
             type="submit"
             className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
