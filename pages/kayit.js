@@ -19,7 +19,7 @@ export default function Kayit() {
       await updateProfile(userCredential.user, {
         displayName: adSoyad,
       });
-      router.push("/"); // Kayıt başarılıysa anasayfaya yönlendir
+      router.push("/");
     } catch (error) {
       setHata("Kayıt başarısız: " + error.message);
     }
@@ -27,49 +27,66 @@ export default function Kayit() {
 
   return (
     <>
-    <Head>
-      <title>Kayıt Ol | Yolcu Beraberi</title>
-      <meta name="description" content="Yeni bir hesap oluşturun. Talepler oluşturun veya eşya getirerek gelir kazanın." />
-      <meta property="og:title" content="Kayıt Ol" />
-      <meta property="og:description" content="Yolcu Beraberi'ne katılmak için hemen kayıt olun." />
-      <meta property="og:type" content="website" />
-      <meta property="og:url" content="https://www.yolcuberaberi.com.tr/kayit" />
-    <link rel="manifest" href="/manifest.json" />
-<meta name="theme-color" content="#2563eb" />
-    </Head>
-    <div className="max-w-md mx-auto py-12">
-      <h1 className="text-2xl font-bold mb-6">Kayıt Ol</h1>
-      <form onSubmit={handleRegister} className="space-y-4">
-        <input
-          type="text"
-          placeholder="Ad Soyad"
-          value={adSoyad}
-          onChange={(e) => setAdSoyad(e.target.value)}
-          className="w-full border px-4 py-2 rounded"
-        />
-        <input
-          type="email"
-          placeholder="E-posta"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border px-4 py-2 rounded"
-        />
-        <input
-          type="password"
-          placeholder="Şifre"
-          value={sifre}
-          onChange={(e) => setSifre(e.target.value)}
-          className="w-full border px-4 py-2 rounded"
-        />
-        {hata && <p className="text-red-500">{hata}</p>}
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-        >
-          Kayıt Ol
-        </button>
-      </form>
-    </div>
+      <Head>
+        <title>Kayıt Ol | Yolcu Beraberi</title>
+        <meta name="description" content="Yeni bir hesap oluşturun. Talepler oluşturun veya eşya getirerek gelir kazanın." />
+        <meta property="og:title" content="Kayıt Ol" />
+        <meta property="og:description" content="Yolcu Beraberi'ne katılmak için hemen kayıt olun." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://www.yolcuberaberi.com.tr/kayit" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#2563eb" />
+      </Head>
+
+      <main className="min-h-screen flex items-center justify-center bg-white text-gray-800 px-4">
+        <div className="w-full max-w-md">
+          <h1 className="text-3xl font-bold text-center mb-8">Kayıt Ol</h1>
+
+          <form onSubmit={handleRegister} className="space-y-5 border p-6 rounded-lg shadow">
+            <div>
+              <label className="block text-sm mb-1 text-gray-700">Ad Soyad</label>
+              <input
+                type="text"
+                placeholder="Ad Soyad"
+                value={adSoyad}
+                onChange={(e) => setAdSoyad(e.target.value)}
+                className="w-full border px-4 py-2 rounded"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1 text-gray-700">E-posta</label>
+              <input
+                type="email"
+                placeholder="E-posta"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border px-4 py-2 rounded"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1 text-gray-700">Şifre</label>
+              <input
+                type="password"
+                placeholder="Şifre"
+                value={sifre}
+                onChange={(e) => setSifre(e.target.value)}
+                className="w-full border px-4 py-2 rounded"
+                required
+              />
+            </div>
+            {hata && <p className="text-red-500 text-sm">{hata}</p>}
+
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+            >
+              Kayıt Ol
+            </button>
+          </form>
+        </div>
+      </main>
     </>
   );
-}
+            }
