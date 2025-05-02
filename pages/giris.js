@@ -21,6 +21,16 @@ export default function Giris() {
   };
 
   return (
+    <>
+    <Head>
+      <title>Giriş Yap | Yolcu Beraberi</title>
+      <meta name="description" content="Hesabınıza giriş yapın, talepleri yönetin, teklifler verin." />
+      <meta property="og:title" content="Giriş Yap" />
+      <meta property="og:description" content="Yolcu Beraberi hesabınıza erişin." />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content="https://www.yolcuberaberi.com.tr/giris" />
+    </Head>
+
     <div className="max-w-md mx-auto py-12">
       <h1 className="text-2xl font-bold mb-6">Giriş Yap</h1>
       <form onSubmit={handleLogin} className="space-y-4">
@@ -47,5 +57,6 @@ export default function Giris() {
         </button>
       </form>
     </div>
+   </>
   );
 }
