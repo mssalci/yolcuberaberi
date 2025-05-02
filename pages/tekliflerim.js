@@ -33,8 +33,16 @@ export default function Tekliflerim() {
 
   return (
     <>
-      <Head>
-        <title>Tekliflerim - Yolcu Beraberi</title>
+<Head>
+        <title>Eşleşmeler | Yolcu Beraberi</title>
+        <meta
+          name="description"
+          content="Teklif verdiğiniz ya da talebinize gelen tekliflerle eşleşmeleri yönetin."
+        />
+        <meta property="og:title" content="Eşleşmeler" />
+        <meta property="og:description" content="Yolcular ve talepler arasında bağlantı kurun, süreci takip edin." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://www.yolcuberaberi.com.tr/tekliflerim" />
       </Head>
 
       <main className="bg-white text-gray-800 min-h-screen p-6 max-w-5xl mx-auto">
