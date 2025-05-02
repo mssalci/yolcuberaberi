@@ -7,21 +7,26 @@ import { useRouter } from "next/router";
 import { auth } from "../firebase/firebaseConfig";
 
 export default function Header() {
-  const [user, setUser] = useState(undefined); // undefined: ilk yüklemede bekleniyor
+  const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false); // render kilidi için
   const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser); // user veya null
+      setUser(currentUser);
+      setAuthChecked(true); // ilk kontrol tamamlandı
     });
+
     return () => unsubscribe();
   }, []);
 
   const handleLogout = async () => {
     await signOut(auth);
-    setUser(null);
-    router.push("/");
+    setUser(null); // state güncelle
+    router.push("/giris");
   };
+
+  if (!authChecked) return null; // auth durumu belirlenene kadar hiçbir şey render etme
 
   return (
     <header className="w-full flex items-center justify-between px-4 py-3 border-b shadow-sm bg-white flex-wrap gap-3">
@@ -46,7 +51,7 @@ export default function Header() {
       </nav>
 
       {/* Sağ: Kullanıcı butonları */}
-      {user === undefined ? null : user ? (
+      {user ? (
         <div className="flex items-center gap-2 text-sm">
           <Link href="/profil" className="text-gray-700 hover:text-blue-600">
             👤 {user.displayName || user.email?.split("@")[0]}
