@@ -1,3 +1,4 @@
+import Head from "next/head";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, deleteUser } from "firebase/auth";
 import { auth, db } from "../firebase/firebaseConfig";
