@@ -1,4 +1,3 @@
-// components/Header.js
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -8,29 +7,39 @@ import { auth } from "../firebase/firebaseConfig";
 
 export default function Header() {
   const [user, setUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false); // render kilidi için
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
+  const checkAuth = () => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setAuthChecked(true); // ilk kontrol tamamlandı
+      setLoading(false);
     });
+    return unsubscribe;
+  };
 
-    return () => unsubscribe();
-  }, []);
+  useEffect(() => {
+    const unsubscribe = checkAuth();
+
+    // Route değiştiğinde auth'u tekrar kontrol et
+    router.events?.on("routeChangeComplete", checkAuth);
+
+    return () => {
+      unsubscribe();
+      router.events?.off("routeChangeComplete", checkAuth);
+    };
+  }, [router.events]);
 
   const handleLogout = async () => {
     await signOut(auth);
-    setUser(null); // state güncelle
+    setUser(null);
     router.push("/giris");
   };
 
-  if (!authChecked) return null; // auth durumu belirlenene kadar hiçbir şey render etme
+  if (loading) return null; // yüklenene kadar hiçbir şey gösterme
 
   return (
     <header className="w-full flex items-center justify-between px-4 py-3 border-b shadow-sm bg-white flex-wrap gap-3">
-      {/* Sol: Logo ve isim */}
       <Link href="/" className="flex items-center gap-2">
         <Image
           src="/favicon.ico"
@@ -43,14 +52,12 @@ export default function Header() {
         </span>
       </Link>
 
-      {/* Orta: Sekmeler */}
       <nav className="space-x-4 text-sm font-medium text-gray-800">
         <Link href="/talep" className="hover:text-blue-600">Talep Oluştur</Link>
         <Link href="/talepler" className="hover:text-blue-600">Talepler</Link>
         <Link href="/tekliflerim" className="hover:text-blue-600">Tekliflerim</Link>
       </nav>
 
-      {/* Sağ: Kullanıcı butonları */}
       {user ? (
         <div className="flex items-center gap-2 text-sm">
           <Link href="/profil" className="text-gray-700 hover:text-blue-600">
