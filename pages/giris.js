@@ -30,6 +30,8 @@ export default function Giris() {
       <meta property="og:description" content="Yolcu Beraberi hesabınıza erişin." />
       <meta property="og:type" content="website" />
       <meta property="og:url" content="https://www.yolcuberaberi.com.tr/giris" />
+    <link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#2563eb" />
     </Head>
 
     <div className="max-w-md mx-auto py-12">
