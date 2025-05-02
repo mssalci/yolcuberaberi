@@ -1,4 +1,5 @@
 // pages/kayit.js
+import Head from "next/head";
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
