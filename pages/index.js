@@ -15,6 +15,8 @@ export default function HomePage() {
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://www.yolcuberaberi.com.tr/" />
         <meta property="og:image" content="/og-image.png" />
+            <link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#2563eb" />
       </Head>
       <h1 className="text-3xl font-bold mb-4 text-gray-800">Hoş Geldiniz!</h1>
       <p className="text-gray-700">
