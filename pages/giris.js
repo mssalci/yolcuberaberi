@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/firebaseConfig";
-import Header from "../components/Header";
 
 export default function Giris() {
   const [email, setEmail] = useState("");
@@ -15,7 +14,7 @@ export default function Giris() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        router.replace("/"); // Zaten giriş yaptıysa anasayfaya yönlendir
+        router.replace("/"); // Giriş yaptıysa anasayfaya
       }
     });
     return () => unsubscribe();
@@ -43,8 +42,6 @@ export default function Giris() {
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#2563eb" />
       </Head>
-
-      <Header />
 
       <div className="max-w-md mx-auto py-12 px-4">
         <h1 className="text-2xl font-bold mb-6">Giriş Yap</h1>
