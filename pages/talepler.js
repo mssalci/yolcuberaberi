@@ -30,6 +30,8 @@ export default function Talepler() {
         <meta property="og:description" content="Yolcular için fırsatlar burada! Kazançlı eşleşmeler için taleplere göz atın." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://www.yolcuberaberi.com.tr/talepler" />
+            <link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#2563eb" />
       </Head>
 
       <main className="bg-white text-gray-800 min-h-screen">
