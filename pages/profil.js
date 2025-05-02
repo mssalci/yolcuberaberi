@@ -69,6 +69,15 @@ export default function Profil() {
   if (loading || !user) return null;
 
   return (
+    <>
+    <Head>
+      <title>Profilim | Yolcu Beraberi</title>
+      <meta name="description" content="Ad Soyad, IBAN ve e-posta bilgilerinizi yönetin. Hesabınızı güvenle kontrol edin." />
+      <meta property="og:title" content="Profilim" />
+      <meta property="og:description" content="Kullanıcı hesabınızı güncelleyin veya hesabınızı yönetin." />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content="https://www.yolcuberaberi.com.tr/profil" />
+    </Head>
     <main className="max-w-2xl mx-auto px-4 py-12 bg-white min-h-screen text-gray-800">
       <h1 className="text-3xl font-bold mb-8 text-center">Profil Bilgilerim</h1>
 
