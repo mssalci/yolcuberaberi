@@ -16,43 +16,34 @@ export default function Header() {
 
   const handleLogout = async () => {
     await signOut(auth);
-    setUser(null);
   };
 
   return (
-    <header className="w-full flex items-center justify-between px-6 py-4 border-b shadow-sm bg-white">
-      {/* Sol: Logo ve isim */}
+    <header className="w-full flex items-center justify-between px-4 py-3 border-b shadow-sm bg-white">
       <Link href="/" className="flex items-center gap-2">
-        <Image
-          src="/favicon.ico"
-          alt="YolcuBeraberi Logo"
-          width={32}
-          height={32}
-        />
-        <span className="text-xl font-semibold text-black hover:underline">
-          www.yolcuberaberi.com
+        <Image src="/favicon.ico" alt="Logo" width={28} height={28} />
+        <span className="text-base font-semibold text-black hover:underline">
+          yolcuberaberi.com
         </span>
       </Link>
 
-      {/* Orta: Sekmeler */}
-      <nav className="space-x-6 text-sm font-medium text-gray-800">
+      <nav className="hidden sm:flex gap-4 text-sm font-medium text-gray-800">
         <Link href="/talep" className="hover:text-blue-600">Talep Oluştur</Link>
         <Link href="/talepler" className="hover:text-blue-600">Talepler</Link>
         <Link href="/tekliflerim" className="hover:text-blue-600">Tekliflerim</Link>
       </nav>
 
-      {/* Sağ: Giriş/Profil */}
       <div className="space-x-2 text-sm">
         {user ? (
           <>
             <Link href="/profil" className="text-gray-700 hover:text-blue-600">
-              👤 {user.displayName || user.email?.split("@")[0] || user.uid.substring(0, 6)}
+              👤 {user.displayName || user.email?.split("@")[0]}
             </Link>
             <button
               onClick={handleLogout}
               className="border px-3 py-1 rounded-md text-red-500 hover:bg-gray-100"
             >
-              Çıkış Yap
+              Çıkış
             </button>
           </>
         ) : (
