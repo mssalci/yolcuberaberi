@@ -1,4 +1,3 @@
-// pages/giris.js
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { signInWithEmailAndPassword } from "firebase/auth";
