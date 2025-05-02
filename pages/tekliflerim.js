@@ -43,6 +43,8 @@ export default function Tekliflerim() {
         <meta property="og:description" content="Yolcular ve talepler arasında bağlantı kurun, süreci takip edin." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://www.yolcuberaberi.com.tr/tekliflerim" />
+            <link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#2563eb" />
       </Head>
 
       <main className="bg-white text-gray-800 min-h-screen p-6 max-w-5xl mx-auto">
