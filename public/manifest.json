@@ -1,0 +1,22 @@
+{
+  "name": "Yolcu Beraberi",
+  "short_name": "Yolcu",
+  "description": "Yurt dışından eşya getirmek isteyenlerle yolcuları buluşturan platform.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/og-image.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
