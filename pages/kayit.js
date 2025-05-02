@@ -25,6 +25,15 @@ export default function Kayit() {
   };
 
   return (
+    <>
+    <Head>
+      <title>Kayıt Ol | Yolcu Beraberi</title>
+      <meta name="description" content="Yeni bir hesap oluşturun. Talepler oluşturun veya eşya getirerek gelir kazanın." />
+      <meta property="og:title" content="Kayıt Ol" />
+      <meta property="og:description" content="Yolcu Beraberi'ne katılmak için hemen kayıt olun." />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content="https://www.yolcuberaberi.com.tr/kayit" />
+    </Head>
     <div className="max-w-md mx-auto py-12">
       <h1 className="text-2xl font-bold mb-6">Kayıt Ol</h1>
       <form onSubmit={handleRegister} className="space-y-4">
@@ -58,5 +67,6 @@ export default function Kayit() {
         </button>
       </form>
     </div>
+    </>
   );
 }
