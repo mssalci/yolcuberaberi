@@ -1,9 +1,10 @@
 // pages/kayit.js
 import Head from "next/head";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/firebaseConfig";
+import Header from "../components/Header";
 
 export default function Kayit() {
   const [email, setEmail] = useState("");
@@ -11,6 +12,15 @@ export default function Kayit() {
   const [adSoyad, setAdSoyad] = useState("");
   const [hata, setHata] = useState(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.push("/"); // Zaten giriş yaptıysa anasayfaya yönlendir
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -38,55 +48,41 @@ export default function Kayit() {
         <meta name="theme-color" content="#2563eb" />
       </Head>
 
-      <main className="min-h-screen flex items-center justify-center bg-white text-gray-800 px-4">
-        <div className="w-full max-w-md">
-          <h1 className="text-3xl font-bold text-center mb-8">Kayıt Ol</h1>
+      <Header />
 
-          <form onSubmit={handleRegister} className="space-y-5 border p-6 rounded-lg shadow">
-            <div>
-              <label className="block text-sm mb-1 text-gray-700">Ad Soyad</label>
-              <input
-                type="text"
-                placeholder="Ad Soyad"
-                value={adSoyad}
-                onChange={(e) => setAdSoyad(e.target.value)}
-                className="w-full border px-4 py-2 rounded"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1 text-gray-700">E-posta</label>
-              <input
-                type="email"
-                placeholder="E-posta"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border px-4 py-2 rounded"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1 text-gray-700">Şifre</label>
-              <input
-                type="password"
-                placeholder="Şifre"
-                value={sifre}
-                onChange={(e) => setSifre(e.target.value)}
-                className="w-full border px-4 py-2 rounded"
-                required
-              />
-            </div>
-            {hata && <p className="text-red-500 text-sm">{hata}</p>}
-
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
-            >
-              Kayıt Ol
-            </button>
-          </form>
-        </div>
-      </main>
+      <div className="max-w-md mx-auto py-12">
+        <h1 className="text-2xl font-bold mb-6">Kayıt Ol</h1>
+        <form onSubmit={handleRegister} className="space-y-4">
+          <input
+            type="text"
+            placeholder="Ad Soyad"
+            value={adSoyad}
+            onChange={(e) => setAdSoyad(e.target.value)}
+            className="w-full border px-4 py-2 rounded"
+          />
+          <input
+            type="email"
+            placeholder="E-posta"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full border px-4 py-2 rounded"
+          />
+          <input
+            type="password"
+            placeholder="Şifre"
+            value={sifre}
+            onChange={(e) => setSifre(e.target.value)}
+            className="w-full border px-4 py-2 rounded"
+          />
+          {hata && <p className="text-red-500">{hata}</p>}
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          >
+            Kayıt Ol
+          </button>
+        </form>
+      </div>
     </>
   );
-            }
+          }
