@@ -34,6 +34,8 @@ export default function Kayit() {
       <meta property="og:description" content="Yolcu Beraberi'ne katılmak için hemen kayıt olun." />
       <meta property="og:type" content="website" />
       <meta property="og:url" content="https://www.yolcuberaberi.com.tr/kayit" />
+    <link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#2563eb" />
     </Head>
     <div className="max-w-md mx-auto py-12">
       <h1 className="text-2xl font-bold mb-6">Kayıt Ol</h1>
