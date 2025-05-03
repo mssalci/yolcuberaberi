@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/firebaseConfig";
+import Loading from "../components/Loading";
 
 export default function RequireAuth({ children }) {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function RequireAuth({ children }) {
       if (user) {
         setAuthenticated(true);
       } else {
-        router.push("/giris");
+        router.replace("/giris");
       }
       setLoading(false);
     });
@@ -22,7 +23,7 @@ export default function RequireAuth({ children }) {
     return () => unsubscribe();
   }, [router]);
 
-  if (loading) return <p className="p-4">Yükleniyor...</p>;
+  if (loading) return < Loading />;
 
-  return authenticated ? children : null;
+  return authenticated ? children : <div></div>;
 }
