@@ -5,7 +5,7 @@ export default function SEO({ title, description, url, image }) {
   const defaultTitle = "Yolcu Beraberi - Uygun Yurt Dışı Alışverişi";
   const defaultDescription = "Yurt dışı alışverişlerinizi kolaylaştıran platform";
   const defaultUrl = "https://www.yolcuberaberi.com.tr";
-  const defaultImage = "https://www.yolcuberaberi.com.tr/og-image.jpg"; // örnek görsel
+  const defaultImage = "https://www.yolcuberaberi.com.tr/og-image.png"; // örnek görsel
 
   return (
     <Head>
