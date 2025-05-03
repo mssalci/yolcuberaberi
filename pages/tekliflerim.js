@@ -1,53 +1,132 @@
+import { useEffect, useState } from 'react';
+import Head from 'next/head';
+import Link from 'next/link';
+import { auth, db } from '../firebase/firebaseConfig';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
-import { useState } from "react";
-import { useRouter } from "next/router";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase/firebaseConfig";
+export default function Tekliflerim() {
+  const [activeTab, setActiveTab] = useState('ettiklerim');
+  const [teklifEttiklerim, setTeklifEttiklerim] = useState([]);
+  const [talebimeGelenler, setTalebimeGelenler] = useState([]);
+  const user = auth.currentUser;
 
-export default function Giris() {
-  const [email, setEmail] = useState("");
-  const [sifre, setSifre] = useState("");
-  const [hata, setHata] = useState(null);
-  const router = useRouter();
+  useEffect(() => {
+    if (!user) return;
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      await signInWithEmailAndPassword(auth, email, sifre);
-      router.push("/");
-    } catch (error) {
-      setHata("Giriş başarısız: " + error.message);
-    }
-  };
+    const fetchData = async () => {
+      const q1 = query(collection(db, 'teklifler'), where('teklifVeren', '==', user.uid));
+      const snapshot1 = await getDocs(q1);
+      setTeklifEttiklerim(snapshot1.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+      const taleplerSnapshot = await getDocs(query(collection(db, 'talepler'), where('talepSahibi', '==', user.uid)));
+      const talepIDs = taleplerSnapshot.docs.map(doc => doc.id);
+
+      if (talepIDs.length > 0) {
+        const q2 = query(collection(db, 'teklifler'), where('talepID', 'in', talepIDs));
+        const snapshot2 = await getDocs(q2);
+        setTalebimeGelenler(snapshot2.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }
+    };
+
+    fetchData();
+  }, [user]);
 
   return (
-    <main className="min-h-screen bg-white text-gray-800 py-20 px-4">
-      <div className="max-w-md mx-auto bg-gray-50 p-6 rounded-lg shadow">
-        <h1 className="text-2xl font-bold mb-6 text-center">Giriş Yap</h1>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input
-            type="email"
-            placeholder="E-posta"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border px-4 py-2 rounded"
-          />
-          <input
-            type="password"
-            placeholder="Şifre"
-            value={sifre}
-            onChange={(e) => setSifre(e.target.value)}
-            className="w-full border px-4 py-2 rounded"
-          />
-          {hata && <p className="text-red-500 text-sm">{hata}</p>}
+    <>
+<Head>
+        <title>Eşleşmeler | Yolcu Beraberi</title>
+        <meta
+          name="description"
+          content="Teklif verdiğiniz ya da talebinize gelen tekliflerle eşleşmeleri yönetin."
+        />
+        <meta property="og:title" content="Eşleşmeler" />
+        <meta property="og:description" content="Yolcular ve talepler arasında bağlantı kurun, süreci takip edin." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://www.yolcuberaberi.com.tr/tekliflerim" />
+            <link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#2563eb" />
+      </Head>
+
+      <main className="bg-white text-gray-800 min-h-screen p-6 max-w-5xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6 text-center">Eşleşmelerim</h1>
+
+        <div className="flex gap-4 justify-center mb-8">
           <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            className={`py-2 px-6 rounded-full ${
+              activeTab === 'ettiklerim' ? 'bg-blue-600 text-white' : 'bg-gray-200'
+            }`}
+            onClick={() => setActiveTab('ettiklerim')}
           >
-            Giriş Yap
+            Teklif Ettiklerim
           </button>
-        </form>
-      </div>
-    </main>
+          <button
+            className={`py-2 px-6 rounded-full ${
+              activeTab === 'gelenler' ? 'bg-blue-600 text-white' : 'bg-gray-200'
+            }`}
+            onClick={() => setActiveTab('gelenler')}
+          >
+            Talebime Gelen Teklifler
+          </button>
+        </div>
+
+        {activeTab === 'ettiklerim' && (
+          <div className="grid md:grid-cols-2 gap-6">
+            {teklifEttiklerim.length === 0 ? (
+              <p>Henüz teklif verdiğiniz bir talep yok.</p>
+            ) : (
+              teklifEttiklerim.map(teklif => (
+                <div key={teklif.id} className="border p-4 rounded-lg shadow-sm space-y-2">
+                  <h3 className="font-bold text-lg">Talep: {teklif.urunAdi || 'Ürün adı yok'}</h3>
+                  <p className="text-sm text-gray-700">Not: {teklif.mesaj || 'Mesaj yok'}</p>
+                  <div className="flex gap-4 mt-2">
+                    <Link
+                      href={`/teklif/${teklif.id}`}
+                      className="text-blue-600 underline hover:text-blue-800"
+                    >
+                      Detayları Gör
+                    </Link>
+                    <Link
+                      href={`/chat/${teklif.id}`}
+                      className="text-green-600 underline hover:text-green-800"
+                    >
+                      Mesajlaş
+                    </Link>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {activeTab === 'gelenler' && (
+          <div className="grid md:grid-cols-2 gap-6">
+            {talebimeGelenler.length === 0 ? (
+              <p>Henüz taleplerinize gelen bir teklif yok.</p>
+            ) : (
+              talebimeGelenler.map(teklif => (
+                <div key={teklif.id} className="border p-4 rounded-lg shadow-sm space-y-2">
+                  <h3 className="font-bold text-lg">Teklif Sahibi: {teklif.teklifVeren || 'Bilinmiyor'}</h3>
+                  <p className="text-sm text-gray-700">Mesaj: {teklif.mesaj || 'Mesaj yok'}</p>
+                  <div className="flex gap-4 mt-2">
+                    <Link
+                      href={`/teklif/${teklif.id}`}
+                      className="text-blue-600 underline hover:text-blue-800"
+                    >
+                      Detayları Gör
+                    </Link>
+                    <Link
+                      href={`/chat/${teklif.id}`}
+                      className="text-green-600 underline hover:text-green-800"
+                    >
+                      Mesajlaş
+                    </Link>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </main>
+    </>
   );
 }
