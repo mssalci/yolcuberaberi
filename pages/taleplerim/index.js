@@ -17,10 +17,10 @@ const Taleplerim = ({ teklifler, talepler }) => {
   return (
     <div>
       <h1>Taleplerim</h1>
-      {talepler.map((talep) => (
+      {(talepler || []).map((talep) => (
         <div key={talep.id}>
           <h2>{talep.baslik}</h2>
-          {teklifler
+          {(teklifler || [])
             .filter((teklif) => teklif.talepId === talep.id)
             .map((teklif) => (
               <div key={teklif.id}>
@@ -38,5 +38,18 @@ const Taleplerim = ({ teklifler, talepler }) => {
     </div>
   );
 };
+
+export async function getServerSideProps(context) {
+  // Buraya gerçek veri çekme kodunu yazacaksın
+  const talepler = []; // Örneğin: await getTaleplerForUser(uid)
+  const teklifler = []; // Örneğin: await getTekliflerForUser(uid)
+
+  return {
+    props: {
+      talepler: talepler || [],
+      teklifler: teklifler || [],
+    },
+  };
+}
 
 export default Taleplerim;
