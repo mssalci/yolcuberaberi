@@ -1,5 +1,7 @@
 import { useRouter } from "next/router";
 import { handleTeklifKabulEt } from "../../lib/handleTeklifKabulEt";
+import { db } from "../../lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
 
 const Taleplerim = ({ teklifler, talepler }) => {
   const router = useRouter();
@@ -17,10 +19,10 @@ const Taleplerim = ({ teklifler, talepler }) => {
   return (
     <div>
       <h1>Taleplerim</h1>
-      {(talepler || []).map((talep) => (
+      {talepler.map((talep) => (
         <div key={talep.id}>
           <h2>{talep.baslik}</h2>
-          {(teklifler || [])
+          {teklifler
             .filter((teklif) => teklif.talepId === talep.id)
             .map((teklif) => (
               <div key={teklif.id}>
@@ -40,16 +42,35 @@ const Taleplerim = ({ teklifler, talepler }) => {
 };
 
 export async function getServerSideProps(context) {
-  // Buraya gerçek veri çekme kodunu yazacaksın
-  const talepler = []; // Örneğin: await getTaleplerForUser(uid)
-  const teklifler = []; // Örneğin: await getTekliflerForUser(uid)
+  try {
+    const taleplerSnapshot = await getDocs(collection(db, "talepler"));
+    const tekliflerSnapshot = await getDocs(collection(db, "teklifler"));
 
-  return {
-    props: {
-      talepler: talepler || [],
-      teklifler: teklifler || [],
-    },
-  };
+    const talepler = taleplerSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    const teklifler = tekliflerSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return {
+      props: {
+        talepler,
+        teklifler,
+      },
+    };
+  } catch (error) {
+    console.error("Veri çekme hatası:", error);
+    return {
+      props: {
+        talepler: [],
+        teklifler: [],
+      },
+    };
+  }
 }
 
 export default Taleplerim;
