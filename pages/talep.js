@@ -1,17 +1,15 @@
-// pages/talep.js
-import { useState } from "react";
-import { db, auth } from "../firebase/firebaseConfig";
+import { useState, useEffect } from "react";
+import { db } from "../firebase/firebaseConfig";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import Head from "next/head";
 import { useRouter } from "next/router";
-
-
+import { useAuth } from "../context/AuthContext"; // Buraya dikkat
+import Loading from "../components/Loading"; // Basit bir yükleniyor bileşeni varsa güzel olur
 
 export default function Talep() {
-
-
-
   const router = useRouter();
+  const { user, loading } = useAuth();
+
   const [formData, setFormData] = useState({
     baslik: "",
     aciklama: "",
@@ -19,13 +17,18 @@ export default function Talep() {
     butce: "",
   });
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/giris");
+    }
+  }, [loading, user]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const user = auth.currentUser;
     if (!user) return alert("Lütfen giriş yapın.");
 
     try {
@@ -40,20 +43,19 @@ export default function Talep() {
     }
   };
 
+  if (loading) return <Loading />; // veya sadece null da dönebilirsin
+
   return (
     <>
       <Head>
         <title>Talep Oluştur | Yolcu Beraberi</title>
-        <meta
-          name="description"
-          content="Yurt dışından getirilecek ürün için talep oluşturun. Yolcular sizin için getirip kazansın."
-        />
+        <meta name="description" content="Yurt dışından getirilecek ürün için talep oluşturun." />
         <meta property="og:title" content="Talep Oluştur" />
         <meta property="og:description" content="İstediğiniz ürünü kolayca talep edin, uygun yolcu bulunsun." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://www.yolcuberaberi.com.tr/talep" />
-            <link rel="manifest" href="/manifest.json" />
-<meta name="theme-color" content="#2563eb" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#2563eb" />
       </Head>
 
       <main className="bg-white text-gray-800 min-h-screen">
@@ -89,4 +91,4 @@ export default function Talep() {
       </main>
     </>
   );
-}
+    }
