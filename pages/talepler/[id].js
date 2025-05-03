@@ -10,6 +10,8 @@ import {
   query,
   where,
   getDocs,
+  updateDoc,
+  setDoc,
 } from "firebase/firestore";
 import { format } from "date-fns";
 import { auth, db } from "../../firebase/firebaseConfig";
@@ -19,14 +21,12 @@ export default function TalepDetay() {
   const { id } = router.query;
   const [talep, setTalep] = useState(null);
   const [loading, setLoading] = useState(true);
-
+  const [teklifler, setTeklifler] = useState([]);
   const [teklifData, setTeklifData] = useState({
     fiyat: "",
     not: "",
     tarih: "",
   });
-
-  const [teklifler, setTeklifler] = useState([]);
 
   const handleTeklifChange = (e) => {
     setTeklifData({ ...teklifData, [e.target.name]: e.target.value });
@@ -42,10 +42,11 @@ export default function TalepDetay() {
         kullaniciId: user.uid,
         talepId: talep.id,
         olusturmaZamani: serverTimestamp(),
+        kabulEdildi: false,
       });
       alert("Teklif başarıyla gönderildi!");
       setTeklifData({ fiyat: "", not: "", tarih: "" });
-      fetchTeklifler(talep.id); // Yeni teklifi hemen yükle
+      fetchTeklifler(talep.id);
     } catch (err) {
       alert("Teklif gönderilemedi: " + err.message);
     }
@@ -53,25 +54,49 @@ export default function TalepDetay() {
 
   const fetchTeklifler = async (talepId) => {
     const q = query(collection(db, "teklifler"), where("talepId", "==", talepId));
-    const snapshot = await getDocs(q);
-    const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    setTeklifler(data);
+    const querySnapshot = await getDocs(q);
+    const list = [];
+    querySnapshot.forEach((doc) => {
+      list.push({ id: doc.id, ...doc.data() });
+    });
+    setTeklifler(list);
+  };
+
+  const handleTeklifKabul = async (teklif) => {
+    try {
+      await updateDoc(doc(db, "teklifler", teklif.id), {
+        kabulEdildi: true,
+        kabulZamani: serverTimestamp(),
+      });
+
+      await setDoc(doc(db, "eslesmeler", talep.id), {
+        talepId: talep.id,
+        teklifId: teklif.id,
+        talepSahibi: auth.currentUser.uid,
+        teklifVeren: teklif.kullaniciId,
+        baslangicZamani: serverTimestamp(),
+      });
+
+      alert("Teklif kabul edildi ve eşleşme oluşturuldu.");
+      fetchTeklifler(talep.id);
+    } catch (err) {
+      alert("Hata: " + err.message);
+    }
   };
 
   useEffect(() => {
-    if (!router.isReady) return;
+    if (!id) return;
     const fetchTalep = async () => {
-      const docRef = doc(db, "talepler", router.query.id);
+      const docRef = doc(db, "talepler", id);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        const talepVerisi = { id: docSnap.id, ...docSnap.data() };
-        setTalep(talepVerisi);
+        setTalep({ id: docSnap.id, ...docSnap.data() });
         fetchTeklifler(docSnap.id);
       }
       setLoading(false);
     };
     fetchTalep();
-  }, [router.isReady]);
+  }, [id]);
 
   if (loading) return <p className="text-center mt-10">Yükleniyor...</p>;
   if (!talep) return <p className="text-center mt-10 text-red-600">Talep bulunamadı.</p>;
@@ -88,61 +113,68 @@ export default function TalepDetay() {
         <p className="mb-4 text-gray-700">{talep.aciklama}</p>
         <p className="mb-2 text-sm text-gray-600">Ülke: {talep.ulke}</p>
         <p className="mb-2 text-sm text-gray-600">
-          Tarih:{" "}
-          {talep.tarih?.toDate
-            ? format(talep.tarih.toDate(), "dd.MM.yyyy HH:mm")
-            : "Bilinmiyor"}
+          Tarih: {talep.tarih?.toDate ? format(talep.tarih.toDate(), "dd.MM.yyyy HH:mm") : "Bilinmiyor"}
         </p>
 
-        <div className="mt-10 border-t pt-6">
-          <h2 className="text-xl font-semibold mb-3">Teklif Ver</h2>
-          <form onSubmit={handleTeklifSubmit} className="space-y-4">
-            <input
-              type="text"
-              name="fiyat"
-              placeholder="Fiyat (TL)"
-              value={teklifData.fiyat}
-              onChange={handleTeklifChange}
-              className="w-full border p-2 rounded"
-              required
-            />
-            <input
-              type="text"
-              name="not"
-              placeholder="Not"
-              value={teklifData.not}
-              onChange={handleTeklifChange}
-              className="w-full border p-2 rounded"
-            />
-            <input
-              type="text"
-              name="tarih"
-              placeholder="Tahmini Teslim Tarihi"
-              value={teklifData.tarih}
-              onChange={handleTeklifChange}
-              className="w-full border p-2 rounded"
-            />
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-            >
-              Teklif Gönder
-            </button>
-          </form>
-        </div>
+        {/* Teklif Verme Formu */}
+        <form onSubmit={handleTeklifSubmit} className="bg-gray-100 p-4 rounded mt-6">
+          <h2 className="text-lg font-semibold mb-2">Teklif Ver</h2>
+          <input
+            type="text"
+            name="fiyat"
+            value={teklifData.fiyat}
+            onChange={handleTeklifChange}
+            placeholder="Fiyat"
+            className="w-full p-2 mb-2 border rounded"
+            required
+          />
+          <input
+            type="text"
+            name="not"
+            value={teklifData.not}
+            onChange={handleTeklifChange}
+            placeholder="Not"
+            className="w-full p-2 mb-2 border rounded"
+          />
+          <input
+            type="date"
+            name="tarih"
+            value={teklifData.tarih}
+            onChange={handleTeklifChange}
+            className="w-full p-2 mb-2 border rounded"
+            required
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Teklif Gönder
+          </button>
+        </form>
 
-        {teklifler.length > 0 && (
-          <div className="mt-10">
-            <h2 className="text-xl font-semibold mb-3">Gelen Teklifler</h2>
-            {teklifler.map((teklif) => (
-              <div key={teklif.id} className="border p-4 rounded mb-3 bg-gray-50">
-                <p><strong>Fiyat:</strong> {teklif.fiyat} TL</p>
-                <p><strong>Not:</strong> {teklif.not}</p>
-                <p><strong>Teslim Tarihi:</strong> {teklif.tarih}</p>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Teklifler Listesi */}
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-4">Gelen Teklifler</h2>
+          {teklifler.length === 0 && <p>Henüz teklif yok.</p>}
+          {teklifler.map((teklif) => (
+            <div key={teklif.id} className="border p-4 mb-4 rounded bg-gray-50">
+              <p><strong>Fiyat:</strong> {teklif.fiyat}</p>
+              <p><strong>Not:</strong> {teklif.not}</p>
+              <p><strong>Teslim Tarihi:</strong> {teklif.tarih}</p>
+
+              {!teklif.kabulEdildi ? (
+                <button
+                  onClick={() => handleTeklifKabul(teklif)}
+                  className="mt-2 bg-green-600 text-white px-4 py-1 rounded"
+                >
+                  Kabul Et
+                </button>
+              ) : (
+                <p className="text-green-700 mt-2 font-semibold">Bu teklif kabul edildi.</p>
+              )}
+            </div>
+          ))}
+        </div>
       </main>
     </>
   );
