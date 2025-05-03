@@ -1,7 +1,6 @@
 import { useRouter } from "next/router";
 import { handleTeklifKabulEt } from "../../lib/handleTeklifKabulEt";
-import { db } from "../../lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { db, collection, getDocs } from "../../firebase/firebaseConfig.js";
 
 const Taleplerim = ({ teklifler, talepler }) => {
   const router = useRouter();
