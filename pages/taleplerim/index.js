@@ -1,11 +1,12 @@
 import { useRouter } from "next/router";
-import { doc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, addDoc, serverTimestamp, collection } from "firebase/firestore";
 import { db } from "../../firebase/firebaseConfig";
 
-// teklif ve talep verilerini props olarak aldığını varsayıyoruz
 const handleTeklifKabulEt = async (teklif, talep) => {
+  const router = useRouter(); // Router burada tanımlanmalı
+
   try {
-    // Teklifin durumunu güncelle (örn. "kabul edildi")
+    // Teklifin durumunu güncelle
     await updateDoc(doc(db, "teklifler", teklif.id), { durum: "kabul edildi" });
 
     // Eşleşme oluştur
@@ -13,13 +14,15 @@ const handleTeklifKabulEt = async (teklif, talep) => {
       teklifId: teklif.id,
       talepId: talep.id,
       olusturmaZamani: serverTimestamp(),
-      kullaniciId: teklif.kullaniciId, // teklif veren
-      talepSahibiId: talep.kullaniciId, // talep sahibi
+      kullaniciId: teklif.kullaniciId,     // Teklif veren
+      talepSahibiId: talep.kullaniciId,   // Talep sahibi
     });
 
-    // Yönlendirme
+    // Eşleşme sayfasına yönlendir
     router.push(`/eslesmeler/${eslesmeRef.id}`);
   } catch (err) {
     console.error("Eşleşme oluşturulamadı:", err);
   }
 };
+
+export default handleTeklifKabulEt;
