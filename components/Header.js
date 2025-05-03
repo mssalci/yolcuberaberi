@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/firebaseConfig";
@@ -8,6 +9,12 @@ import { Menu, X } from "lucide-react";
 export default function Header() {
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const router = useRouter();
+
+const handleLogout = async () => {
+  await signOut(auth);
+  router.push("/giris");
+};
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
