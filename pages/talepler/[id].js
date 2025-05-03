@@ -1,9 +1,9 @@
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase/firebaseConfig";
+import { doc, getDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { format } from "date-fns";
+import { auth, db } from "../../firebase/firebaseConfig";
 
 export default function TalepDetay() {
   const router = useRouter();
@@ -11,6 +11,32 @@ export default function TalepDetay() {
   const [talep, setTalep] = useState(null);
   const [loading, setLoading] = useState(true);
 
+const [teklifData, setTeklifData] = useState({
+  fiyat: "",
+  not: "",
+  tarih: "",
+});
+const handleTeklifChange = (e) => {
+  setTeklifData({ ...teklifData, [e.target.name]: e.target.value });
+};
+const handleTeklifSubmit = async (e) => {
+  e.preventDefault();
+  const user = auth.currentUser;
+  if (!user) return alert("Lütfen giriş yapın.");
+  try {
+    await addDoc(collection(db, "teklifler"), {
+      ...teklifData,
+      kullaniciId: user.uid,
+      talepId: talep.id,
+      olusturmaZamani: serverTimestamp(),
+    });
+    alert("Teklif başarıyla gönderildi!");
+    setTeklifData({ fiyat: "", not: "", tarih: "" });
+  } catch (err) {
+    alert("Teklif gönderilemedi: " + err.message);
+  }
+};
+  
   useEffect(() => {
     if (!id) return;
     const fetchTalep = async () => {
