@@ -14,7 +14,7 @@ export default function Header() {
 
 const handleLogout = async () => {
   await signOut(auth);
-  router.push("/giris");
+  router.replace("/giris");
 };
 
   useEffect(() => {
@@ -23,10 +23,6 @@ const handleLogout = async () => {
     });
     return () => unsubscribe();
   }, []);
-
-  const handleLogout = async () => {
-    await signOut(auth);
-  };
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
 
