@@ -1,28 +1,42 @@
 import { useRouter } from "next/router";
-import { doc, updateDoc, addDoc, serverTimestamp, collection } from "firebase/firestore";
-import { db } from "../../firebase/firebaseConfig";
+import { handleTeklifKabulEt } from "../../lib/handleTeklifKabulEt";
 
-const handleTeklifKabulEt = async (teklif, talep) => {
-  const router = useRouter(); // Router burada tanımlanmalı
+const Taleplerim = ({ teklifler, talepler }) => {
+  const router = useRouter();
 
-  try {
-    // Teklifin durumunu güncelle
-    await updateDoc(doc(db, "teklifler", teklif.id), { durum: "kabul edildi" });
+  const handleKabulEt = async (teklif, talep) => {
+    try {
+      const eslesmeId = await handleTeklifKabulEt(teklif, talep);
+      router.push(`/eslesmeler/${eslesmeId}`);
+    } catch (error) {
+      console.error("Eşleşme oluşturulamadı:", error);
+      alert("Eşleşme sırasında bir hata oluştu.");
+    }
+  };
 
-    // Eşleşme oluştur
-    const eslesmeRef = await addDoc(collection(db, "eslesmeler"), {
-      teklifId: teklif.id,
-      talepId: talep.id,
-      olusturmaZamani: serverTimestamp(),
-      kullaniciId: teklif.kullaniciId,     // Teklif veren
-      talepSahibiId: talep.kullaniciId,   // Talep sahibi
-    });
-
-    // Eşleşme sayfasına yönlendir
-    router.push(`/eslesmeler/${eslesmeRef.id}`);
-  } catch (err) {
-    console.error("Eşleşme oluşturulamadı:", err);
-  }
+  return (
+    <div>
+      <h1>Taleplerim</h1>
+      {talepler.map((talep) => (
+        <div key={talep.id}>
+          <h2>{talep.baslik}</h2>
+          {teklifler
+            .filter((teklif) => teklif.talepId === talep.id)
+            .map((teklif) => (
+              <div key={teklif.id}>
+                <p>Teklif veren: {teklif.kullaniciId}</p>
+                <p>Durum: {teklif.durum}</p>
+                {teklif.durum === "beklemede" && (
+                  <button onClick={() => handleKabulEt(teklif, talep)}>
+                    Teklifi Kabul Et
+                  </button>
+                )}
+              </div>
+            ))}
+        </div>
+      ))}
+    </div>
+  );
 };
 
-export default handleTeklifKabulEt;
+export default Taleplerim;
