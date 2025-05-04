@@ -14,7 +14,7 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { format } from "date-fns";
-import { auth, db } from "../../firebase/firebaseConfig";
+import { auth, db } from "../../../firebase/firebaseConfig";
 
 export default function TalepDetay() {
   const router = useRouter();
