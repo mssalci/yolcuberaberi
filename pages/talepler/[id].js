@@ -1,7 +1,17 @@
 // pages/talepler/[id].js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { doc, getDoc, collection, addDoc, query, where, getDocs, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  serverTimestamp,
+  updateDoc
+} from "firebase/firestore";
 import { db } from "../../firebase/firebaseConfig";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../../firebase/firebaseConfig";
@@ -45,7 +55,16 @@ export default function TalepDetay() {
 
     await addDoc(collection(db, "teklifler"), yeniTeklif);
     alert("Teklifiniz iletildi.");
-    fetchTeklifler(); // listeyi güncelle
+    fetchTeklifler();
+  };
+
+  const teklifiKabulEt = async (teklifId) => {
+    const teklifRef = doc(db, "teklifler", teklifId);
+    await updateDoc(teklifRef, {
+      durum: "kabul edildi"
+    });
+    alert("Teklif kabul edildi.");
+    fetchTeklifler();
   };
 
   useEffect(() => {
@@ -63,8 +82,11 @@ export default function TalepDetay() {
       <p className="mb-2">{talep.aciklama}</p>
       <p className="text-gray-600 mb-6">Ülke: {talep.ulke}</p>
 
-      {user && (
-        <button onClick={teklifVer} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-6">
+      {user && user.uid !== talep.kullaniciId && (
+        <button
+          onClick={teklifVer}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-6"
+        >
           Bu talebe teklif ver
         </button>
       )}
@@ -76,8 +98,16 @@ export default function TalepDetay() {
         <ul className="space-y-2">
           {teklifler.map(t => (
             <li key={t.id} className="p-3 border rounded bg-gray-100">
-              <p>Kullanıcı ID: {t.kullaniciId}</p>
-              <p>Durum: {t.durum}</p>
+              <p><strong>Kullanıcı ID:</strong> {t.kullaniciId}</p>
+              <p><strong>Durum:</strong> {t.durum}</p>
+              {user && user.uid === talep.kullaniciId && t.durum === "beklemede" && (
+                <button
+                  onClick={() => teklifiKabulEt(t.id)}
+                  className="mt-2 bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                >
+                  Bu teklifi kabul et
+                </button>
+              )}
             </li>
           ))}
         </ul>
