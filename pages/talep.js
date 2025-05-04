@@ -35,6 +35,7 @@ export default function Talep() {
       await addDoc(collection(db, "talepler"), {
         ...formData,
         kullaniciId: user.uid,
+        kullaniciEmail: user.email,
         tarih: serverTimestamp(),
       });
       router.push("/talepler");
