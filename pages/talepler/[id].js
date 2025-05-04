@@ -10,7 +10,6 @@ import {
   where,
   getDocs,
   serverTimestamp,
-  updateDoc
 } from "firebase/firestore";
 import { db } from "../../firebase/firebaseConfig";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -46,25 +45,28 @@ export default function TalepDetay() {
       return;
     }
 
+    // Aynı kullanıcı bu talebe daha önce teklif verdiyse engelle
+    const q = query(
+      collection(db, "teklifler"),
+      where("talepId", "==", id),
+      where("kullaniciId", "==", user.uid)
+    );
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      alert("Bu talep için zaten bir teklif verdiniz.");
+      return;
+    }
+
     const yeniTeklif = {
       talepId: id,
       kullaniciId: user.uid,
       teklifZamani: serverTimestamp(),
-      durum: "beklemede"
+      durum: "beklemede",
     };
 
     await addDoc(collection(db, "teklifler"), yeniTeklif);
     alert("Teklifiniz iletildi.");
-    fetchTeklifler();
-  };
-
-  const teklifiKabulEt = async (teklifId) => {
-    const teklifRef = doc(db, "teklifler", teklifId);
-    await updateDoc(teklifRef, {
-      durum: "kabul edildi"
-    });
-    alert("Teklif kabul edildi.");
-    fetchTeklifler();
+    fetchTeklifler(); // listeyi güncelle
   };
 
   useEffect(() => {
@@ -82,7 +84,7 @@ export default function TalepDetay() {
       <p className="mb-2">{talep.aciklama}</p>
       <p className="text-gray-600 mb-6">Ülke: {talep.ulke}</p>
 
-      {user && user.uid !== talep.kullaniciId && (
+      {user && (
         <button
           onClick={teklifVer}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-6"
@@ -98,16 +100,8 @@ export default function TalepDetay() {
         <ul className="space-y-2">
           {teklifler.map(t => (
             <li key={t.id} className="p-3 border rounded bg-gray-100">
-              <p><strong>Kullanıcı ID:</strong> {t.kullaniciId}</p>
-              <p><strong>Durum:</strong> {t.durum}</p>
-              {user && user.uid === talep.kullaniciId && t.durum === "beklemede" && (
-                <button
-                  onClick={() => teklifiKabulEt(t.id)}
-                  className="mt-2 bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                >
-                  Bu teklifi kabul et
-                </button>
-              )}
+              <p>Kullanıcı ID: {t.kullaniciId}</p>
+              <p>Durum: {t.durum}</p>
             </li>
           ))}
         </ul>
