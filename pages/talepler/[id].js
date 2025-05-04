@@ -78,7 +78,7 @@ export default function TalepDetay() {
   };
 
   const mesajGonder = () => {
-    const mail = talep?.olusturanEmail;
+    const mail = talep?.kullaniciEmail;
     if (mail) {
       window.location.href = `mailto:${mail}?subject=Talep Hakkında&body=Merhaba, talebinizle ilgileniyorum.`;
     } else {
