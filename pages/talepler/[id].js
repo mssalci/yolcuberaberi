@@ -1,4 +1,3 @@
-// pages/talepler/[id].js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import {
@@ -10,6 +9,7 @@ import {
   where,
   getDocs,
   serverTimestamp,
+  deleteDoc
 } from "firebase/firestore";
 import { db } from "../../firebase/firebaseConfig";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -22,6 +22,7 @@ export default function TalepDetay() {
   const [teklifler, setTeklifler] = useState([]);
   const [user] = useAuthState(auth);
   const [loading, setLoading] = useState(true);
+  const [kendiTeklif, setKendiTeklif] = useState(null);
 
   const fetchTalep = async () => {
     const docRef = doc(db, "talepler", id);
@@ -37,6 +38,11 @@ export default function TalepDetay() {
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setTeklifler(data);
+
+    if (user) {
+      const mevcut = data.find(t => t.kullaniciId === user.uid);
+      setKendiTeklif(mevcut || null);
+    }
   };
 
   const teklifVer = async () => {
@@ -45,28 +51,39 @@ export default function TalepDetay() {
       return;
     }
 
-    // Aynı kullanıcı bu talebe daha önce teklif verdiyse engelle
-    const q = query(
-      collection(db, "teklifler"),
-      where("talepId", "==", id),
-      where("kullaniciId", "==", user.uid)
-    );
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      alert("Bu talep için zaten bir teklif verdiniz.");
+    if (kendiTeklif) {
+      alert("Bu talebe zaten teklif verdiniz.");
       return;
     }
 
     const yeniTeklif = {
       talepId: id,
       kullaniciId: user.uid,
+      kullaniciEmail: user.email || "",
       teklifZamani: serverTimestamp(),
-      durum: "beklemede",
+      durum: "beklemede"
     };
 
     await addDoc(collection(db, "teklifler"), yeniTeklif);
     alert("Teklifiniz iletildi.");
-    fetchTeklifler(); // listeyi güncelle
+    fetchTeklifler();
+  };
+
+  const teklifIptalEt = async () => {
+    if (!kendiTeklif) return;
+    const teklifDoc = doc(db, "teklifler", kendiTeklif.id);
+    await deleteDoc(teklifDoc);
+    alert("Teklifiniz iptal edildi.");
+    fetchTeklifler();
+  };
+
+  const mesajGonder = () => {
+    const mail = talep?.olusturanEmail;
+    if (mail) {
+      window.location.href = `mailto:${mail}?subject=Talep Hakkında&body=Merhaba, talebinizle ilgileniyorum.`;
+    } else {
+      alert("Talep sahibinin e-posta adresi bulunamadı.");
+    }
   };
 
   useEffect(() => {
@@ -74,7 +91,7 @@ export default function TalepDetay() {
       fetchTalep();
       fetchTeklifler();
     }
-  }, [id]);
+  }, [id, user]);
 
   if (loading || !talep) return <p>Yükleniyor...</p>;
 
@@ -84,13 +101,22 @@ export default function TalepDetay() {
       <p className="mb-2">{talep.aciklama}</p>
       <p className="text-gray-600 mb-6">Ülke: {talep.ulke}</p>
 
-      {user && (
-        <button
-          onClick={teklifVer}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-6"
-        >
+      {user && !kendiTeklif && (
+        <button onClick={teklifVer} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
           Bu talebe teklif ver
         </button>
+      )}
+
+      {user && kendiTeklif && (
+        <div className="mb-4 space-y-2">
+          <p className="text-green-600 font-medium">Bu talebe zaten teklif verdiniz.</p>
+          <button onClick={teklifIptalEt} className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600">
+            Teklifi iptal et
+          </button>
+          <button onClick={mesajGonder} className="ml-2 bg-gray-700 text-white px-3 py-2 rounded hover:bg-gray-800">
+            Talep sahibine mesaj gönder
+          </button>
+        </div>
       )}
 
       <h2 className="text-xl font-semibold mt-6 mb-2">Verilen Teklifler</h2>
@@ -100,7 +126,7 @@ export default function TalepDetay() {
         <ul className="space-y-2">
           {teklifler.map(t => (
             <li key={t.id} className="p-3 border rounded bg-gray-100">
-              <p>Kullanıcı ID: {t.kullaniciId}</p>
+              <p>Kullanıcı: {t.kullaniciEmail || t.kullaniciId}</p>
               <p>Durum: {t.durum}</p>
             </li>
           ))}
