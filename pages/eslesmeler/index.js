@@ -1,3 +1,4 @@
+// pages/eslesmeler/index.js
 import { useEffect, useState } from "react";
 import { auth, db } from "../../firebase/firebaseConfig";
 import { collection, query, where, getDocs } from "firebase/firestore";
