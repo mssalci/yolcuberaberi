@@ -43,7 +43,7 @@ const handleLogout = async () => {
         <nav className="hidden sm:flex gap-4 text-sm font-medium text-gray-800">
           <Link href="/talep" className="hover:text-blue-600">Talep Oluştur</Link>
           <Link href="/talepler" className="hover:text-blue-600">Talepler</Link>
-          <Link href="/tekliflerim" className="hover:text-blue-600">Tekliflerim</Link>
+          <Link href="/eslesmeler" className="hover:text-blue-600">Eşleşmeler</Link>
         </nav>
 
         <div className="hidden sm:flex space-x-2 text-sm">
@@ -69,7 +69,7 @@ const handleLogout = async () => {
         <div className="sm:hidden flex flex-col gap-3 px-4 pb-4 text-sm text-gray-800">
           <Link href="/talep" onClick={() => setMenuOpen(false)}>Talep Oluştur</Link>
           <Link href="/talepler" onClick={() => setMenuOpen(false)}>Talepler</Link>
-          <Link href="/tekliflerim" onClick={() => setMenuOpen(false)}>Tekliflerim</Link>
+          <Link href="/eslesmeler" onClick={() => setMenuOpen(false)}>Eşleşmelerim</Link>
           {user ? (
             <>
               <Link href="/profil" onClick={() => setMenuOpen(false)}>👤 {user.displayName || user.email?.split("@")[0]}</Link>
