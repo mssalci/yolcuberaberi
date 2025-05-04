@@ -59,7 +59,7 @@ export default function Talepler() {
                 <h3 className="text-xl font-semibold mb-2">{talep.baslik}</h3>
                 <p className="mb-2">{talep.aciklama}</p>
                 <p className="text-sm text-gray-600 mb-4">Ülke: {talep.ulke}</p>
-                <Link href={`/chat/${talep.id}`} className="text-blue-600 hover:underline">Detayları Gör</Link>
+                <Link href={`/talepler/${talep.id}`} className="text-blue-600 hover:underline">Detayları Gör</Link>
               </div>
             ))}
           </div>
