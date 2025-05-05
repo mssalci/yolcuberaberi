@@ -33,24 +33,30 @@ export default function TalepDetay() {
   };
 
   const handleTeklifSubmit = async (e) => {
-    e.preventDefault();
-    const user = auth.currentUser;
-    if (!user) return alert("Lütfen giriş yapın.");
-    try {
-      await addDoc(collection(db, "teklifler"), {
-        ...teklifData,
-        kullaniciId: user.uid,
-        talepId: talep.id,
-        olusturmaZamani: serverTimestamp(),
-        kabulEdildi: false,
-      });
-      alert("Teklif başarıyla gönderildi!");
-      setTeklifData({ fiyat: "", not: "", tarih: "" });
-      fetchTeklifler(talep.id);
-    } catch (err) {
-      alert("Teklif gönderilemedi: " + err.message);
-    }
-  };
+  e.preventDefault();
+  const user = auth.currentUser;
+  if (!user) return alert("Lütfen giriş yapın.");
+
+  // Kullanıcının kendi talebine teklif verip vermediğini kontrol et
+  if (talep.kullaniciId === user.uid) {
+    return alert("Kendi oluşturduğunuz talebe teklif veremezsiniz.");
+  }
+
+  try {
+    await addDoc(collection(db, "teklifler"), {
+      ...teklifData,
+      kullaniciId: user.uid,
+      talepId: talep.id,
+      olusturmaZamani: serverTimestamp(),
+      kabulEdildi: false,
+    });
+    alert("Teklif başarıyla gönderildi!");
+    setTeklifData({ fiyat: "", not: "", tarih: "" });
+    fetchTeklifler(talep.id);
+  } catch (err) {
+    alert("Teklif gönderilemedi: " + err.message);
+  }
+};
 
   const fetchTeklifler = async (talepId) => {
     const q = query(collection(db, "teklifler"), where("talepId", "==", talepId));
