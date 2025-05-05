@@ -24,7 +24,7 @@ export default function TalepDetay() {
   const [loading, setLoading] = useState(true);
   const [kendiTeklif, setKendiTeklif] = useState(null);
   const [teklifData, setTeklifData] = useState({ fiyat: "", not: "", tarih: "" });
-}
+
   const fetchTalep = async () => {
     const docRef = doc(db, "talepler", id);
     const docSnap = await getDoc(docRef);
@@ -47,35 +47,34 @@ export default function TalepDetay() {
   };
 
   const handleTeklifSubmit = async (e) => {
-  e.preventDefault();
-  const user = auth.currentUser;
+    e.preventDefault();
+    const user = auth.currentUser;
 
-  if (!user) return alert("Lütfen giriş yapın.");
+    if (!user) return alert("Lütfen giriş yapın.");
 
-  if (!talep || !talep.kullaniciId) {
-    console.log("Talep nesnesi veya kullaniciId eksik:", talep);
-    return alert("Talep bilgileri yüklenemedi. Lütfen tekrar deneyin.");
-  }
+    if (!talep || !talep.kullaniciId) {
+      return alert("Talep bilgileri yüklenemedi. Lütfen tekrar deneyin.");
+    }
 
-  if (talep.kullaniciId === user.uid) {
-    return alert("Kendi oluşturduğunuz talebe teklif veremezsiniz.");
-  }
+    if (talep.kullaniciId === user.uid) {
+      return alert("Kendi oluşturduğunuz talebe teklif veremezsiniz.");
+    }
 
-  try {
-    await addDoc(collection(db, "teklifler"), {
-      ...teklifData,
-      kullaniciId: user.uid,
-      talepId: talep.id,
-      olusturmaZamani: serverTimestamp(),
-      kabulEdildi: false,
-    });
-    alert("Teklif başarıyla gönderildi!");
-    setTeklifData({ fiyat: "", not: "", tarih: "" });
-    fetchTeklifler(talep.id);
-  } catch (err) {
-    alert("Teklif gönderilemedi: " + err.message);
-  }
-};
+    try {
+      await addDoc(collection(db, "teklifler"), {
+        ...teklifData,
+        kullaniciId: user.uid,
+        talepId: talep.id,
+        olusturmaZamani: serverTimestamp(),
+        kabulEdildi: false,
+      });
+      alert("Teklif başarıyla gönderildi!");
+      setTeklifData({ fiyat: "", not: "", tarih: "" });
+      fetchTeklifler();
+    } catch (err) {
+      alert("Teklif gönderilemedi: " + err.message);
+    }
+  };
 
   const teklifIptalEt = async () => {
     if (!kendiTeklif) return;
@@ -110,37 +109,36 @@ export default function TalepDetay() {
       <p className="text-gray-600 mb-6">Ülke: {talep.ulke}</p>
 
       {user && !kendiTeklif && (
-  <form onSubmit={handleTeklifSubmit} className="space-y-2 mb-4">
-    <input
-      type="text"
-      placeholder="Fiyat"
-      value={teklifData.fiyat}
-      onChange={(e) => setTeklifData({ ...teklifData, fiyat: e.target.value })}
-      className="w-full p-2 border rounded"
-      required
-    />
-    <input
-      type="date"
-      value={teklifData.tarih}
-      onChange={(e) => setTeklifData({ ...teklifData, tarih: e.target.value })}
-      className="w-full p-2 border rounded"
-      required
-    />
-    <textarea
-      placeholder="Not"
-      value={teklifData.not}
-      onChange={(e) => setTeklifData({ ...teklifData, not: e.target.value })}
-      className="w-full p-2 border rounded"
-    />
-    <button
-      type="submit"
-      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-    >
-      Teklif Gönder
-    </button>
-  </form>
-)}
-
+        <form onSubmit={handleTeklifSubmit} className="space-y-2 mb-4">
+          <input
+            type="text"
+            placeholder="Fiyat"
+            value={teklifData.fiyat}
+            onChange={(e) => setTeklifData({ ...teklifData, fiyat: e.target.value })}
+            className="w-full p-2 border rounded"
+            required
+          />
+          <input
+            type="date"
+            value={teklifData.tarih}
+            onChange={(e) => setTeklifData({ ...teklifData, tarih: e.target.value })}
+            className="w-full p-2 border rounded"
+            required
+          />
+          <textarea
+            placeholder="Not"
+            value={teklifData.not}
+            onChange={(e) => setTeklifData({ ...teklifData, not: e.target.value })}
+            className="w-full p-2 border rounded"
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Teklif Gönder
+          </button>
+        </form>
+      )}
 
       {user && kendiTeklif && (
         <div className="mb-4 space-y-2">
@@ -160,9 +158,11 @@ export default function TalepDetay() {
       ) : (
         <ul className="space-y-2">
           {teklifler.map(t => (
-            <li key={t.id} className="p-3 border rounded bg-gray-100">
-              <p>Kullanıcı: {t.kullaniciEmail || t.kullaniciId}</p>
-              <p>Durum: {t.durum}</p>
+            <li key={t.id} className="border p-3 rounded">
+              <p><strong>Fiyat:</strong> {t.fiyat}</p>
+              <p><strong>Tarih:</strong> {t.tarih}</p>
+              <p><strong>Not:</strong> {t.not}</p>
+              {user && t.kullaniciId === user.uid && <p className="text-sm text-blue-600">Bu teklif size ait.</p>}
             </li>
           ))}
         </ul>
