@@ -45,29 +45,36 @@ export default function TalepDetay() {
     }
   };
 
-  const teklifVer = async () => {
-    if (!user) {
-      alert("Teklif vermek için giriş yapmalısınız.");
-      return;
-    }
+  const handleTeklifSubmit = async (e) => {
+  e.preventDefault();
+  const user = auth.currentUser;
 
-    if (kendiTeklif) {
-      alert("Bu talebe zaten teklif verdiniz.");
-      return;
-    }
+  if (!user) return alert("Lütfen giriş yapın.");
 
-    const yeniTeklif = {
-      talepId: id,
+  if (!talep || !talep.kullaniciId) {
+    console.log("Talep nesnesi veya kullaniciId eksik:", talep);
+    return alert("Talep bilgileri yüklenemedi. Lütfen tekrar deneyin.");
+  }
+
+  if (talep.kullaniciId === user.uid) {
+    return alert("Kendi oluşturduğunuz talebe teklif veremezsiniz.");
+  }
+
+  try {
+    await addDoc(collection(db, "teklifler"), {
+      ...teklifData,
       kullaniciId: user.uid,
-      kullaniciEmail: user.email || "",
-      teklifZamani: serverTimestamp(),
-      durum: "beklemede"
-    };
-
-    await addDoc(collection(db, "teklifler"), yeniTeklif);
-    alert("Teklifiniz iletildi.");
-    fetchTeklifler();
-  };
+      talepId: talep.id,
+      olusturmaZamani: serverTimestamp(),
+      kabulEdildi: false,
+    });
+    alert("Teklif başarıyla gönderildi!");
+    setTeklifData({ fiyat: "", not: "", tarih: "" });
+    fetchTeklifler(talep.id);
+  } catch (err) {
+    alert("Teklif gönderilemedi: " + err.message);
+  }
+};
 
   const teklifIptalEt = async () => {
     if (!kendiTeklif) return;
