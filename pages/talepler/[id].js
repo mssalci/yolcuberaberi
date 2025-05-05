@@ -15,7 +15,7 @@ import { db } from "../../firebase/firebaseConfig";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../../firebase/firebaseConfig";
 
-export default function TalepDetay() {
+export default function TalepDetay()
   const router = useRouter();
   const { id } = router.query;
   const [talep, setTalep] = useState(null);
@@ -23,6 +23,7 @@ export default function TalepDetay() {
   const [user] = useAuthState(auth);
   const [loading, setLoading] = useState(true);
   const [kendiTeklif, setKendiTeklif] = useState(null);
+  const [teklifData, setTeklifData] = useState({ fiyat: "", not: "", tarih: "" });
 
   const fetchTalep = async () => {
     const docRef = doc(db, "talepler", id);
@@ -109,10 +110,37 @@ export default function TalepDetay() {
       <p className="text-gray-600 mb-6">Ülke: {talep.ulke}</p>
 
       {user && !kendiTeklif && (
-        <button onClick={teklifVer} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
-          Bu talebe teklif ver
-        </button>
-      )}
+  <form onSubmit={handleTeklifSubmit} className="space-y-2 mb-4">
+    <input
+      type="text"
+      placeholder="Fiyat"
+      value={teklifData.fiyat}
+      onChange={(e) => setTeklifData({ ...teklifData, fiyat: e.target.value })}
+      className="w-full p-2 border rounded"
+      required
+    />
+    <input
+      type="date"
+      value={teklifData.tarih}
+      onChange={(e) => setTeklifData({ ...teklifData, tarih: e.target.value })}
+      className="w-full p-2 border rounded"
+      required
+    />
+    <textarea
+      placeholder="Not"
+      value={teklifData.not}
+      onChange={(e) => setTeklifData({ ...teklifData, not: e.target.value })}
+      className="w-full p-2 border rounded"
+    />
+    <button
+      type="submit"
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+    >
+      Teklif Gönder
+    </button>
+  </form>
+)}
+
 
       {user && kendiTeklif && (
         <div className="mb-4 space-y-2">
