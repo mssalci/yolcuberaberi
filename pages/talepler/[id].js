@@ -15,7 +15,7 @@ import { db } from "../../firebase/firebaseConfig";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../../firebase/firebaseConfig";
 
-export default function TalepDetay()
+export default function TalepDetay() {
   const router = useRouter();
   const { id } = router.query;
   const [talep, setTalep] = useState(null);
@@ -24,7 +24,7 @@ export default function TalepDetay()
   const [loading, setLoading] = useState(true);
   const [kendiTeklif, setKendiTeklif] = useState(null);
   const [teklifData, setTeklifData] = useState({ fiyat: "", not: "", tarih: "" });
-
+}
   const fetchTalep = async () => {
     const docRef = doc(db, "talepler", id);
     const docSnap = await getDoc(docRef);
