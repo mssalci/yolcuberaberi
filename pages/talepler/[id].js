@@ -21,8 +21,14 @@ export default function TalepDetay() {
   const [not, setNot] = useState("");
   const [loading, setLoading] = useState(false);
   const [eslesmeler, setEslesmeler] = useState([]);
+  const [user, setUser] = useState(null);
 
-  const user = auth.currentUser;
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((u) => {
+      setUser(u);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const fetchTalep = async () => {
@@ -96,7 +102,7 @@ export default function TalepDetay() {
       alert("Teklif ve eşleşme başarıyla oluşturuldu.");
       setFiyat("");
       setNot("");
-      router.reload(); // eşleşmeleri güncellemek için
+      router.reload();
     } catch (error) {
       console.error("Teklif/Eşleşme hatası:", error);
       alert("Bir hata oluştu. Lütfen tekrar deneyin.");
@@ -104,6 +110,8 @@ export default function TalepDetay() {
       setLoading(false);
     }
   };
+
+  const kullaniciTalepSahibiMi = user && talep?.kullaniciId === user.uid;
 
   if (!talep) {
     return <p className="text-center mt-10">Yükleniyor...</p>;
@@ -115,54 +123,52 @@ export default function TalepDetay() {
       <p className="text-gray-700 mb-2">{talep.aciklama}</p>
       <p className="text-gray-500 mb-6 text-sm">Kategori: {talep.kategori}</p>
 
-      <form onSubmit={handleTeklifVer} className="space-y-4 bg-gray-100 p-4 rounded mb-8">
-        <div>
-          <label className="block text-sm font-medium">Fiyat (₺)</label>
-          <input
-            type="number"
-            value={fiyat}
-            onChange={(e) => setFiyat(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium">Not</label>
-          <textarea
-            value={not}
-            onChange={(e) => setNot(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-            rows={3}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          {loading ? "Gönderiliyor..." : "Teklif Ver"}
-        </button>
-      </form>
+      {user && !kullaniciTalepSahibiMi && (
+        <form onSubmit={handleTeklifVer} className="space-y-4 bg-gray-100 p-4 rounded mb-8">
+          <div>
+            <label className="block text-sm font-medium">Fiyat (₺)</label>
+            <input
+              type="number"
+              value={fiyat}
+              onChange={(e) => setFiyat(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Not</label>
+            <textarea
+              value={not}
+              onChange={(e) => setNot(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              rows={3}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            {loading ? "Gönderiliyor..." : "Teklif Ver"}
+          </button>
+        </form>
+      )}
 
-      {eslesmeler.length > 0 && (
+      {eslesmeler.length > 0 && kullaniciTalepSahibiMi && (
         <section>
           <h2 className="text-xl font-semibold mb-4">Teklif Verenler</h2>
           <ul className="space-y-3">
             {eslesmeler.map((eslesme) => (
               <li key={eslesme.id} className="p-3 bg-white rounded shadow flex justify-between items-center">
                 <div>
-                  <p className="font-medium">
-                    Fiyat: ₺{eslesme.teklif?.fiyat}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Not: {eslesme.teklif?.not || "-"}
-                  </p>
+                  <p className="font-medium">Fiyat: ₺{eslesme.teklif?.fiyat}</p>
+                  <p className="text-sm text-gray-600">Not: {eslesme.teklif?.not || "-"}</p>
                 </div>
                 <button
                   onClick={() => router.push(`/sohbet/${eslesme.id}`)}
-                  className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                  className="bg-blue-500 text-white px-3 py-1 rounded"
                 >
-                  Sohbet
+                  Sohbete Git
                 </button>
               </li>
             ))}
@@ -171,4 +177,4 @@ export default function TalepDetay() {
       )}
     </main>
   );
-}
+                }
