@@ -10,7 +10,6 @@ import {
   where,
   getDocs,
   serverTimestamp,
-  orderBy,
 } from "firebase/firestore";
 
 export default function TalepDetay() {
@@ -22,8 +21,7 @@ export default function TalepDetay() {
   const [not, setNot] = useState("");
   const [loading, setLoading] = useState(false);
   const [eslesmeler, setEslesmeler] = useState([]);
-  const [mesajlar, setMesajlar] = useState({});
-  const [mesajInput, setMesajInput] = useState({});
+
   const user = auth.currentUser;
 
   useEffect(() => {
@@ -40,47 +38,41 @@ export default function TalepDetay() {
       }
     };
 
-    fetchTalep();
-  }, [id]);
-
-  useEffect(() => {
     const fetchEslesmeler = async () => {
       if (!id) return;
       try {
         const q = query(collection(db, "eslesmeler"), where("talepId", "==", id));
         const querySnapshot = await getDocs(q);
-        const eslesmelerList = [];
-        const mesajVerileri = {};
-
-        for (const docSnap of querySnapshot.docs) {
-          const eslesme = { id: docSnap.id, ...docSnap.data() };
-          eslesmelerList.push(eslesme);
-
-          // Mesajları al
-          const mesajQuery = query(
-            collection(db, "eslesmeler", docSnap.id, "mesajlar"),
-            orderBy("olusturmaZamani", "asc")
-          );
-          const mesajSnap = await getDocs(mesajQuery);
-          mesajVerileri[docSnap.id] = mesajSnap.docs.map((d) => ({
-            id: d.id,
-            ...d.data(),
-          }));
+        const data = [];
+        for (let docSnap of querySnapshot.docs) {
+          const teklifDoc = await getDoc(doc(db, "teklifler", docSnap.data().teklifId));
+          data.push({
+            id: docSnap.id,
+            ...docSnap.data(),
+            teklif: teklifDoc.exists() ? teklifDoc.data() : null,
+          });
         }
-
-        setEslesmeler(eslesmelerList);
-        setMesajlar(mesajVerileri);
+        setEslesmeler(data);
       } catch (error) {
-        console.error("Eşleşmeler çekilirken hata:", error);
+        console.error("Eşleşmeler alınamadı:", error);
       }
     };
 
+    fetchTalep();
     fetchEslesmeler();
   }, [id]);
 
   const handleTeklifVer = async (e) => {
     e.preventDefault();
     if (!user || !fiyat || !talep) return;
+
+    const mevcutTeklifVarMi = eslesmeler.some(
+      (eslesme) => eslesme.teklifVerenId === user.uid
+    );
+    if (mevcutTeklifVarMi) {
+      alert("Bu talebe zaten bir teklif verdiniz.");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -104,6 +96,7 @@ export default function TalepDetay() {
       alert("Teklif ve eşleşme başarıyla oluşturuldu.");
       setFiyat("");
       setNot("");
+      router.reload(); // eşleşmeleri güncellemek için
     } catch (error) {
       console.error("Teklif/Eşleşme hatası:", error);
       alert("Bir hata oluştu. Lütfen tekrar deneyin.");
@@ -112,31 +105,17 @@ export default function TalepDetay() {
     }
   };
 
-  const handleMesajGonder = async (eslesmeId) => {
-    if (!user || !mesajInput[eslesmeId]) return;
-    try {
-      await addDoc(collection(db, "eslesmeler", eslesmeId, "mesajlar"), {
-        gonderenId: user.uid,
-        icerik: mesajInput[eslesmeId],
-        olusturmaZamani: serverTimestamp(),
-      });
-      setMesajInput((prev) => ({ ...prev, [eslesmeId]: "" }));
-    } catch (error) {
-      console.error("Mesaj gönderme hatası:", error);
-    }
-  };
-
   if (!talep) {
     return <p className="text-center mt-10">Yükleniyor...</p>;
   }
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-10">
+    <main className="max-w-3xl mx-auto px-4 py-10">
       <h1 className="text-2xl font-bold mb-4">{talep.baslik}</h1>
       <p className="text-gray-700 mb-2">{talep.aciklama}</p>
       <p className="text-gray-500 mb-6 text-sm">Kategori: {talep.kategori}</p>
 
-      <form onSubmit={handleTeklifVer} className="space-y-4 bg-gray-100 p-4 rounded mb-10">
+      <form onSubmit={handleTeklifVer} className="space-y-4 bg-gray-100 p-4 rounded mb-8">
         <div>
           <label className="block text-sm font-medium">Fiyat (₺)</label>
           <input
@@ -165,50 +144,31 @@ export default function TalepDetay() {
         </button>
       </form>
 
-      <section>
-        <h2 className="text-xl font-semibold mb-4">Eşleşmeler</h2>
-        {eslesmeler.length === 0 ? (
-          <p>Henüz eşleşme yok.</p>
-        ) : (
-          eslesmeler.map((eslesme) => (
-            <div key={eslesme.id} className="mb-6 border rounded p-4 bg-gray-50">
-              <p className="font-medium">Teklif Veren ID: {eslesme.teklifVerenId}</p>
-              <div className="mt-3">
-                <h3 className="font-semibold mb-2">Sohbet</h3>
-                <div className="bg-white border p-2 h-40 overflow-y-auto mb-2">
-                  {mesajlar[eslesme.id]?.map((mesaj) => (
-                    <div
-                      key={mesaj.id}
-                      className={`mb-1 text-sm ${
-                        mesaj.gonderenId === user?.uid ? "text-right text-blue-600" : "text-left"
-                      }`}
-                    >
-                      {mesaj.icerik}
-                    </div>
-                  ))}
+      {eslesmeler.length > 0 && (
+        <section>
+          <h2 className="text-xl font-semibold mb-4">Teklif Verenler</h2>
+          <ul className="space-y-3">
+            {eslesmeler.map((eslesme) => (
+              <li key={eslesme.id} className="p-3 bg-white rounded shadow flex justify-between items-center">
+                <div>
+                  <p className="font-medium">
+                    Fiyat: ₺{eslesme.teklif?.fiyat}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Not: {eslesme.teklif?.not || "-"}
+                  </p>
                 </div>
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={mesajInput[eslesme.id] || ""}
-                    onChange={(e) =>
-                      setMesajInput((prev) => ({ ...prev, [eslesme.id]: e.target.value }))
-                    }
-                    className="flex-1 border rounded px-2 py-1"
-                    placeholder="Mesaj yaz..."
-                  />
-                  <button
-                    onClick={() => handleMesajGonder(eslesme.id)}
-                    className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                  >
-                    Gönder
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </section>
+                <button
+                  onClick={() => router.push(`/sohbet/${eslesme.id}`)}
+                  className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                >
+                  Sohbet
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
-          }
+}
