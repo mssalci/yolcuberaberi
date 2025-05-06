@@ -96,9 +96,3 @@ export default function Eslesmeler() {
     </main>
   );
 }
-
-
-Kod güncellediğim gibi şimdi iki sekmeli bir yapı sunuyor: Tekliflerim ve Taleplerim. Giriş yapan kullanıcının teklif verdiği veya talep açtığı eşleşmeleri düzgün şekilde listeliyor.
-
-Devamında düzenlemek veya yeni özellikler eklemek ister misin?
-
