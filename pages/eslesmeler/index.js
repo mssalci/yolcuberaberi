@@ -1,4 +1,3 @@
-// pages/eslesmeler/index.js
 import { useEffect, useState } from "react";
 import { auth, db } from "../../firebase/firebaseConfig";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -12,20 +11,22 @@ export default function Eslesmeler() {
       const user = auth.currentUser;
       if (!user) return;
 
-      const q = query(
-        collection(db, "eslesmeler"),
-        where("kullaniciId", "==", user.uid)
-      );
-      const q2 = query(
+      const q1 = query(
         collection(db, "eslesmeler"),
         where("talepSahibiId", "==", user.uid)
       );
+      const q2 = query(
+        collection(db, "eslesmeler"),
+        where("teklifVerenId", "==", user.uid)
+      );
 
-      const [snap1, snap2] = await Promise.all([getDocs(q), getDocs(q2)]);
+      const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+
       const tum = [...snap1.docs, ...snap2.docs].map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
+
       setEslesmeler(tum);
     };
 
@@ -52,4 +53,4 @@ export default function Eslesmeler() {
       )}
     </div>
   );
-        }
+}
