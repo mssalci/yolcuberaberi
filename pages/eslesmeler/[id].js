@@ -1,4 +1,3 @@
-// pages/eslesmeler/[id].js
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import {
@@ -10,6 +9,7 @@ import {
   onSnapshot,
   addDoc,
   serverTimestamp,
+  getDocs,
 } from "firebase/firestore";
 import { auth, db } from "../../firebase/firebaseConfig";
 
@@ -22,56 +22,53 @@ export default function EslesmeDetay() {
   const [teklif, setTeklif] = useState(null);
   const [mesajlar, setMesajlar] = useState([]);
   const [yeniMesaj, setYeniMesaj] = useState("");
-  const [kullanicilar, setKullanicilar] = useState({});
+  const [kullanicilarMap, setKullanicilarMap] = useState({});
 
   useEffect(() => {
     if (!id) return;
 
-    const fetchKullanicilar = async (kullaniciIdleri) => {
-      const promises = kullaniciIdleri.map(async (uid) => {
-        const userDoc = await getDoc(doc(db, "users", uid));
-        return userDoc.exists() ? { uid, ...userDoc.data() } : null;
-      });
-      const results = await Promise.all(promises);
-      const userMap = {};
-      results.forEach((user) => {
-        if (user) userMap[user.uid] = user;
-      });
-      setKullanicilar(userMap);
-    };
-
     const fetchEslesme = async () => {
       const eslesmeRef = doc(db, "eslesmeler", id);
       const eslesmeSnap = await getDoc(eslesmeRef);
-      if (eslesmeSnap.exists()) {
-        const eslesmeData = eslesmeSnap.data();
-        setEslesme({ id: eslesmeSnap.id, ...eslesmeData });
+      if (!eslesmeSnap.exists()) return;
 
-        // Talep verisi
-        const talepSnap = await getDoc(doc(db, "talepler", eslesmeData.talepId));
-        if (talepSnap.exists()) setTalep({ id: talepSnap.id, ...talepSnap.data() });
+      const eslesmeData = eslesmeSnap.data();
+      setEslesme({ id: eslesmeSnap.id, ...eslesmeData });
 
-        // Teklif verisi
-        const teklifSnap = await getDoc(doc(db, "teklifler", eslesmeData.teklifId));
-        if (teklifSnap.exists()) setTeklif({ id: teklifSnap.id, ...teklifSnap.data() });
+      const [talepSnap, teklifSnap] = await Promise.all([
+        getDoc(doc(db, "talepler", eslesmeData.talepId)),
+        getDoc(doc(db, "teklifler", eslesmeData.teklifId)),
+      ]);
 
-        // Kullanıcı bilgilerini çek
-        const talepSahibiId = talepSnap?.data()?.olusturanId;
-        const teklifVerenId = teklifSnap?.data()?.olusturanId;
-        await fetchKullanicilar([talepSahibiId, teklifVerenId]);
+      if (talepSnap.exists()) setTalep({ id: talepSnap.id, ...talepSnap.data() });
+      if (teklifSnap.exists()) setTeklif({ id: teklifSnap.id, ...teklifSnap.data() });
 
-        // Mesajları dinle
-        const mesajQuery = query(
-          collection(db, "eslesmeler", id, "mesajlar"),
-          where("eslesmeId", "==", id)
+      // Kullanıcı bilgilerini getir
+      const kullaniciQuery = query(
+        collection(db, "kullanicilar"),
+        where("uid", "in", [eslesmeData.kullaniciId, eslesmeData.talepSahibiId])
+      );
+      const kullaniciSnap = await getDocs(kullaniciQuery);
+      const map = {};
+      kullaniciSnap.forEach((doc) => {
+        const data = doc.data();
+        map[data.uid] = data.adSoyad || "Bilinmeyen";
+      });
+      setKullanicilarMap(map);
+
+      // Mesajları dinle
+      const mesajQuery = query(
+        collection(db, "eslesmeler", id, "mesajlar"),
+        where("eslesmeId", "==", id)
+      );
+      const unsubscribe = onSnapshot(mesajQuery, (snapshot) => {
+        const mesajList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        setMesajlar(
+          mesajList.sort((a, b) => a.olusturmaZamani?.seconds - b.olusturmaZamani?.seconds)
         );
-        const unsubscribe = onSnapshot(mesajQuery, (snapshot) => {
-          const mesajList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-          setMesajlar(mesajList.sort((a, b) => a.olusturmaZamani?.seconds - b.olusturmaZamani?.seconds));
-        });
+      });
 
-        return () => unsubscribe();
-      }
+      return () => unsubscribe();
     };
 
     fetchEslesme();
@@ -110,23 +107,21 @@ export default function EslesmeDetay() {
       <div className="bg-white border rounded p-4 h-[400px] overflow-y-auto mb-4">
         <h3 className="font-semibold mb-2">Mesajlaşma</h3>
         {mesajlar.length === 0 && <p className="text-sm text-gray-500">Henüz mesaj yok.</p>}
-        {mesajlar.map((msg) => {
-          const user = kullanicilar[msg.gonderenId];
-          const isim = user?.adSoyad || user?.email || "Bilinmeyen Kullanıcı";
-          return (
-            <div
-              key={msg.id}
-              className={`mb-2 p-2 rounded ${
-                msg.gonderenId === auth.currentUser?.uid
-                  ? "bg-blue-100 text-right"
-                  : "bg-gray-200 text-left"
-              }`}
-            >
-              <p className="text-xs font-semibold">{isim}</p>
-              <p className="text-sm">{msg.mesaj}</p>
-            </div>
-          );
-        })}
+        {mesajlar.map((msg) => (
+          <div
+            key={msg.id}
+            className={`mb-2 p-2 rounded ${
+              msg.gonderenId === auth.currentUser?.uid
+                ? "bg-blue-100 text-right"
+                : "bg-gray-200 text-left"
+            }`}
+          >
+            <p className="text-xs text-gray-600 mb-1">
+              {kullanicilarMap[msg.gonderenId] || "Kullanıcı"}
+            </p>
+            <p className="text-sm">{msg.mesaj}</p>
+          </div>
+        ))}
       </div>
 
       <form onSubmit={handleMesajGonder} className="flex gap-2">
