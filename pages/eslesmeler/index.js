@@ -109,10 +109,7 @@ export default function Eslesmeler() {
       ) : (
         <ul className="space-y-4">
           {eslesmeler.map((eslesme) => (
-            <li
-              key={eslesme.id}
-              className="border p-4 rounded bg-white shadow space-y-2"
-            >
+            <li key={eslesme.id} className="border p-4 rounded bg-white shadow space-y-2">
               <p className="font-semibold">
                 Talep: {eslesme.talep?.baslik || "-"}
               </p>
