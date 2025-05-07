@@ -23,7 +23,7 @@ export default function TalepDetay() {
   const [loading, setLoading] = useState(false);
   const [eslesmeler, setEslesmeler] = useState([]);
   const [user, setUser] = useState(null);
-
+const [talepSahibiAdSoyad, setTalepSahibiAdSoyad] = useState("");
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => {
       setUser(u);
@@ -45,6 +45,19 @@ export default function TalepDetay() {
       }
     };
 
+if (talepData.kullaniciId) {
+            const userDoc = await getDoc(doc(db, "kullanicilar", talepData.kullaniciId));
+            if (userDoc.exists()) {
+              const kullaniciData = userDoc.data();
+              setTalepSahibiAdSoyad(kullaniciData.adSoyad || "Bilinmiyor");
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Talep çekilirken hata:", error);
+      }
+    };
+    
     const fetchEslesmeler = async () => {
       if (!id) return;
       try {
@@ -140,7 +153,7 @@ export default function TalepDetay() {
         Tarih: {talep.tarih?.toDate?.().toLocaleDateString() || "-"}
       </p>
       <p className="text-gray-600 text-sm mb-1">Bütçe: {talep.butce || "-"}</p>
-      <p className="text-gray-600 text-sm mb-6">Talep Sahibi: {adSoyad || "-"}</p>
+      <p className="text-gray-600 text-sm mb-6">Talep Sahibi: {talepSahibiAdSoyad || "-"}</p>
 
       {kullaniciTalepSahibiMi && (
         <button
