@@ -53,9 +53,6 @@ const [adSoyad, setAdSoyad] = useState("");
       console.error("Talep çekilirken hata:", error);
     }
   };
-
-  if (id) fetchTalep();
-}, [id]);
     
     const fetchEslesmeler = async () => {
       if (!id) return;
@@ -76,7 +73,7 @@ const [adSoyad, setAdSoyad] = useState("");
         console.error("Eşleşmeler alınamadı:", error);
       }
     };
-
+  if (id) {
     fetchTalep();
     fetchEslesmeler();
   }, [id]);
