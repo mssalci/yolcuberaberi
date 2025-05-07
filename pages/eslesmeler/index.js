@@ -136,13 +136,13 @@ export default function Eslesmeler() {
 
               <div className="flex flex-wrap gap-4 mt-2">
                 <Link
-                  href={`/teklif/${eslesme.teklifId}`}
+                  href={`/eslesmeler/tekliflerim/${eslesme.teklifId}`}
                   className="text-blue-600 underline hover:text-blue-800"
                 >
                   Teklif Detayı
                 </Link>
                 <Link
-                  href={`/sohbet/${eslesme.id}`}
+                  href={`/chat/${eslesme.id}`}
                   className="text-green-600 underline hover:text-green-800"
                 >
                   Mesajlaş
@@ -164,4 +164,4 @@ export default function Eslesmeler() {
       )}
     </main>
   );
-                }
+        }
