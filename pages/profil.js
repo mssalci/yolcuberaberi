@@ -54,6 +54,7 @@ export default function Profil() {
     await setDoc(doc(db, "kullanicilar", user.uid), {
       adSoyad,
       iban,
+      email: user.email,
     });
 
     await updateProfile(user, { displayName: adSoyad });
@@ -63,6 +64,7 @@ export default function Profil() {
     setUser(auth.currentUser);
 
     alert("Profil başarıyla güncellendi.");
+    router.reload();
   } catch (error) {
     console.error("Güncelleme hatası:", error);
     alert("Profil güncellenemedi.");
