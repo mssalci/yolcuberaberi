@@ -9,6 +9,7 @@ import {
   setDoc,
   deleteDoc
 } from "firebase/firestore";
+import { updateProfile } from "firebase/auth";
 
 export default function Profil() {
   const [user, setUser] = useState(null);
@@ -36,19 +37,25 @@ export default function Profil() {
     return () => unsubscribe();
   }, []);
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!user) return;
-
+  const handleSave = async () => {
+  try {
     const ref = doc(db, "kullanicilar", user.uid);
     await setDoc(ref, {
       adSoyad,
       iban,
-      email: user.email,
     });
 
-    alert("Bilgiler güncellendi ✅");
-  };
+    // Firebase Auth profiline de adSoyad'ı yaz
+    await updateProfile(auth.currentUser, {
+      displayName: adSoyad,
+    });
+
+    alert("Bilgiler başarıyla güncellendi.");
+  } catch (error) {
+    console.error("Güncelleme hatası:", error);
+    alert("Bir hata oluştu.");
+  }
+};
 
   const handleDeleteAccount = async () => {
     if (!confirm("Hesabınızı kalıcı olarak silmek istediğinize emin misiniz?")) return;
