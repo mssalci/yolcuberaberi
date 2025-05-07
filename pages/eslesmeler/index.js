@@ -156,15 +156,3 @@ export default function Eslesmeler() {
   );
 }
 
-
-Güncellenmiş dosya başarıyla tamamlandı. Artık eşleşmeler sayfasında:
-
-Ülke, fiyat, not ve zaman bilgileri gösteriliyor.
-
-Teklifi İptal Et, Teklif Detayı, Mesajlaş butonları mevcut ve işlevsel.
-
-Yapı, tekliflerim ve taleplerim sekmeleriyle çalışıyor.
-
-
-Şimdi başka bir modülün revizyonuna geçmek ister misin?
-
