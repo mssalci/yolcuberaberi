@@ -1,141 +1,160 @@
-// pages/eslesmeler/eslesmeler.js
-import { useEffect, useState } from 'react';
-import Head from 'next/head';
-import Link from 'next/link';
-import { auth, db } from '../../firebase/firebaseConfig';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { auth, db } from "../../firebase/firebaseConfig";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  doc,
+  getDoc,
+  deleteDoc,
+} from "firebase/firestore";
+import Link from "next/link";
 
-export default function Tekliflerim() {
-  const [activeTab, setActiveTab] = useState('ettiklerim');
-  const [teklifEttiklerim, setTeklifEttiklerim] = useState([]);
-  const [talebimeGelenler, setTalebimeGelenler] = useState([]);
+export default function Eslesmeler() {
+  const router = useRouter();
+  const [aktifSekme, setAktifSekme] = useState("tekliflerim");
+  const [eslesmeler, setEslesmeler] = useState([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        await fetchTeklifler(currentUser.uid);
-      } else {
-        setUser(null);
-        setTeklifEttiklerim([]);
-        setTalebimeGelenler([]);
-      }
-      setLoading(false);
+    const unsubscribe = auth.onAuthStateChanged((usr) => {
+      setUser(usr);
     });
-
     return () => unsubscribe();
   }, []);
 
-  const fetchTeklifler = async (userId) => {
-    const q1 = query(collection(db, 'teklifler'), where('teklifVeren', '==', userId));
-    const snapshot1 = await getDocs(q1);
-    setTeklifEttiklerim(snapshot1.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  useEffect(() => {
+    const fetchEslesmeler = async () => {
+      if (!user) return;
+      setYukleniyor(true);
 
-    const taleplerSnapshot = await getDocs(query(collection(db, 'talepler'), where('talepSahibi', '==', userId)));
-    const talepIDs = taleplerSnapshot.docs.map(doc => doc.id);
+      try {
+        const field =
+          aktifSekme === "tekliflerim" ? "teklifVerenId" : "talepSahibiId";
+        const q = query(collection(db, "eslesmeler"), where(field, "==", user.uid));
 
-    if (talepIDs.length > 0) {
-      const q2 = query(collection(db, 'teklifler'), where('talepID', 'in', talepIDs));
-      const snapshot2 = await getDocs(q2);
-      setTalebimeGelenler(snapshot2.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const snapshot = await getDocs(q);
+
+        const eslesmeVerileri = await Promise.all(
+          snapshot.docs.map(async (docSnap) => {
+            const data = docSnap.data();
+
+            const talep = data.talepId
+              ? await getDoc(doc(db, "talepler", data.talepId))
+              : null;
+            const teklif = data.teklifId
+              ? await getDoc(doc(db, "teklifler", data.teklifId))
+              : null;
+
+            return {
+              id: docSnap.id,
+              ...data,
+              talep: talep?.exists() ? talep.data() : null,
+              teklif: teklif?.exists() ? teklif.data() : null,
+            };
+          })
+        );
+
+        setEslesmeler(eslesmeVerileri);
+      } catch (error) {
+        console.error("Eşleşmeler alınırken hata:", error);
+      } finally {
+        setYukleniyor(false);
+      }
+    };
+
+    fetchEslesmeler();
+  }, [aktifSekme, user]);
+
+  const teklifIptalEt = async (teklifId, eslesmeId) => {
+    const onay = confirm("Teklifi iptal etmek istediğinize emin misiniz?");
+    if (!onay) return;
+
+    try {
+      await deleteDoc(doc(db, "teklifler", teklifId));
+      await deleteDoc(doc(db, "eslesmeler", eslesmeId));
+      alert("Teklif ve eşleşme iptal edildi.");
+      setEslesmeler((prev) => prev.filter((e) => e.id !== eslesmeId));
+    } catch (err) {
+      console.error("İptal hatası:", err);
+      alert("Bir hata oluştu.");
     }
   };
 
   return (
-    <>
-      <Head>
-        <title>Eşleşmeler | Yolcu Beraberi</title>
-        <meta
-          name="description"
-          content="Teklif verdiğiniz ya da talebinize gelen tekliflerle eşleşmeleri yönetin."
-        />
-        <meta property="og:title" content="Eşleşmeler" />
-        <meta property="og:description" content="Yolcular ve talepler arasında bağlantı kurun, süreci takip edin." />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://www.yolcuberaberi.com.tr/tekliflerim" />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#2563eb" />
-      </Head>
+    <main className="max-w-4xl mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">Eşleşmeler</h1>
 
-      <main className="bg-white text-gray-800 min-h-screen p-6 max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-center">Eşleşmelerim</h1>
+      <div className="flex space-x-4 mb-6">
+        <button
+          onClick={() => setAktifSekme("tekliflerim")}
+          className={`px-4 py-2 rounded ${
+            aktifSekme === "tekliflerim" ? "bg-blue-600 text-white" : "bg-gray-200"
+          }`}
+        >
+          Tekliflerim
+        </button>
+        <button
+          onClick={() => setAktifSekme("taleplerim")}
+          className={`px-4 py-2 rounded ${
+            aktifSekme === "taleplerim" ? "bg-blue-600 text-white" : "bg-gray-200"
+          }`}
+        >
+          Taleplerim
+        </button>
+      </div>
 
-        {loading ? (
-          <p className="text-center">Yükleniyor...</p>
-        ) : !user ? (
-          <p className="text-center text-red-500">Lütfen giriş yapın.</p>
-        ) : (
-          <>
-            <div className="flex gap-4 justify-center mb-8">
-              <button
-                className={`py-2 px-6 rounded-full ${
-                  activeTab === 'ettiklerim' ? 'bg-blue-600 text-white' : 'bg-gray-200'
-                }`}
-                onClick={() => setActiveTab('ettiklerim')}
-              >
-                Teklif Ettiklerim
-              </button>
-              <button
-                className={`py-2 px-6 rounded-full ${
-                  activeTab === 'gelenler' ? 'bg-blue-600 text-white' : 'bg-gray-200'
-                }`}
-                onClick={() => setActiveTab('gelenler')}
-              >
-                Talebime Gelen Teklifler
-              </button>
-            </div>
-
-            {activeTab === 'ettiklerim' && (
-              <div className="grid md:grid-cols-2 gap-6">
-                {teklifEttiklerim.length === 0 ? (
-                  <p>Henüz teklif verdiğiniz bir talep yok.</p>
-                ) : (
-                  teklifEttiklerim.map(teklif => (
-                    <div key={teklif.id} className="border p-4 rounded-lg shadow-sm space-y-2">
-                      <h3 className="font-bold text-lg">Talep: {teklif.urunAdi || 'Ürün adı yok'}</h3>
-                      <p className="text-sm text-gray-700">Not: {teklif.mesaj || 'Mesaj yok'}</p>
-                      <div className="flex gap-4 mt-2">
-                        <Link href={`/teklif/${teklif.id}`} className="text-blue-600 underline hover:text-blue-800">
-                          Detayları Gör
-                        </Link>
-                        <Link href={`/chat/${teklif.id}`} className="text-green-600 underline hover:text-green-800">
-                          Mesajlaş
-                        </Link>
-                      </div>
-                    </div>
-                  ))
+      {yukleniyor ? (
+        <p>Yükleniyor...</p>
+      ) : eslesmeler.length === 0 ? (
+        <p>Hiç eşleşme bulunamadı.</p>
+      ) : (
+        <ul className="space-y-4">
+          {eslesmeler.map((eslesme) => (
+            <li key={eslesme.id} className="border p-4 rounded bg-white shadow space-y-2">
+              <p className="font-semibold">
+                Talep: {eslesme.talep?.baslik || "-"}
+              </p>
+              <p className="text-sm text-gray-600">Ülke: {eslesme.talep?.ulke || "-"}</p>
+              <p className="text-sm text-gray-600">
+                Açıklama: {eslesme.talep?.aciklama || "-"}
+              </p>
+              <p className="text-sm text-gray-600">
+                Fiyat: ₺{eslesme.teklif?.fiyat?.toFixed(2) || "-"}
+              </p>
+              <p className="text-sm text-gray-600">Not: {eslesme.teklif?.not || "-"}</p>
+              <p className="text-sm text-gray-500">
+                Tarih: {eslesme.teklif?.olusturmaZamani?.toDate?.().toLocaleString() || "-"}
+              </p>
+              <div className="flex gap-3 pt-2">
+                <Link
+                  href={`/eslesmeler/tekliflerim/${eslesme.teklifId}`}
+                  className="text-blue-600 underline"
+                >
+                  Teklif Detayı
+                </Link>
+                <Link
+                  href={`/chat/${eslesme.id}`}
+                  className="text-green-600 underline"
+                >
+                  Mesajlaş
+                </Link>
+                {aktifSekme === "tekliflerim" && (
+                  <button
+                    onClick={() => teklifIptalEt(eslesme.teklifId, eslesme.id)}
+                    className="text-red-600 underline"
+                  >
+                    İptal Et
+                  </button>
                 )}
               </div>
-            )}
-
-            {activeTab === 'gelenler' && (
-              <div className="grid md:grid-cols-2 gap-6">
-                {talebimeGelenler.length === 0 ? (
-                  <p>Henüz taleplerinize gelen bir teklif yok.</p>
-                ) : (
-                  talebimeGelenler.map(teklif => (
-                    <div key={teklif.id} className="border p-4 rounded-lg shadow-sm space-y-2">
-                      <h3 className="font-bold text-lg">Teklif Sahibi: {teklif.teklifVeren || 'Bilinmiyor'}</h3>
-                      <p className="text-sm text-gray-700">Mesaj: {teklif.mesaj || 'Mesaj yok'}</p>
-                      <div className="flex gap-4 mt-2">
-                        <Link href={`/teklif/${teklif.id}`} className="text-blue-600 underline hover:text-blue-800">
-                          Detayları Gör
-                        </Link>
-                        <Link href={`/chat/${teklif.id}`} className="text-green-600 underline hover:text-green-800">
-                          Mesajlaş
-                        </Link>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </main>
-    </>
+            </li>
+          ))}
+        </ul>
+      )}
+    </main>
   );
-          }
+}
