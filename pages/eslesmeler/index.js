@@ -1,5 +1,3 @@
-// pages/eslesmeler/index.js
-
 import { useEffect, useState } from "react";
 import { auth, db } from "../../firebase/firebaseConfig";
 import {
@@ -9,6 +7,7 @@ import {
   where,
   doc,
   getDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -64,6 +63,20 @@ export default function Eslesmeler() {
     if (user) fetchEslesmeler();
   }, [aktifSekme, user]);
 
+  const handleTeklifIptal = async (teklifId, eslesmeId) => {
+    const onay = confirm("Bu teklifi iptal etmek istediğinize emin misiniz?");
+    if (!onay) return;
+    try {
+      await deleteDoc(doc(db, "teklifler", teklifId));
+      await deleteDoc(doc(db, "eslesmeler", eslesmeId));
+      alert("Teklif iptal edildi.");
+      setEslesmeler((prev) => prev.filter((e) => e.id !== eslesmeId));
+    } catch (err) {
+      console.error("İptal hatası:", err.message);
+      alert("Bir hata oluştu. Teklif silinemedi.");
+    }
+  };
+
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6 text-center">Eşleşmeler</h1>
@@ -110,9 +123,7 @@ export default function Eslesmeler() {
               <p className="text-sm text-gray-600">
                 Fiyat: ₺{eslesme.teklif?.fiyat?.toFixed(2) || "-"}
               </p>
-              <p className="text-sm text-gray-600">
-                Not: {eslesme.teklif?.not || "-"}
-              </p>
+              <p className="text-sm text-gray-600">Not: {eslesme.teklif?.not || "-"}</p>
               <p className="text-sm text-gray-500">
                 Zaman:{" "}
                 {eslesme.olusturmaZamani?.seconds
@@ -123,7 +134,7 @@ export default function Eslesmeler() {
                   : "-"}
               </p>
 
-              <div className="flex gap-4 mt-2">
+              <div className="flex flex-wrap gap-4 mt-2">
                 <Link
                   href={`/teklif/${eslesme.teklifId}`}
                   className="text-blue-600 underline hover:text-blue-800"
@@ -136,6 +147,16 @@ export default function Eslesmeler() {
                 >
                   Mesajlaş
                 </Link>
+                {aktifSekme === "tekliflerim" && (
+                  <button
+                    onClick={() =>
+                      handleTeklifIptal(eslesme.teklifId, eslesme.id)
+                    }
+                    className="text-red-600 underline hover:text-red-800"
+                  >
+                    Teklifi İptal Et
+                  </button>
+                )}
               </div>
             </li>
           ))}
@@ -143,4 +164,4 @@ export default function Eslesmeler() {
       )}
     </main>
   );
-}
+                }
