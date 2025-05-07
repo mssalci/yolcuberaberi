@@ -1,75 +1,72 @@
+// pages/chat/[chatId].js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import {
   collection,
-  addDoc,
-  serverTimestamp,
   query,
   where,
+  orderBy,
   onSnapshot,
+  addDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { auth, db } from "../../firebase/firebaseConfig";
 
-export default function ChatSayfasi() {
+export default function ChatPage() {
   const router = useRouter();
   const { chatId } = router.query;
-
   const [mesajlar, setMesajlar] = useState([]);
-  const [yeniMesaj, setYeniMesaj] = useState("");
+  const [mesaj, setMesaj] = useState("");
 
   useEffect(() => {
     if (!chatId) return;
-
     const q = query(
       collection(db, "chat"),
-      where("chatId", "==", chatId)
+      where("chatId", "==", chatId),
+      orderBy("zaman", "asc")
     );
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const guncelMesajlar = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setMesajlar(guncelMesajlar.sort((a, b) => a.olusturmaZamani?.seconds - b.olusturmaZamani?.seconds));
+      setMesajlar(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     });
-
     return () => unsubscribe();
   }, [chatId]);
 
   const handleGonder = async (e) => {
     e.preventDefault();
     const user = auth.currentUser;
-    if (!user || !yeniMesaj.trim()) return;
+    if (!user || !mesaj.trim()) return;
 
     try {
       await addDoc(collection(db, "chat"), {
         chatId,
         gonderenId: user.uid,
-        mesaj: yeniMesaj.trim(),
-        olusturmaZamani: serverTimestamp(),
+        mesaj,
+        zaman: serverTimestamp(),
       });
-      setYeniMesaj("");
+      setMesaj("");
     } catch (err) {
       console.error("Mesaj gönderilemedi:", err.message);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">Mesajlaşma</h1>
+    <div className="max-w-2xl mx-auto py-6 px-4">
+      <h1 className="text-xl font-semibold mb-4">Mesajlaşma</h1>
 
-      <div className="border rounded h-96 overflow-y-auto p-4 mb-4 bg-gray-50">
-        {mesajlar.length === 0 && <p className="text-sm text-gray-500">Henüz mesaj yok.</p>}
-        {mesajlar.map((msg) => (
+      <div className="h-96 overflow-y-auto border rounded p-4 bg-gray-50 mb-4">
+        {mesajlar.map((m) => (
           <div
-            key={msg.id}
-            className={`mb-2 p-2 rounded text-sm ${
-              msg.gonderenId === auth.currentUser?.uid
-                ? "bg-blue-100 text-right"
-                : "bg-gray-200 text-left"
+            key={m.id}
+            className={`mb-3 p-2 rounded ${
+              m.gonderenId === auth.currentUser?.uid
+                ? "bg-blue-100 text-right ml-auto max-w-xs"
+                : "bg-gray-200 text-left mr-auto max-w-xs"
             }`}
           >
-            {msg.mesaj}
+            <p className="text-sm">{m.mesaj}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {m.zaman?.toDate?.().toLocaleString?.() || "-"}
+            </p>
           </div>
         ))}
       </div>
@@ -77,10 +74,10 @@ export default function ChatSayfasi() {
       <form onSubmit={handleGonder} className="flex gap-2">
         <input
           type="text"
-          value={yeniMesaj}
-          onChange={(e) => setYeniMesaj(e.target.value)}
-          className="flex-grow border rounded px-3 py-2"
+          value={mesaj}
+          onChange={(e) => setMesaj(e.target.value)}
           placeholder="Mesaj yaz..."
+          className="flex-grow border rounded px-3 py-2"
         />
         <button
           type="submit"
