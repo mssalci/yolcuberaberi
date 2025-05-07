@@ -32,31 +32,30 @@ const [adSoyad, setAdSoyad] = useState("");
   }, []);
 
   useEffect(() => {
-    const fetchTalep = async () => {
-      if (!id) return;
-      try {
-        const docRef = doc(db, "talepler", id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setTalep({ id: docSnap.id, ...docSnap.data() });
-        }
-      } catch (error) {
-        console.error("Talep çekilirken hata:", error);
-      }
-    };
+  const fetchTalep = async () => {
+    try {
+      const docRef = doc(db, "talepler", id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const talepData = { id: docSnap.id, ...docSnap.data() };
+        setTalep(talepData);
 
-if (talepData.kullaniciId) {
-            const userDoc = await getDoc(doc(db, "kullanicilar", talepData.kullaniciId));
-            if (userDoc.exists()) {
-              const kullaniciData = userDoc.data();
-              setAdSoyad(kullaniciData.adSoyad || "Bilinmiyor");
-            }
+        // Kullanıcının adını çek
+        if (talepData.kullaniciId) {
+          const userDoc = await getDoc(doc(db, "kullanicilar", talepData.kullaniciId));
+          if (userDoc.exists()) {
+            const kullaniciData = userDoc.data();
+            setAdSoyad(kullaniciData.adSoyad || "Bilinmiyor");
           }
         }
-      } catch (error) {
-        console.error("Talep çekilirken hata:", error);
       }
-    };
+    } catch (error) {
+      console.error("Talep çekilirken hata:", error);
+    }
+  };
+
+  if (id) fetchTalep();
+}, [id]);
     
     const fetchEslesmeler = async () => {
       if (!id) return;
