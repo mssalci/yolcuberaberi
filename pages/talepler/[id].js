@@ -10,6 +10,7 @@ import {
   where,
   getDocs,
   serverTimestamp,
+  deleteDoc,
 } from "firebase/firestore";
 
 export default function TalepDetay() {
@@ -111,6 +112,19 @@ export default function TalepDetay() {
     }
   };
 
+  const handleTalepSil = async () => {
+    const onay = confirm("Talebi silmek istediğinize emin misiniz?");
+    if (!onay) return;
+    try {
+      await deleteDoc(doc(db, "talepler", talep.id));
+      alert("Talep silindi.");
+      router.push("/talepler");
+    } catch (err) {
+      console.error("Talep silme hatası:", err);
+      alert("Talep silinemedi.");
+    }
+  };
+
   const kullaniciTalepSahibiMi = user && talep?.kullaniciId === user.uid;
 
   if (!talep) {
@@ -121,7 +135,22 @@ export default function TalepDetay() {
     <main className="max-w-3xl mx-auto px-4 py-10">
       <h1 className="text-2xl font-bold mb-4">{talep.baslik}</h1>
       <p className="text-gray-700 mb-2">{talep.aciklama}</p>
-      <p className="text-gray-500 mb-6 text-sm">Kategori: {talep.kategori}</p>
+      <p className="text-gray-600 text-sm mb-1">Kategori: {talep.kategori || "-"}</p>
+      <p className="text-gray-600 text-sm mb-1">Ülke: {talep.ulke || "-"}</p>
+      <p className="text-gray-600 text-sm mb-1">
+        Tarih: {talep.tarih?.toDate?.().toLocaleDateString() || "-"}
+      </p>
+      <p className="text-gray-600 text-sm mb-1">Bütçe: {talep.butce || "-"}</p>
+      <p className="text-gray-600 text-sm mb-6">Email: {talep.kullaniciEmail || "-"}</p>
+
+      {kullaniciTalepSahibiMi && (
+        <button
+          onClick={handleTalepSil}
+          className="mb-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+        >
+          Talebi Sil
+        </button>
+      )}
 
       {user && !kullaniciTalepSahibiMi && (
         <form onSubmit={handleTeklifVer} className="space-y-4 bg-gray-100 p-4 rounded mb-8">
@@ -165,7 +194,7 @@ export default function TalepDetay() {
                   <p className="text-sm text-gray-600">Not: {eslesme.teklif?.not || "-"}</p>
                 </div>
                 <button
-                  onClick={() => router.push(`/sohbet/${eslesme.id}`)}
+                  onClick={() => router.push(`/chat/${eslesme.id}`)}
                   className="bg-blue-500 text-white px-3 py-1 rounded"
                 >
                   Sohbete Git
@@ -177,4 +206,4 @@ export default function TalepDetay() {
       )}
     </main>
   );
-                }
+}
