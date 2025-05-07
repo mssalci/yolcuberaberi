@@ -9,27 +9,29 @@ import {
   getDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { useRouter } from "next/router";
 import Link from "next/link";
+import { format } from "date-fns";
 
 export default function Eslesmeler() {
   const [aktifSekme, setAktifSekme] = useState("tekliflerim");
   const [eslesmeler, setEslesmeler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [user, setUser] = useState(null);
-  const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (kullanici) => {
-      setUser(kullanici);
-      if (kullanici) {
-        await fetchEslesmeler(kullanici.uid);
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        await fetchEslesmeler(currentUser);
+      } else {
+        setUser(null);
+        setEslesmeler([]);
       }
     });
     return () => unsubscribe();
   }, [aktifSekme]);
 
-  const fetchEslesmeler = async (uid) => {
+  const fetchEslesmeler = async (currentUser) => {
     setYukleniyor(true);
     try {
       const q = query(
@@ -37,11 +39,11 @@ export default function Eslesmeler() {
         where(
           aktifSekme === "tekliflerim" ? "teklifVerenId" : "talepSahibiId",
           "==",
-          uid
+          currentUser.uid
         )
       );
       const snapshot = await getDocs(q);
-      const eslesmeVerileri = await Promise.all(
+      const veriler = await Promise.all(
         snapshot.docs.map(async (docSnap) => {
           const data = docSnap.data();
           const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
@@ -54,37 +56,35 @@ export default function Eslesmeler() {
           };
         })
       );
-      setEslesmeler(eslesmeVerileri);
-    } catch (error) {
-      console.error("Eşleşmeler alınırken hata:", error);
+      setEslesmeler(veriler);
+    } catch (err) {
+      console.error("Eşleşme verisi alınamadı:", err);
     } finally {
       setYukleniyor(false);
     }
   };
 
-  const handleTeklifIptal = async (teklifId) => {
-    if (!confirm("Teklifi iptal etmek istediğinize emin misiniz?")) return;
+  const handleTeklifiIptalEt = async (eslesme) => {
     try {
-      await deleteDoc(doc(db, "teklifler", teklifId));
-      alert("Teklif iptal edildi.");
-      if (user) await fetchEslesmeler(user.uid);
+      await deleteDoc(doc(db, "teklifler", eslesme.teklifId));
+      await deleteDoc(doc(db, "eslesmeler", eslesme.id));
+      alert("Teklif ve eşleşme silindi.");
+      fetchEslesmeler(user);
     } catch (err) {
-      console.error("İptal hatası:", err);
+      console.error("Silme hatası:", err);
       alert("Teklif iptal edilemedi.");
     }
   };
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Eşleşmeler</h1>
+      <h1 className="text-2xl font-bold mb-6 text-center">Eşleşmeler</h1>
 
-      <div className="flex space-x-4 mb-6">
+      <div className="flex justify-center space-x-4 mb-6">
         <button
           onClick={() => setAktifSekme("tekliflerim")}
           className={`px-4 py-2 rounded ${
-            aktifSekme === "tekliflerim"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200"
+            aktifSekme === "tekliflerim" ? "bg-blue-600 text-white" : "bg-gray-200"
           }`}
         >
           Tekliflerim
@@ -92,9 +92,7 @@ export default function Eslesmeler() {
         <button
           onClick={() => setAktifSekme("taleplerim")}
           className={`px-4 py-2 rounded ${
-            aktifSekme === "taleplerim"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200"
+            aktifSekme === "taleplerim" ? "bg-blue-600 text-white" : "bg-gray-200"
           }`}
         >
           Taleplerim
@@ -104,7 +102,7 @@ export default function Eslesmeler() {
       {yukleniyor ? (
         <p>Yükleniyor...</p>
       ) : eslesmeler.length === 0 ? (
-        <p>Hiç eşleşme bulunamadı.</p>
+        <p className="text-center">Hiç eşleşme bulunamadı.</p>
       ) : (
         <ul className="space-y-4">
           {eslesmeler.map((eslesme) => (
@@ -115,29 +113,32 @@ export default function Eslesmeler() {
               <p className="font-semibold text-lg">
                 {eslesme.talep?.baslik || "Talep bilgisi yok"}
               </p>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-700">
                 Ülke: {eslesme.talep?.ulke || "-"}
               </p>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-700">
                 Fiyat: ₺{eslesme.teklif?.fiyat?.toFixed(2) || "-"}
               </p>
-              <p className="text-sm text-gray-600">
-                Not: {eslesme.teklif?.not || "-"}
-              </p>
+              <p className="text-sm text-gray-700">Not: {eslesme.teklif?.not || "-"}</p>
               <p className="text-sm text-gray-500">
-                Zaman: {new Date(eslesme.olusturmaZamani?.seconds * 1000).toLocaleString("tr-TR") || "-"}
+                Zaman:{" "}
+                {eslesme.olusturmaZamani?.toDate
+                  ? format(eslesme.olusturmaZamani.toDate(), "dd.MM.yyyy HH:mm")
+                  : "-"}
               </p>
 
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => handleTeklifIptal(eslesme.teklifId)}
-                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                >
-                  Teklifi İptal Et
-                </button>
+              <div className="flex flex-wrap gap-4 mt-2">
+                {aktifSekme === "tekliflerim" && (
+                  <button
+                    onClick={() => handleTeklifiIptalEt(eslesme)}
+                    className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                  >
+                    Teklifi İptal Et
+                  </button>
+                )}
                 <Link
                   href={`/teklif/${eslesme.teklifId}`}
-                  className="bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-900"
+                  className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
                 >
                   Teklif Detayı
                 </Link>
@@ -155,4 +156,3 @@ export default function Eslesmeler() {
     </main>
   );
 }
-
