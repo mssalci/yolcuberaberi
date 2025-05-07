@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { auth, db } from "../firebase/firebaseConfig";
+import {
+  auth,
+  db
+} from "../firebase/firebaseConfig";
 import {
   onAuthStateChanged,
   updateProfile,
+  deleteUser
 } from "firebase/auth";
 import {
   doc,
   getDoc,
   setDoc,
+  deleteDoc
 } from "firebase/firestore";
 
 export default function Profil() {
@@ -25,7 +30,6 @@ export default function Profil() {
       } else {
         setUser(currentUser);
 
-        // Firestore'dan adSoyad ve iban çek
         const ref = doc(db, "kullanicilar", currentUser.uid);
         const docSnap = await getDoc(ref);
         if (docSnap.exists()) {
@@ -47,22 +51,33 @@ export default function Profil() {
     try {
       if (!user) return;
 
-      // Firestore'da kaydet
       await setDoc(doc(db, "kullanicilar", user.uid), {
         adSoyad,
         iban,
       });
 
-      // Firebase Auth displayName güncelle
       await updateProfile(user, { displayName: adSoyad });
 
       alert("Profil başarıyla güncellendi.");
-
-      // Sayfa yenilemeden üst menüde adı güncellemek için state'i de güncelleriz (isteğe bağlı)
       setUser({ ...user, displayName: adSoyad });
     } catch (error) {
       console.error("Güncelleme hatası:", error);
       alert("Profil güncellenemedi.");
+    }
+  };
+
+  const handleHesapSil = async () => {
+    const onay = confirm("Hesabınızı silmek istediğinizden emin misiniz?");
+    if (!onay || !user) return;
+
+    try {
+      await deleteDoc(doc(db, "kullanicilar", user.uid));
+      await deleteUser(user);
+      alert("Hesabınız silindi.");
+      router.push("/");
+    } catch (err) {
+      console.error("Hesap silme hatası:", err);
+      alert("Hesap silinemedi. Lütfen tekrar deneyin.");
     }
   };
 
@@ -84,6 +99,16 @@ export default function Profil() {
         </div>
 
         <div>
+          <label className="block text-sm font-medium">E-posta (değiştirilemez)</label>
+          <input
+            type="email"
+            value={user?.email || ""}
+            disabled
+            className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed"
+          />
+        </div>
+
+        <div>
           <label className="block text-sm font-medium">IBAN</label>
           <input
             type="text"
@@ -93,12 +118,21 @@ export default function Profil() {
           />
         </div>
 
-        <button
-          onClick={handleSave}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Kaydet
-        </button>
+        <div className="flex gap-4 pt-4">
+          <button
+            onClick={handleSave}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Kaydet
+          </button>
+
+          <button
+            onClick={handleHesapSil}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Hesabı Sil
+          </button>
+        </div>
       </div>
     </main>
   );
