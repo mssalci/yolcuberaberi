@@ -48,23 +48,26 @@ export default function Profil() {
   }, [router]);
 
   const handleSave = async () => {
-    try {
-      if (!user) return;
+  try {
+    if (!user) return;
 
-      await setDoc(doc(db, "kullanicilar", user.uid), {
-        adSoyad,
-        iban,
-      });
+    await setDoc(doc(db, "kullanicilar", user.uid), {
+      adSoyad,
+      iban,
+    });
 
-      await updateProfile(user, { displayName: adSoyad });
+    await updateProfile(user, { displayName: adSoyad });
 
-      alert("Profil başarıyla güncellendi.");
-      setUser({ ...user, displayName: adSoyad });
-    } catch (error) {
-      console.error("Güncelleme hatası:", error);
-      alert("Profil güncellenemedi.");
-    }
-  };
+    // Firebase auth bilgisini güncelle
+    await auth.currentUser.reload();
+    setUser(auth.currentUser);
+
+    alert("Profil başarıyla güncellendi.");
+  } catch (error) {
+    console.error("Güncelleme hatası:", error);
+    alert("Profil güncellenemedi.");
+  }
+};
 
   const handleHesapSil = async () => {
     const onay = confirm("Hesabınızı silmek istediğinizden emin misiniz?");
