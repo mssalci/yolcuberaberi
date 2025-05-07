@@ -140,7 +140,7 @@ export default function TalepDetay() {
         Tarih: {talep.tarih?.toDate?.().toLocaleDateString() || "-"}
       </p>
       <p className="text-gray-600 text-sm mb-1">Bütçe: {talep.butce || "-"}</p>
-      <p className="text-gray-600 text-sm mb-6">Talep Sahibi: {adSoyad} || "-"}</p>
+      <p className="text-gray-600 text-sm mb-6">Talep Sahibi: {adSoyad || "-"}</p>
 
       {kullaniciTalepSahibiMi && (
         <button
