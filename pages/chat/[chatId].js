@@ -4,7 +4,6 @@ import { useRouter } from "next/router";
 import {
   collection,
   query,
-  where,
   orderBy,
   onSnapshot,
   addDoc,
@@ -20,14 +19,16 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!chatId) return;
+
     const q = query(
-      collection(db, "chat"),
-      where("chatId", "==", chatId),
+      collection(db, "chats", chatId, "messages"),
       orderBy("zaman", "asc")
     );
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setMesajlar(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     });
+
     return () => unsubscribe();
   }, [chatId]);
 
@@ -37,8 +38,7 @@ export default function ChatPage() {
     if (!user || !mesaj.trim()) return;
 
     try {
-      await addDoc(collection(db, "chat"), {
-        chatId,
+      await addDoc(collection(db, "chats", chatId, "messages"), {
         gonderenId: user.uid,
         mesaj,
         zaman: serverTimestamp(),
