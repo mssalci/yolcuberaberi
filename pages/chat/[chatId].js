@@ -21,7 +21,7 @@ export default function ChatPage() {
     if (!chatId) return;
 
     const q = query(
-      collection(db, "chats", chatId, "messages"),
+      collection(db, "chat", chatId, "messages"),
       orderBy("zaman", "asc")
     );
 
@@ -38,7 +38,7 @@ export default function ChatPage() {
     if (!user || !mesaj.trim()) return;
 
     try {
-      await addDoc(collection(db, "chats", chatId, "messages"), {
+      await addDoc(collection(db, "chat", chatId, "messages"), {
         gonderenId: user.uid,
         mesaj,
         zaman: serverTimestamp(),
