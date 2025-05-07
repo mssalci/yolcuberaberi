@@ -1,7 +1,7 @@
 // pages/eslesmeler/tekliflerim/[id].js
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { auth, db } from "../../../../firebase/firebaseConfig";
+import { auth, db } from "../../../firebase/firebaseConfig";
 import {
   doc,
   getDoc,
