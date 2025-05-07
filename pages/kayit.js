@@ -1,8 +1,15 @@
+// pages/kayit.js
+
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { createUserWithEmailAndPassword, updateProfile, onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebase/firebaseConfig";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  onAuthStateChanged,
+} from "firebase/auth";
+import { setDoc, doc } from "firebase/firestore";
+import { auth, db } from "../firebase/firebaseConfig";
 
 export default function Kayit() {
   const [email, setEmail] = useState("");
@@ -14,7 +21,7 @@ export default function Kayit() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        router.push("/"); // Zaten giriş yaptıysa anasayfaya yönlendir
+        router.push("/");
       }
     });
     return () => unsubscribe();
@@ -24,9 +31,18 @@ export default function Kayit() {
     e.preventDefault();
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, sifre);
-      await updateProfile(userCredential.user, {
-        displayName: adSoyad,
+      const user = userCredential.user;
+
+      await updateProfile(user, { displayName: adSoyad });
+
+      // Firestore'a kullanıcı bilgilerini yaz
+      await setDoc(doc(db, "kullanicilar", user.uid), {
+        uid: user.uid,
+        email: user.email,
+        adSoyad: adSoyad,
+        iban: "", // Başlangıç için boş bırakılabilir
       });
+
       router.push("/");
     } catch (error) {
       setHata("Kayıt başarısız: " + error.message);
@@ -37,9 +53,9 @@ export default function Kayit() {
     <>
       <Head>
         <title>Kayıt Ol | Yolcu Beraberi</title>
-        <meta name="description" content="Yeni bir hesap oluşturun. Talepler oluşturun veya eşya getirerek gelir kazanın." />
+        <meta name="description" content="Yeni bir hesap oluşturun." />
         <meta property="og:title" content="Kayıt Ol" />
-        <meta property="og:description" content="Yolcu Beraberi'ne katılmak için hemen kayıt olun." />
+        <meta property="og:description" content="Yolcu Beraberi'ne katılmak için kayıt olun." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://www.yolcuberaberi.com.tr/kayit" />
         <link rel="manifest" href="/manifest.json" />
@@ -55,6 +71,7 @@ export default function Kayit() {
             value={adSoyad}
             onChange={(e) => setAdSoyad(e.target.value)}
             className="w-full border px-4 py-2 rounded"
+            required
           />
           <input
             type="email"
@@ -62,6 +79,7 @@ export default function Kayit() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full border px-4 py-2 rounded"
+            required
           />
           <input
             type="password"
@@ -69,6 +87,7 @@ export default function Kayit() {
             value={sifre}
             onChange={(e) => setSifre(e.target.value)}
             className="w-full border px-4 py-2 rounded"
+            required
           />
           {hata && <p className="text-red-500 text-sm">{hata}</p>}
           <button
@@ -81,4 +100,4 @@ export default function Kayit() {
       </div>
     </>
   );
-          }
+              }
