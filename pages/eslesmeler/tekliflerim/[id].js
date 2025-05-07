@@ -1,9 +1,8 @@
-// pages/teklif/[id].js
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../../firebase/firebaseConfig';
+import { db } from '../../../../firebase/firebaseConfig';
 
 export default function TeklifDetay() {
   const router = useRouter();
