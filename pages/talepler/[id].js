@@ -23,7 +23,7 @@ export default function TalepDetay() {
   const [loading, setLoading] = useState(false);
   const [eslesmeler, setEslesmeler] = useState([]);
   const [user, setUser] = useState(null);
-const [talepSahibiAdSoyad, setTalepSahibiAdSoyad] = useState("");
+const [adSoyad, setAdSoyad] = useState("");
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => {
       setUser(u);
@@ -49,7 +49,7 @@ if (talepData.kullaniciId) {
             const userDoc = await getDoc(doc(db, "kullanicilar", talepData.kullaniciId));
             if (userDoc.exists()) {
               const kullaniciData = userDoc.data();
-              setTalepSahibiAdSoyad(kullaniciData.adSoyad || "Bilinmiyor");
+              setAdSoyad(kullaniciData.adSoyad || "Bilinmiyor");
             }
           }
         }
@@ -153,7 +153,7 @@ if (talepData.kullaniciId) {
         Tarih: {talep.tarih?.toDate?.().toLocaleDateString() || "-"}
       </p>
       <p className="text-gray-600 text-sm mb-1">Bütçe: {talep.butce || "-"}</p>
-      <p className="text-gray-600 text-sm mb-6">Talep Sahibi: {talepSahibiAdSoyad || "-"}</p>
+      <p className="text-gray-600 text-sm mb-6">Talep Sahibi: {adSoyad || "-"}</p>
 
       {kullaniciTalepSahibiMi && (
         <button
