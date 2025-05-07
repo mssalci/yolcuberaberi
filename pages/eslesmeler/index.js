@@ -26,43 +26,51 @@ export default function Eslesmeler() {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const fetchEslesmeler = async () => {
-      if (!user) return;
-      setYukleniyor(true);
-      try {
-        const q = query(
-          collection(db, "eslesmeler"),
-          where(
-            aktifSekme === "tekliflerim" ? "teklifVerenId" : "talepSahibiId",
-            "==",
-            user.uid
-          )
-        );
-        const snapshot = await getDocs(q);
-        const eslesmeVerileri = await Promise.all(
-          snapshot.docs.map(async (docSnap) => {
-            const data = docSnap.data();
-            const talepDoc = await getDoc(doc(db, "talepler", data.talepId));
-            const teklifDoc = await getDoc(doc(db, "teklifler", data.teklifId));
-            return {
-              id: docSnap.id,
-              ...data,
-              talep: talepDoc.exists() ? talepDoc.data() : null,
-              teklif: teklifDoc.exists() ? teklifDoc.data() : null,
-            };
-          })
-        );
-        setEslesmeler(eslesmeVerileri);
-      } catch (error) {
-        console.error("Eşleşmeler alınırken hata:", error);
-      } finally {
-        setYukleniyor(false);
-      }
-    };
+useEffect(() => {
+  const fetchEslesmeler = async () => {
+    if (!user) return;
+    setYukleniyor(true);
 
-    fetchEslesmeler();
-  }, [aktifSekme, user]);
+    try {
+      const field = aktifSekme === "tekliflerim" ? "teklifVerenId" : "talepSahibiId";
+      const q = query(
+        collection(db, "eslesmeler"),
+        where(field, "==", user.uid)
+      );
+
+      const snapshot = await getDocs(q);
+
+      const eslesmeVerileri = await Promise.all(
+        snapshot.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+          
+          // Güvenlik kontrolü: talepId ve teklifId var mı?
+          const talep = data.talepId 
+            ? await getDoc(doc(db, "talepler", data.talepId)) 
+            : null;
+          const teklif = data.teklifId 
+            ? await getDoc(doc(db, "teklifler", data.teklifId)) 
+            : null;
+
+          return {
+            id: docSnap.id,
+            ...data,
+            talep: talep?.exists() ? talep.data() : null,
+            teklif: teklif?.exists() ? teklif.data() : null,
+          };
+        })
+      );
+
+      setEslesmeler(eslesmeVerileri);
+    } catch (error) {
+      console.error("Eşleşmeler alınırken hata:", error);
+    } finally {
+      setYukleniyor(false);
+    }
+  };
+
+  fetchEslesmeler();
+}, [aktifSekme, user]);
 
   const teklifIptalEt = async (teklifId, eslesmeId) => {
     const onay = confirm("Teklifi iptal etmek istediğinize emin misiniz?");
