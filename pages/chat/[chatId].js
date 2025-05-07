@@ -1,85 +1,93 @@
-// /pages/chat/[chatId].js
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  onSnapshot,
+} from "firebase/firestore";
+import { auth, db } from "../../firebase/firebaseConfig";
 
-export const dynamic = 'force-dynamic'; // Sayfanın dinamik olduğunu belirtir
-
-import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
-import { db, auth } from '../../firebase/firebaseConfig';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
-
-export default function ChatRoom() {
+export default function ChatSayfasi() {
   const router = useRouter();
   const { chatId } = router.query;
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [currentUser, setCurrentUser] = useState(null);
+
+  const [mesajlar, setMesajlar] = useState([]);
+  const [yeniMesaj, setYeniMesaj] = useState("");
 
   useEffect(() => {
     if (!chatId) return;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setCurrentUser(user);
-      } else {
-        router.push('/login');
-      }
-    });
+    const q = query(
+      collection(db, "chat"),
+      where("chatId", "==", chatId)
+    );
 
-    const messagesRef = collection(db, "chats", chatId, "messages");
-    const q = query(messagesRef, orderBy("createdAt"));
-
-    const unsubscribeMessages = onSnapshot(q, (snapshot) => {
-      const loadedMessages = snapshot.docs.map(doc => ({
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const guncelMesajlar = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
-      setMessages(loadedMessages);
+      setMesajlar(guncelMesajlar.sort((a, b) => a.olusturmaZamani?.seconds - b.olusturmaZamani?.seconds));
     });
 
-    return () => {
-      unsubscribeAuth();
-      unsubscribeMessages();
-    };
-  }, [chatId, router]);
+    return () => unsubscribe();
+  }, [chatId]);
 
-  const handleSendMessage = async (e) => {
+  const handleGonder = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !currentUser) return;
+    const user = auth.currentUser;
+    if (!user || !yeniMesaj.trim()) return;
 
-    await addDoc(collection(db, "chats", chatId, "messages"), {
-      text: newMessage,
-      createdAt: serverTimestamp(),
-      userId: currentUser.uid,
-      userEmail: currentUser.email
-    });
-
-    setNewMessage("");
+    try {
+      await addDoc(collection(db, "chat"), {
+        chatId,
+        gonderenId: user.uid,
+        mesaj: yeniMesaj.trim(),
+        olusturmaZamani: serverTimestamp(),
+      });
+      setYeniMesaj("");
+    } catch (err) {
+      console.error("Mesaj gönderilemedi:", err.message);
+    }
   };
 
-  if (!chatId) {
-    return <div>Yükleniyor...</div>;
-  }
-
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Chat Room: {chatId}</h1>
-      <div style={{ marginBottom: "20px" }}>
-        {messages.map((msg) => (
-          <div key={msg.id} style={{ marginBottom: "10px" }}>
-            <strong>{msg.userEmail}:</strong> {msg.text}
+    <div className="max-w-2xl mx-auto py-8 px-4">
+      <h1 className="text-2xl font-bold mb-6">Mesajlaşma</h1>
+
+      <div className="border rounded h-96 overflow-y-auto p-4 mb-4 bg-gray-50">
+        {mesajlar.length === 0 && <p className="text-sm text-gray-500">Henüz mesaj yok.</p>}
+        {mesajlar.map((msg) => (
+          <div
+            key={msg.id}
+            className={`mb-2 p-2 rounded text-sm ${
+              msg.gonderenId === auth.currentUser?.uid
+                ? "bg-blue-100 text-right"
+                : "bg-gray-200 text-left"
+            }`}
+          >
+            {msg.mesaj}
           </div>
         ))}
       </div>
-      <form onSubmit={handleSendMessage}>
+
+      <form onSubmit={handleGonder} className="flex gap-2">
         <input
           type="text"
-          placeholder="Mesajınızı yazın"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          style={{ width: "80%", marginRight: "10px" }}
+          value={yeniMesaj}
+          onChange={(e) => setYeniMesaj(e.target.value)}
+          className="flex-grow border rounded px-3 py-2"
+          placeholder="Mesaj yaz..."
         />
-        <button type="submit">Gönder</button>
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Gönder
+        </button>
       </form>
     </div>
   );
