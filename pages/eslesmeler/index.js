@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { auth, db } from "../../firebase/firebaseConfig";
 import {
   collection,
@@ -10,17 +11,17 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import Link from "next/link";
-import { format } from "date-fns";
 
 export default function Eslesmeler() {
-  const [user, setUser] = useState(null);
+  const router = useRouter();
   const [aktifSekme, setAktifSekme] = useState("tekliflerim");
   const [eslesmeler, setEslesmeler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = auth.onAuthStateChanged((usr) => {
+      setUser(usr);
     });
     return () => unsubscribe();
   }, []);
@@ -60,28 +61,29 @@ export default function Eslesmeler() {
       }
     };
 
-    if (user) fetchEslesmeler();
+    fetchEslesmeler();
   }, [aktifSekme, user]);
 
-  const handleTeklifIptal = async (teklifId, eslesmeId) => {
-    const onay = confirm("Bu teklifi iptal etmek istediğinize emin misiniz?");
+  const teklifIptalEt = async (teklifId, eslesmeId) => {
+    const onay = confirm("Teklifi iptal etmek istediğinize emin misiniz?");
     if (!onay) return;
+
     try {
       await deleteDoc(doc(db, "teklifler", teklifId));
       await deleteDoc(doc(db, "eslesmeler", eslesmeId));
-      alert("Teklif iptal edildi.");
+      alert("Teklif ve eşleşme iptal edildi.");
       setEslesmeler((prev) => prev.filter((e) => e.id !== eslesmeId));
     } catch (err) {
-      console.error("İptal hatası:", err.message);
-      alert("Bir hata oluştu. Teklif silinemedi.");
+      console.error("İptal hatası:", err);
+      alert("Bir hata oluştu.");
     }
   };
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6 text-center">Eşleşmeler</h1>
+      <h1 className="text-2xl font-bold mb-6">Eşleşmeler</h1>
 
-      <div className="flex justify-center space-x-4 mb-6">
+      <div className="flex space-x-4 mb-6">
         <button
           onClick={() => setAktifSekme("tekliflerim")}
           className={`px-4 py-2 rounded ${
@@ -101,58 +103,47 @@ export default function Eslesmeler() {
       </div>
 
       {yukleniyor ? (
-        <p className="text-center">Yükleniyor...</p>
+        <p>Yükleniyor...</p>
       ) : eslesmeler.length === 0 ? (
-        <p className="text-center">Hiç eşleşme bulunamadı.</p>
+        <p>Hiç eşleşme bulunamadı.</p>
       ) : (
         <ul className="space-y-4">
           {eslesmeler.map((eslesme) => (
             <li
               key={eslesme.id}
-              className="border p-4 rounded bg-white shadow-sm space-y-2"
+              className="border p-4 rounded bg-white shadow space-y-2"
             >
-              <h2 className="text-lg font-semibold">
-                Talep: {eslesme.talep?.baslik || "Talep bilgisi yok"}
-              </h2>
-              <p className="text-sm text-gray-700">
-                Açıklama: {eslesme.talep?.aciklama || "-"}
+              <p className="font-semibold">
+                Talep: {eslesme.talep?.baslik || "-"}
               </p>
+              <p className="text-sm text-gray-600">Ülke: {eslesme.talep?.ulke || "-"}</p>
               <p className="text-sm text-gray-600">
-                Ülke: {eslesme.talep?.ulke || "-"}
+                Açıklama: {eslesme.talep?.aciklama || "-"}
               </p>
               <p className="text-sm text-gray-600">
                 Fiyat: ₺{eslesme.teklif?.fiyat?.toFixed(2) || "-"}
               </p>
               <p className="text-sm text-gray-600">Not: {eslesme.teklif?.not || "-"}</p>
               <p className="text-sm text-gray-500">
-                Zaman:{" "}
-                {eslesme.olusturmaZamani?.seconds
-                  ? format(
-                      new Date(eslesme.olusturmaZamani.seconds * 1000),
-                      "dd.MM.yyyy HH:mm"
-                    )
-                  : "-"}
+                Tarih: {eslesme.teklif?.olusturmaZamani?.toDate?.().toLocaleString() || "-"}
               </p>
-
-              <div className="flex flex-wrap gap-4 mt-2">
+              <div className="flex gap-3 pt-2">
                 <Link
                   href={`/eslesmeler/tekliflerim/${eslesme.teklifId}`}
-                  className="text-blue-600 underline hover:text-blue-800"
+                  className="text-blue-600 underline"
                 >
                   Teklif Detayı
                 </Link>
                 <Link
                   href={`/chat/${eslesme.id}`}
-                  className="text-green-600 underline hover:text-green-800"
+                  className="text-green-600 underline"
                 >
                   Mesajlaş
                 </Link>
                 {aktifSekme === "tekliflerim" && (
                   <button
-                    onClick={() =>
-                      handleTeklifIptal(eslesme.teklifId, eslesme.id)
-                    }
-                    className="text-red-600 underline hover:text-red-800"
+                    onClick={() => teklifIptalEt(eslesme.teklifId, eslesme.id)}
+                    className="text-red-600 underline"
                   >
                     Teklifi İptal Et
                   </button>
@@ -164,4 +155,4 @@ export default function Eslesmeler() {
       )}
     </main>
   );
-        }
+}
