@@ -76,6 +76,7 @@ const [adSoyad, setAdSoyad] = useState("");
   if (id) {
     fetchTalep();
     fetchEslesmeler();
+    }
   }, [id]);
 
   const handleTeklifVer = async (e) => {
