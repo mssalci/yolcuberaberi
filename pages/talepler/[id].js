@@ -148,7 +148,7 @@ const [talepSahibiadSoyad, setTalepSahibiAdSoyad] = useState("");
         Tarih: {talep.tarih?.toDate?.().toLocaleDateString() || "-"}
       </p>
       <p className="text-gray-600 text-sm mb-1">Bütçe: {talep.butce || "-"}</p>
-      <p className="text-gray-600 text-sm mb-6">Talep Sahibi: {talepSahibiAdSoyad || "-"}</p>
+      <p className="text-gray-600 text-sm mb-6">Talep Sahibi: {talepSahibiadSoyad || "-"}</p>
 
       {kullaniciTalepSahibiMi && (
         <button
