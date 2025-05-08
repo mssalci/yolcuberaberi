@@ -23,7 +23,8 @@ export default function TalepDetay() {
   const [loading, setLoading] = useState(false);
   const [eslesmeler, setEslesmeler] = useState([]);
   const [user, setUser] = useState(null);
-const [talepSahibiadSoyad, setTalepSahibiAdSoyad] = useState("");
+  const [talepSahibiadSoyad, setTalepSahibiAdSoyad] = useState("");
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => {
       setUser(u);
@@ -32,26 +33,26 @@ const [talepSahibiadSoyad, setTalepSahibiAdSoyad] = useState("");
   }, []);
 
   useEffect(() => {
-  const fetchTalep = async () => {
-    try {
-      const docRef = doc(db, "talepler", id);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const talepData = { id: docSnap.id, ...docSnap.data() };
-        setTalep(talepData);
+    const fetchTalep = async () => {
+      try {
+        const docRef = doc(db, "talepler", id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const talepData = { id: docSnap.id, ...docSnap.data() };
+          setTalep(talepData);
 
-// Talep sahibinin ad soyadını al
-      const kullaniciRef = doc(db, "kullanicilar", talepData.kullaniciId);
-      const kullaniciSnap = await getDoc(kullaniciRef);
-      if (kullaniciSnap.exists()) {
-        setTalepSahibiAdSoyad(kullaniciSnap.data().adSoyad || "Bilinmiyor");
+          // Talep sahibinin ad soyadını al
+          const kullaniciRef = doc(db, "kullanicilar", talepData.kullaniciId);
+          const kullaniciSnap = await getDoc(kullaniciRef);
+          if (kullaniciSnap.exists()) {
+            setTalepSahibiAdSoyad(kullaniciSnap.data().adSoyad || "Bilinmiyor");
+          }
+        }
+      } catch (error) {
+        console.error("Talep çekilirken hata:", error);
       }
-    }
-    } catch (error) {
-      console.error("Talep çekilirken hata:", error);
-    }
-  };
-    
+    };
+
     const fetchEslesmeler = async () => {
       if (!id) return;
       try {
@@ -71,9 +72,10 @@ const [talepSahibiadSoyad, setTalepSahibiAdSoyad] = useState("");
         console.error("Eşleşmeler alınamadı:", error);
       }
     };
-  if (id) {
-    fetchTalep();
-    fetchEslesmeler();
+
+    if (id) {
+      fetchTalep();
+      fetchEslesmeler();
     }
   }, [id]);
 
@@ -213,4 +215,4 @@ const [talepSahibiadSoyad, setTalepSahibiAdSoyad] = useState("");
       )}
     </main>
   );
-}
+              }
