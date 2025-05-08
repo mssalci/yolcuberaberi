@@ -23,7 +23,7 @@ export default function TalepDetay() {
   const [loading, setLoading] = useState(false);
   const [eslesmeler, setEslesmeler] = useState([]);
   const [user, setUser] = useState(null);
-const [adSoyad, setAdSoyad] = useState("");
+const [talepSahibiadSoyad, setTalepSahibiAdSoyad] = useState("");
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => {
       setUser(u);
@@ -40,15 +40,13 @@ const [adSoyad, setAdSoyad] = useState("");
         const talepData = { id: docSnap.id, ...docSnap.data() };
         setTalep(talepData);
 
-        // Kullanıcının adını çek
-        if (talepData.kullaniciId) {
-          const userDoc = await getDoc(doc(db, "kullanicilar", talepData.kullaniciId));
-          if (userDoc.exists()) {
-            const kullaniciData = userDoc.data();
-            setAdSoyad(kullaniciData.adSoyad || "Bilinmiyor");
-          }
-        }
+// Talep sahibinin ad soyadını al
+      const kullaniciRef = doc(db, "kullanicilar", talepData.kullaniciId);
+      const kullaniciSnap = await getDoc(kullaniciRef);
+      if (kullaniciSnap.exists()) {
+        setTalepSahibiAdSoyad(kullaniciSnap.data().adSoyad || "Bilinmiyor");
       }
+    }
     } catch (error) {
       console.error("Talep çekilirken hata:", error);
     }
@@ -150,7 +148,7 @@ const [adSoyad, setAdSoyad] = useState("");
         Tarih: {talep.tarih?.toDate?.().toLocaleDateString() || "-"}
       </p>
       <p className="text-gray-600 text-sm mb-1">Bütçe: {talep.butce || "-"}</p>
-      <p className="text-gray-600 text-sm mb-6">Talep Sahibi: {adSoyad || "-"}</p>
+      <p className="text-gray-600 text-sm mb-6">Talep Sahibi: {talepSahibiAdSoyad || "-"}</p>
 
       {kullaniciTalepSahibiMi && (
         <button
