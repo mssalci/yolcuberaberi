@@ -5,6 +5,10 @@ import {
   doc,
   getDoc,
   updateDoc,
+  collection,
+  query,
+  where,
+  getDocs
 } from "firebase/firestore";
 
 export default function TeklifDetay() {
@@ -15,21 +19,63 @@ export default function TeklifDetay() {
   const [not, setNot] = useState("");
   const [tarih, setTarih] = useState("");
   const [yetkili, setYetkili] = useState(false);
+  const [talepBaslik, setTalepBaslik] = useState("");
+  const [teklifVerenAd, setTeklifVerenAd] = useState("");
+  const [mesajSayisi, setMesajSayisi] = useState(null);
 
   const fetchTeklif = async () => {
     if (!id) return;
-    const docRef = doc(db, "teklifler", id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      setTeklif(data);
-      setFiyat(data.fiyat?.toString() || "");
-      setNot(data.not || "");
-      setTarih(data.tarih || "");
-      const user = auth.currentUser;
-      if (user && user.uid === data.teklifVerenId) {
-        setYetkili(true);
+    try {
+      const docRef = doc(db, "teklifler", id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setTeklif(data);
+        setFiyat(data.fiyat?.toString() || "");
+        setNot(data.not || "");
+        setTarih(data.tarih || "");
+
+        const user = auth.currentUser;
+        if (user && user.uid === data.teklifVerenId) {
+          setYetkili(true);
+        }
+
+        // Talep başlığı getir
+        if (data.talepId) {
+          const talepRef = doc(db, "talepler", data.talepId);
+          const talepSnap = await getDoc(talepRef);
+          if (talepSnap.exists()) {
+            setTalepBaslik(talepSnap.data().baslik || "");
+          }
+        }
+
+        // Kullanıcı adı soyadı getir
+        const kullaniciRef = doc(db, "kullanicilar", data.teklifVerenId);
+        const kullaniciSnap = await getDoc(kullaniciRef);
+        if (kullaniciSnap.exists()) {
+          setTeklifVerenAd(kullaniciSnap.data().adSoyad || "Bilinmiyor");
+        }
+
+        // İlgili eşleşmeyi bul
+        const eslesmeQuery = query(
+          collection(db, "eslesmeler"),
+          where("teklifId", "==", id)
+        );
+        const eslesmeSnapshot = await getDocs(eslesmeQuery);
+        if (!eslesmeSnapshot.empty) {
+          const eslesmeDoc = eslesmeSnapshot.docs[0];
+          const chatQuery = query(
+            collection(db, "chat"),
+            where("chatId", "==", eslesmeDoc.id)
+          );
+          const chatSnapshot = await getDocs(chatQuery);
+          setMesajSayisi(chatSnapshot.size);
+        } else {
+          setMesajSayisi(0);
+        }
       }
+    } catch (error) {
+      console.error("Veri çekme hatası:", error);
     }
   };
 
@@ -58,6 +104,16 @@ export default function TeklifDetay() {
   return (
     <div className="max-w-2xl mx-auto p-4">
       <h1 className="text-xl font-bold mb-4">Teklif Detayı</h1>
+
+      <div className="bg-gray-50 border p-4 rounded mb-6 space-y-1">
+        <p><strong>Talep Başlığı:</strong> {talepBaslik || "-"}</p>
+        <p><strong>Teklif Sahibi:</strong> {teklifVerenAd || "-"}</p>
+        <p><strong>Fiyat:</strong> ₺{teklif.fiyat}</p>
+        <p><strong>Teslim Tarihi:</strong> {teklif.tarih || "-"}</p>
+        <p><strong>Not:</strong> {teklif.not || "-"}</p>
+        <p><strong>Mesaj Sayısı:</strong> {mesajSayisi !== null ? mesajSayisi : "Yükleniyor..."}</p>
+      </div>
+
       {yetkili ? (
         <form onSubmit={handleUpdate} className="space-y-4">
           <div>
@@ -95,8 +151,10 @@ export default function TeklifDetay() {
           </button>
         </form>
       ) : (
-        <p className="text-gray-600 mt-4">Bu teklif size ait değil, düzenleyemezsiniz.</p>
+        <p className="text-red-600 text-sm">
+          Bu teklif size ait değil. Sadece görüntüleyebilirsiniz.
+        </p>
       )}
     </div>
   );
-}
+    }
