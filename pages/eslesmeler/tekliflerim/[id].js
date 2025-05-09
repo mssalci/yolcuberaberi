@@ -14,6 +14,7 @@ export default function TeklifDetay() {
   const [fiyat, setFiyat] = useState("");
   const [not, setNot] = useState("");
   const [tarih, setTarih] = useState("");
+  const [yetkili, setYetkili] = useState(false);
 
   const fetchTeklif = async () => {
     if (!id) return;
@@ -25,6 +26,10 @@ export default function TeklifDetay() {
       setFiyat(data.fiyat?.toString() || "");
       setNot(data.not || "");
       setTarih(data.tarih || "");
+      const user = auth.currentUser;
+      if (user && user.uid === data.teklifVerenId) {
+        setYetkili(true);
+      }
     }
   };
 
@@ -41,7 +46,7 @@ export default function TeklifDetay() {
         tarih: tarih || "",
       });
       alert("Teklif güncellendi.");
-      fetchTeklif(); // güncel bilgileri tekrar yükle
+      fetchTeklif();
     } catch (error) {
       console.error("Güncelleme hatası:", error);
       alert("Güncelleme sırasında hata oluştu.");
@@ -53,41 +58,45 @@ export default function TeklifDetay() {
   return (
     <div className="max-w-2xl mx-auto p-4">
       <h1 className="text-xl font-bold mb-4">Teklif Detayı</h1>
-      <form onSubmit={handleUpdate} className="space-y-4">
-        <div>
-          <label className="block text-sm">Fiyat (₺)</label>
-          <input
-            type="number"
-            value={fiyat}
-            onChange={(e) => setFiyat(e.target.value)}
-            className="w-full p-2 border rounded"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm">Tarih</label>
-          <input
-            type="date"
-            value={tarih}
-            onChange={(e) => setTarih(e.target.value)}
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div>
-          <label className="block text-sm">Not</label>
-          <textarea
-            value={not}
-            onChange={(e) => setNot(e.target.value)}
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Teklifi Güncelle
-        </button>
-      </form>
+      {yetkili ? (
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div>
+            <label className="block text-sm">Fiyat (₺)</label>
+            <input
+              type="number"
+              value={fiyat}
+              onChange={(e) => setFiyat(e.target.value)}
+              className="w-full p-2 border rounded"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm">Tarih</label>
+            <input
+              type="date"
+              value={tarih}
+              onChange={(e) => setTarih(e.target.value)}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <div>
+            <label className="block text-sm">Not</label>
+            <textarea
+              value={not}
+              onChange={(e) => setNot(e.target.value)}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Teklifi Güncelle
+          </button>
+        </form>
+      ) : (
+        <p className="text-gray-600 mt-4">Bu teklif size ait değil, düzenleyemezsiniz.</p>
+      )}
     </div>
   );
 }
