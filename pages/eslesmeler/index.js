@@ -118,8 +118,11 @@ export default function Eslesmeler() {
                 Açıklama: {eslesme.talep?.aciklama || "-"}
               </p>
               <p className="text-sm text-gray-600">
-                Fiyat: ₺{eslesme.teklif?.fiyat?.toFixed(2) || "-"}
-              </p>
+  Fiyat: ₺
+  {typeof eslesme.teklif?.fiyat === "number"
+    ? eslesme.teklif.fiyat.toFixed(2)
+    : parseFloat(eslesme.teklif?.fiyat)?.toFixed(2) || "-"}
+</p>
               <p className="text-sm text-gray-600">Not: {eslesme.teklif?.not || "-"}</p>
               <p className="text-sm text-gray-500">
                 Tarih: {eslesme.teklif?.olusturmaZamani?.toDate?.().toLocaleString() || "-"}
