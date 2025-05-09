@@ -1,4 +1,3 @@
-// pages/eslesmeler/tekliflerim/[id].js
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../../firebase/firebaseConfig";
@@ -16,19 +15,20 @@ export default function TeklifDetay() {
   const [not, setNot] = useState("");
   const [tarih, setTarih] = useState("");
 
+  const fetchTeklif = async () => {
+    if (!id) return;
+    const docRef = doc(db, "teklifler", id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      setTeklif(data);
+      setFiyat(data.fiyat?.toString() || "");
+      setNot(data.not || "");
+      setTarih(data.tarih || "");
+    }
+  };
+
   useEffect(() => {
-    const fetchTeklif = async () => {
-      if (!id) return;
-      const docRef = doc(db, "teklifler", id);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setTeklif(data);
-        setFiyat(data.fiyat);
-        setNot(data.not || "");
-        setTarih(data.tarih || "");
-      }
-    };
     fetchTeklif();
   }, [id]);
 
@@ -36,13 +36,15 @@ export default function TeklifDetay() {
     e.preventDefault();
     try {
       await updateDoc(doc(db, "teklifler", id), {
-        fiyat,
-        not,
-        tarih,
+        fiyat: parseFloat(fiyat),
+        not: not || "",
+        tarih: tarih || "",
       });
       alert("Teklif güncellendi.");
+      fetchTeklif(); // güncel bilgileri tekrar yükle
     } catch (error) {
       console.error("Güncelleme hatası:", error);
+      alert("Güncelleme sırasında hata oluştu.");
     }
   };
 
