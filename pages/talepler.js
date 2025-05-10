@@ -9,6 +9,7 @@ import {
   limit,
   startAfter,
   where,
+  or
 } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 
@@ -16,12 +17,11 @@ export default function Talepler() {
   const [talepler, setTalepler] = useState([]);
   const [lastDoc, setLastDoc] = useState(null);
   const [hasMore, setHasMore] = useState(true);
-  const [ulke, setUlke] = useState("");
-  const [sehir, setSehir] = useState("");
+  const [arama, setArama] = useState("");
   const [filtreli, setFiltreli] = useState(false);
 
   const fetchInitial = async () => {
-    let q = query(collection(db, "talepler"), orderBy("tarih", "desc"), limit(9));
+    const q = query(collection(db, "talepler"), orderBy("tarih", "desc"), limit(9));
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setTalepler(data);
@@ -32,7 +32,7 @@ export default function Talepler() {
 
   const loadMore = async () => {
     if (!lastDoc) return;
-    let q = query(
+    const q = query(
       collection(db, "talepler"),
       orderBy("tarih", "desc"),
       startAfter(lastDoc),
@@ -47,19 +47,23 @@ export default function Talepler() {
 
   const handleFiltrele = async (e) => {
     e.preventDefault();
-    const filtreler = [];
+    const kelime = arama.trim().toLowerCase();
 
-    if (ulke.trim()) filtreler.push(where("ulke", "==", ulke.trim()));
-    if (sehir.trim()) filtreler.push(where("sehir", "==", sehir.trim()));
-
-    if (filtreler.length === 0) {
+    if (!kelime) {
       fetchInitial();
       return;
     }
 
-    const q = query(collection(db, "talepler"), ...filtreler, orderBy("tarih", "desc"));
-    const snapshot = await getDocs(q);
-    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Firestore 'OR' sorgusu simülasyonu manuel yapılır
+    const snapshot = await getDocs(query(collection(db, "talepler")));
+    const data = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(
+        talep =>
+          talep.ulke?.toLowerCase().includes(kelime) ||
+          talep.sehir?.toLowerCase().includes(kelime)
+      );
+
     setTalepler(data);
     setHasMore(false);
     setFiltreli(true);
@@ -86,21 +90,14 @@ export default function Talepler() {
         <section className="py-20 px-4 sm:px-6 max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold mb-10 text-center">Tüm Talepler</h1>
 
-          {/* Filtreleme Formu */}
-          <form onSubmit={handleFiltrele} className="flex flex-wrap gap-4 mb-10 justify-center">
+          {/* Tek kutulu filtreleme */}
+          <form onSubmit={handleFiltrele} className="flex gap-4 mb-10 justify-center">
             <input
               type="text"
-              placeholder="Ülke"
-              value={ulke}
-              onChange={(e) => setUlke(e.target.value)}
-              className="border px-4 py-2 rounded w-40"
-            />
-            <input
-              type="text"
-              placeholder="Şehir"
-              value={sehir}
-              onChange={(e) => setSehir(e.target.value)}
-              className="border px-4 py-2 rounded w-40"
+              placeholder="Ülke/Şehir"
+              value={arama}
+              onChange={(e) => setArama(e.target.value)}
+              className="border px-4 py-2 rounded w-64"
             />
             <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
               Filtrele
