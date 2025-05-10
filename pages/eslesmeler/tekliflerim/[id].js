@@ -8,7 +8,8 @@ import {
   collection,
   query,
   where,
-  getDocs
+  getDocs,
+  getCountFromServer,
 } from "firebase/firestore";
 
 export default function TeklifDetay() {
@@ -49,14 +50,14 @@ export default function TeklifDetay() {
           }
         }
 
-        // Kullanıcı adı soyadı getir
+        // Teklif veren kullanıcı ad soyad getir
         const kullaniciRef = doc(db, "kullanicilar", data.teklifVerenId);
         const kullaniciSnap = await getDoc(kullaniciRef);
         if (kullaniciSnap.exists()) {
           setTeklifVerenAd(kullaniciSnap.data().adSoyad || "Bilinmiyor");
         }
 
-        // İlgili eşleşmeyi bul
+        // Chat mesaj sayısını bulmak için eşleşmeyi al
         const eslesmeQuery = query(
           collection(db, "eslesmeler"),
           where("teklifId", "==", id)
@@ -64,12 +65,9 @@ export default function TeklifDetay() {
         const eslesmeSnapshot = await getDocs(eslesmeQuery);
         if (!eslesmeSnapshot.empty) {
           const eslesmeDoc = eslesmeSnapshot.docs[0];
-          const chatQuery = query(
-            collection(db, "chat"),
-            where("chatId", "==", eslesmeDoc.id)
-          );
-          const chatSnapshot = await getDocs(chatQuery);
-          setMesajSayisi(chatSnapshot.size);
+          const messagesRef = collection(db, "chat", eslesmeDoc.id, "messages");
+          const countSnap = await getCountFromServer(messagesRef);
+          setMesajSayisi(countSnap.data().count);
         } else {
           setMesajSayisi(0);
         }
@@ -157,4 +155,4 @@ export default function TeklifDetay() {
       )}
     </div>
   );
-    }
+}
