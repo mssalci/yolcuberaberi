@@ -91,27 +91,33 @@ export default function Talepler() {
           <h1 className="text-3xl font-bold mb-10 text-center">Tüm Talepler</h1>
 
           {/* Tek kutulu filtreleme */}
-          <form onSubmit={handleFiltrele} className="flex gap-4 mb-10 justify-center">
-            <input
-              type="text"
-              placeholder="Ülke/Şehir"
-              value={arama}
-              onChange={(e) => setArama(e.target.value)}
-              className="border px-4 py-2 rounded w-64"
-            />
-            <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-              Filtrele
-            </button>
-            {filtreli && (
-              <button
-                type="button"
-                onClick={fetchInitial}
-                className="bg-gray-300 text-gray-800 px-6 py-2 rounded hover:bg-gray-400"
-              >
-                Temizle
-              </button>
-            )}
-          </form>
+          <form
+  onSubmit={handleFiltrele}
+  className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-10 items-center justify-center"
+>
+  <input
+    type="text"
+    placeholder="Ülke/Şehir"
+    value={arama}
+    onChange={(e) => setArama(e.target.value)}
+    className="border px-4 py-2 rounded w-full sm:w-64"
+  />
+  <button
+    type="submit"
+    className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 w-full sm:w-auto"
+  >
+    Filtrele
+  </button>
+  {filtreli && (
+    <button
+      type="button"
+      onClick={fetchInitial}
+      className="bg-gray-300 text-gray-800 px-6 py-2 rounded hover:bg-gray-400 w-full sm:w-auto"
+    >
+      Temizle
+    </button>
+  )}
+</form>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {talepler.length === 0 ? (
