@@ -108,6 +108,19 @@ export default function Eslesmeler() {
     }
   };
 
+  const handleTalepSil = async (talepId) => {
+    const onay = confirm("Bu talebi silmek istediğinize emin misiniz?");
+    if (!onay) return;
+    try {
+      await deleteDoc(doc(db, "talepler", talepId));
+      alert("Talep silindi.");
+      setEslesmeler((prev) => prev.filter((e) => e.talep.id !== talepId));
+    } catch (err) {
+      console.error("Talep silme hatası:", err);
+      alert("Talep silinemedi.");
+    }
+  };
+
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Eşleşmeler</h1>
@@ -115,13 +128,17 @@ export default function Eslesmeler() {
       <div className="flex space-x-4 mb-6">
         <button
           onClick={() => setAktifSekme("tekliflerim")}
-          className={`px-4 py-2 rounded ${aktifSekme === "tekliflerim" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+          className={`px-4 py-2 rounded ${
+            aktifSekme === "tekliflerim" ? "bg-blue-600 text-white" : "bg-gray-200"
+          }`}
         >
           Tekliflerim
         </button>
         <button
           onClick={() => setAktifSekme("taleplerim")}
-          className={`px-4 py-2 rounded ${aktifSekme === "taleplerim" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+          className={`px-4 py-2 rounded ${
+            aktifSekme === "taleplerim" ? "bg-blue-600 text-white" : "bg-gray-200"
+          }`}
         >
           Taleplerim
         </button>
@@ -176,10 +193,20 @@ export default function Eslesmeler() {
               ) : (
                 <p className="text-sm text-yellow-600">Henüz teklif alınmadı.</p>
               )}
+
+              {/* Talep sahibine ait silme butonu her zaman gösterilecek */}
+              {aktifSekme === "taleplerim" && (
+                <button
+                  onClick={() => handleTalepSil(eslesme.talep.id)}
+                  className="text-red-600 underline mt-2"
+                >
+                  Talebi Sil
+                </button>
+              )}
             </li>
           ))}
         </ul>
       )}
     </main>
   );
-}
+                     }
