@@ -24,6 +24,8 @@ export default function TeklifDetay() {
   const [teklifVerenAd, setTeklifVerenAd] = useState("");
   const [mesajSayisi, setMesajSayisi] = useState(null);
 
+  const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+
   const fetchTeklif = async () => {
     if (!id) return;
     try {
@@ -41,7 +43,6 @@ export default function TeklifDetay() {
           setYetkili(true);
         }
 
-        // Talep başlığı getir
         if (data.talepId) {
           const talepRef = doc(db, "talepler", data.talepId);
           const talepSnap = await getDoc(talepRef);
@@ -50,14 +51,12 @@ export default function TeklifDetay() {
           }
         }
 
-        // Teklif veren kullanıcı ad soyad getir
         const kullaniciRef = doc(db, "kullanicilar", data.teklifVerenId);
         const kullaniciSnap = await getDoc(kullaniciRef);
         if (kullaniciSnap.exists()) {
           setTeklifVerenAd(kullaniciSnap.data().adSoyad || "Bilinmiyor");
         }
 
-        // Chat mesaj sayısını bulmak için eşleşmeyi al
         const eslesmeQuery = query(
           collection(db, "eslesmeler"),
           where("teklifId", "==", id)
@@ -83,6 +82,12 @@ export default function TeklifDetay() {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+
+    if (tarih && new Date(tarih) < new Date(todayStr)) {
+      alert("Teslim tarihi bugünden önce olamaz.");
+      return;
+    }
+
     try {
       await updateDoc(doc(db, "teklifler", id), {
         fiyat: parseFloat(fiyat),
@@ -107,8 +112,8 @@ export default function TeklifDetay() {
         <p><strong>Talep Başlığı:</strong> {talepBaslik || "-"}</p>
         <p><strong>Teklif Sahibi:</strong> {teklifVerenAd || "-"}</p>
         <p><strong>Teslim Tarihi:</strong> {teklif.tarih || "-"}</p>
-    <p><strong>Fiyat:</strong> ₺{teklif.fiyat}</p>
-         <p><strong>Not:</strong> {teklif.not || "-"}</p>
+        <p><strong>Fiyat:</strong> ₺{teklif.fiyat}</p>
+        <p><strong>Not:</strong> {teklif.not || "-"}</p>
         <p><strong>Mesaj Sayısı:</strong> {mesajSayisi !== null ? mesajSayisi : "Yükleniyor..."}</p>
       </div>
 
@@ -120,10 +125,11 @@ export default function TeklifDetay() {
               type="date"
               value={tarih}
               onChange={(e) => setTarih(e.target.value)}
+              min={todayStr}
               className="w-full p-2 border rounded"
             />
           </div>
-        <div>
+          <div>
             <label className="block text-sm">Fiyat (₺)</label>
             <input
               type="number"
@@ -133,7 +139,6 @@ export default function TeklifDetay() {
               required
             />
           </div>
-          
           <div>
             <label className="block text-sm">Not</label>
             <textarea
