@@ -13,13 +13,10 @@ import { db } from "../firebase/firebaseConfig";
 
 export default function TaleplerYolculuklar() {
   const [aktifSekme, setAktifSekme] = useState("talepler");
-
   const [talepler, setTalepler] = useState([]);
   const [yolculuklar, setYolculuklar] = useState([]);
-
   const [lastDoc, setLastDoc] = useState(null);
   const [hasMore, setHasMore] = useState(true);
-
   const [arama, setArama] = useState("");
   const [filtreli, setFiltreli] = useState(false);
 
@@ -191,7 +188,10 @@ export default function TaleplerYolculuklar() {
                     <p className="text-sm mb-1">Kalkış: {y.kalkis}</p>
                     <p className="text-sm mb-1">Varış: {y.varis}</p>
                     <p className="text-sm mb-1">Tarih: {y.tarih}</p>
-                    <p className="text-sm text-gray-600">{y.not || "-"}</p>
+                    <p className="text-sm text-gray-600 mb-2">{y.not || "-"}</p>
+                    <Link href={`/yolculuklar/${y.id}`} className="text-blue-600 hover:underline">
+                      Detayları Gör
+                    </Link>
                   </div>
                 ))
               )}
@@ -212,4 +212,4 @@ export default function TaleplerYolculuklar() {
       </main>
     </>
   );
-            }
+}
