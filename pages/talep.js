@@ -1,20 +1,30 @@
+// pages/talep-yolculuk-olustur.js
 import { useState, useEffect } from "react";
 import { db } from "../firebase/firebaseConfig";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useAuth } from "../context/AuthContext"; // Buraya dikkat
-import Loading from "../components/Loading"; // Basit bir yükleniyor bileşeni varsa güzel olur
+import { useAuth } from "../context/AuthContext";
+import Loading from "../components/Loading";
 
-export default function Talep() {
+export default function TalepYolculukOlustur() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  const [formData, setFormData] = useState({
+  const [aktifSekme, setAktifSekme] = useState("talep");
+
+  const [talepData, setTalepData] = useState({
     baslik: "",
     aciklama: "",
     ulke: "",
     butce: "",
+  });
+
+  const [yolculukData, setYolculukData] = useState({
+    kalkis: "",
+    varis: "",
+    tarih: "",
+    not: "",
   });
 
   useEffect(() => {
@@ -23,73 +33,118 @@ export default function Talep() {
     }
   }, [loading, user]);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e, setStateFunc) => {
+    setStateFunc((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleTalepSubmit = async (e) => {
     e.preventDefault();
-    if (!user) return alert("Lütfen giriş yapın.");
-
     try {
       await addDoc(collection(db, "talepler"), {
-        ...formData,
+        ...talepData,
         kullaniciId: user.uid,
         kullaniciEmail: user.email,
         tarih: serverTimestamp(),
       });
       router.push("/talepler");
     } catch (err) {
-      alert("Talep oluşturulamadı. Hata: " + err.message);
+      alert("Talep oluşturulamadı: " + err.message);
     }
   };
 
-  if (loading) return <Loading />; // veya sadece null da dönebilirsin
+  const handleYolculukSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await addDoc(collection(db, "yolculuklar"), {
+        ...yolculukData,
+        kullaniciId: user.uid,
+        kullaniciEmail: user.email,
+        tarihOlusturma: serverTimestamp(),
+      });
+      router.push("/yolculuklar");
+    } catch (err) {
+      alert("Yolculuk oluşturulamadı: " + err.message);
+    }
+  };
+
+  if (loading) return <Loading />;
 
   return (
     <>
       <Head>
-        <title>Talep Oluştur | Yolcu Beraberi</title>
-        <meta name="description" content="Yurt dışından getirilecek ürün için talep oluşturun." />
-        <meta property="og:title" content="Talep Oluştur" />
-        <meta property="og:description" content="İstediğiniz ürünü kolayca talep edin, uygun yolcu bulunsun." />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://www.yolcuberaberi.com.tr/talep" />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#2563eb" />
+        <title>Talep/Yolculuk Oluştur | Yolcu Beraberi</title>
+        <meta name="description" content="Talep veya yolculuk oluşturun." />
       </Head>
 
-      <main className="bg-white text-gray-800 min-h-screen">
-        <section className="py-20 px-6 max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold mb-10 text-center">Yeni Talep Oluştur</h1>
+      <main className="bg-white min-h-screen text-gray-800">
+        <section className="py-12 px-4 max-w-2xl mx-auto">
+          <h1 className="text-3xl font-bold mb-6 text-center">Yeni {aktifSekme === "talep" ? "Talep" : "Yolculuk"} Oluştur</h1>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block mb-2 font-semibold">Ürün Adı</label>
-              <input name="baslik" type="text" onChange={handleChange} className="w-full border px-4 py-2 rounded-lg" required />
-            </div>
-
-            <div>
-              <label className="block mb-2 font-semibold">Ürün Açıklaması</label>
-              <textarea name="aciklama" onChange={handleChange} className="w-full border px-4 py-2 rounded-lg" required />
-            </div>
-
-            <div>
-              <label className="block mb-2 font-semibold">Ülke</label>
-              <input name="ulke" type="text" onChange={handleChange} className="w-full border px-4 py-2 rounded-lg" required />
-            </div>
-
-            <div>
-              <label className="block mb-2 font-semibold">Bütçe (Opsiyonel)</label>
-              <input name="butce" type="number" onChange={handleChange} className="w-full border px-4 py-2 rounded-lg" />
-            </div>
-
-            <button type="submit" className="bg-blue-600 text-white py-3 px-6 rounded-full hover:bg-blue-700 w-full">
+          <div className="flex justify-center gap-4 mb-8">
+            <button
+              onClick={() => setAktifSekme("talep")}
+              className={`px-4 py-2 rounded-full ${aktifSekme === "talep" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+            >
               Talep Oluştur
             </button>
-          </form>
+            <button
+              onClick={() => setAktifSekme("yolculuk")}
+              className={`px-4 py-2 rounded-full ${aktifSekme === "yolculuk" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+            >
+              Yolculuk Oluştur
+            </button>
+          </div>
+
+          {aktifSekme === "talep" ? (
+            <form onSubmit={handleTalepSubmit} className="space-y-6">
+              <div>
+                <label className="block mb-1 font-semibold">Ürün Adı</label>
+                <input name="baslik" type="text" onChange={(e) => handleChange(e, setTalepData)} className="w-full border px-4 py-2 rounded" required />
+              </div>
+              <div>
+                <label className="block mb-1 font-semibold">Açıklama</label>
+                <textarea name="aciklama" onChange={(e) => handleChange(e, setTalepData)} className="w-full border px-4 py-2 rounded" required />
+              </div>
+              <div>
+                <label className="block mb-1 font-semibold">Ülke</label>
+                <input name="ulke" type="text" onChange={(e) => handleChange(e, setTalepData)} className="w-full border px-4 py-2 rounded" required />
+              </div>
+              <div>
+                <label className="block mb-1 font-semibold">Bütçe (₺)</label>
+                <input name="butce" type="number" onChange={(e) => handleChange(e, setTalepData)} className="w-full border px-4 py-2 rounded" />
+              </div>
+              <button type="submit" className="bg-blue-600 text-white py-2 px-6 rounded-full w-full hover:bg-blue-700">
+                Talep Oluştur
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleYolculukSubmit} className="space-y-6">
+              <div>
+                <label className="block mb-1 font-semibold">Kalkış Ülkesi/Şehri</label>
+                <input name="kalkis" type="text" onChange={(e) => handleChange(e, setYolculukData)} className="w-full border px-4 py-2 rounded" required />
+              </div>
+              <div>
+                <label className="block mb-1 font-semibold">Varış Ülkesi/Şehri</label>
+                <input name="varis" type="text" onChange={(e) => handleChange(e, setYolculukData)} className="w-full border px-4 py-2 rounded" required />
+              </div>
+              <div>
+                <label className="block mb-1 font-semibold">Tarih</label>
+                <input name="tarih" type="date" onChange={(e) => handleChange(e, setYolculukData)} className="w-full border px-4 py-2 rounded" required />
+              </div>
+              <div>
+                <label className="block mb-1 font-semibold">Not (Opsiyonel)</label>
+                <textarea name="not" onChange={(e) => handleChange(e, setYolculukData)} className="w-full border px-4 py-2 rounded" />
+              </div>
+              <button type="submit" className="bg-blue-600 text-white py-2 px-6 rounded-full w-full hover:bg-blue-700">
+                Yolculuk Oluştur
+              </button>
+            </form>
+          )}
         </section>
       </main>
     </>
   );
-    }
+                }
