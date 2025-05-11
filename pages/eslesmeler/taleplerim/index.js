@@ -8,8 +8,7 @@ import {
   doc,
   getDoc,
 } from "firebase/firestore";
-import { db } from "../../../firebase/firebaseConfig";
-import { auth } from "../../../firebase/firebaseConfig";
+import { db, auth } from "../../../firebase/firebaseConfig";
 import { useEffect, useState } from "react";
 
 export default function Taleplerim() {
@@ -43,13 +42,16 @@ export default function Taleplerim() {
             const eslesmeSnap = await getDocs(
               query(collection(db, "eslesmeler"), where("talepId", "==", docSnap.id))
             );
-            const teklifDoc = !eslesmeSnap.empty
-              ? await getDoc(doc(db, "teklifler", eslesmeSnap.docs[0].data().teklifId))
-              : null;
-            return {
-              ...data,
-              teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
-            };
+            const teklifler = await Promise.all(
+              eslesmeSnap.docs.map(async (esDoc) => {
+                const teklif = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
+                return {
+                  eslesmeId: esDoc.id,
+                  ...teklif.data(),
+                };
+              })
+            );
+            return { ...data, teklifler };
           })
         );
 
@@ -59,13 +61,16 @@ export default function Taleplerim() {
             const eslesmeSnap = await getDocs(
               query(collection(db, "eslesmeler"), where("yolculukId", "==", docSnap.id))
             );
-            const teklifDoc = !eslesmeSnap.empty
-              ? await getDoc(doc(db, "yolculukTeklifleri", eslesmeSnap.docs[0].data().teklifId))
-              : null;
-            return {
-              ...data,
-              teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
-            };
+            const teklifler = await Promise.all(
+              eslesmeSnap.docs.map(async (esDoc) => {
+                const teklif = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
+                return {
+                  eslesmeId: esDoc.id,
+                  ...teklif.data(),
+                };
+              })
+            );
+            return { ...data, teklifler };
           })
         );
 
@@ -95,23 +100,41 @@ export default function Taleplerim() {
               <p className="font-semibold">
                 {item.tur === "talep" ? `Talep: ${item.baslik}` : `Yolculuk: ${item.kalkis} → ${item.varis}`}
               </p>
+
               {item.tur === "talep" ? (
                 <>
                   <p className="text-sm text-gray-600">Ülke: {item.ulke}</p>
                   <p className="text-sm text-gray-600">Bütçe: ₺{item.butce || "-"}</p>
+                  <Link href={`/talepler/${item.id}`} className="text-blue-600 underline text-sm">
+                    Detayları Gör
+                  </Link>
                 </>
               ) : (
                 <>
                   <p className="text-sm text-gray-600">Tarih: {item.tarih || "-"}</p>
                   <p className="text-sm text-gray-600">Not: {item.not || "-"}</p>
+                  <Link href={`/yolculuklar/${item.id}`} className="text-blue-600 underline text-sm">
+                    Detayları Gör
+                  </Link>
                 </>
               )}
-              {item.teklif ? (
-                <div className="mt-2">
-                  <p className="text-sm text-gray-600">
-                    Teklif Fiyatı: ₺{item.teklif?.fiyat}
-                  </p>
-                  <p className="text-sm text-gray-600">Not: {item.teklif?.not}</p>
+
+              {item.teklifler && item.teklifler.length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm font-semibold text-gray-700">Teklifler:</p>
+                  {item.teklifler.map((teklif, index) => (
+                    <div key={index} className="text-sm text-gray-700 border p-2 rounded">
+                      <p>Fiyat: ₺{teklif.fiyat}</p>
+                      <p>Not: {teklif.not || "-"}</p>
+                      <p>Teslim Tarihi: {teklif.tarih}</p>
+                      <button
+                        onClick={() => router.push(`/chat/${teklif.eslesmeId}`)}
+                        className="text-blue-600 underline text-sm mt-1"
+                      >
+                        Mesajlaş
+                      </button>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <p className="text-yellow-600 text-sm mt-2">Henüz teklif yok.</p>
@@ -122,4 +145,4 @@ export default function Taleplerim() {
       )}
     </main>
   );
-          }
+                }
