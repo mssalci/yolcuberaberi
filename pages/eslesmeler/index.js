@@ -180,6 +180,8 @@ export default function Eslesmeler() {
                 <p className="font-semibold">Talep: {eslesme.talep?.baslik || "-"}</p>
                 <p className="text-sm text-gray-600">Ülke: {eslesme.talep?.ulke || "-"}</p>
                 <p className="text-sm text-gray-600">Açıklama: {eslesme.talep?.aciklama || "-"}</p>
+<p className="text-sm text-gray-600">Tarih: {eslesme.talep?.tarih?.toDate?.().toLocaleDateString?.() || "-"}</p>
+<p className="text-sm text-gray-600">Bütçe: ₺{eslesme.talep?.butce || "-"}</p>
 
                 {eslesme.teklif ? (
                   <>
