@@ -1,3 +1,4 @@
+// pages/eslesmeler/taleplerim/[id].js
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { useEffect, useState } from "react";
@@ -16,10 +17,11 @@ import {
 import { format } from "date-fns";
 import { auth, db } from "../../../firebase/firebaseConfig";
 
-export default function TalepDetay() {
+export default function KayitDetay() {
   const router = useRouter();
-  const { id } = router.query;
-  const [talep, setTalep] = useState(null);
+  const { id, tur } = router.query;
+
+  const [kayit, setKayit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [teklifler, setTeklifler] = useState([]);
   const [teklifData, setTeklifData] = useState({
@@ -32,40 +34,36 @@ export default function TalepDetay() {
     setTeklifData({ ...teklifData, [e.target.name]: e.target.value });
   };
 
-  const handleTeklifSubmit = async (e) => {
-  e.preventDefault();
-  const user = auth.currentUser;
-  if (!user) return alert("Lütfen giriş yapın.");
-
-  // Kullanıcının kendi talebine teklif verip vermediğini kontrol et
-  if (talep.kullaniciId === user.uid) {
-    return alert("Kendi oluşturduğunuz talebe teklif veremezsiniz.");
-  }
-
-  try {
-    await addDoc(collection(db, "teklifler"), {
-      ...teklifData,
-      kullaniciId: user.uid,
-      talepId: talep.id,
-      olusturmaZamani: serverTimestamp(),
-      kabulEdildi: false,
-    });
-    alert("Teklif başarıyla gönderildi!");
-    setTeklifData({ fiyat: "", not: "", tarih: "" });
-    fetchTeklifler(talep.id);
-  } catch (err) {
-    alert("Teklif gönderilemedi: " + err.message);
-  }
-};
-
-  const fetchTeklifler = async (talepId) => {
-    const q = query(collection(db, "teklifler"), where("talepId", "==", talepId));
+  const fetchTeklifler = async () => {
+    const alan = tur === "yolculuk" ? "yolculukId" : "talepId";
+    const q = query(collection(db, "teklifler"), where(alan, "==", id));
     const querySnapshot = await getDocs(q);
-    const list = [];
-    querySnapshot.forEach((doc) => {
-      list.push({ id: doc.id, ...doc.data() });
-    });
+    const list = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     setTeklifler(list);
+  };
+
+  const handleTeklifSubmit = async (e) => {
+    e.preventDefault();
+    const user = auth.currentUser;
+    if (!user) return alert("Lütfen giriş yapın.");
+    if (kayit.kullaniciId === user.uid) return alert("Kendi oluşturduğunuz kayda teklif veremezsiniz.");
+
+    try {
+      const teklif = {
+        ...teklifData,
+        kullaniciId: user.uid,
+        olusturmaZamani: serverTimestamp(),
+        kabulEdildi: false,
+      };
+      teklif[tur === "yolculuk" ? "yolculukId" : "talepId"] = id;
+
+      await addDoc(collection(db, "teklifler"), teklif);
+      alert("Teklif başarıyla gönderildi!");
+      setTeklifData({ fiyat: "", not: "", tarih: "" });
+      fetchTeklifler();
+    } catch (err) {
+      alert("Teklif gönderilemedi: " + err.message);
+    }
   };
 
   const handleTeklifKabul = async (teklif) => {
@@ -75,52 +73,67 @@ export default function TalepDetay() {
         kabulZamani: serverTimestamp(),
       });
 
-      await setDoc(doc(db, "eslesmeler", talep.id), {
-        talepId: talep.id,
+      await setDoc(doc(db, "eslesmeler", `${tur}_${id}`), {
+        [tur === "yolculuk" ? "yolculukId" : "talepId"]: id,
         teklifId: teklif.id,
-        talepSahibi: auth.currentUser.uid,
-        teklifVeren: teklif.kullaniciId,
-        baslangicZamani: serverTimestamp(),
+        teklifVerenId: teklif.kullaniciId,
+        teklifSahibiId: kayit.kullaniciId,
+        tur,
+        olusturmaZamani: serverTimestamp(),
       });
 
       alert("Teklif kabul edildi ve eşleşme oluşturuldu.");
-      fetchTeklifler(talep.id);
+      fetchTeklifler();
     } catch (err) {
       alert("Hata: " + err.message);
     }
   };
 
   useEffect(() => {
-    if (!id) return;
-    const fetchTalep = async () => {
-      const docRef = doc(db, "talepler", id);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setTalep({ id: docSnap.id, ...docSnap.data() });
-        fetchTeklifler(docSnap.id);
+    const fetchKayit = async () => {
+      if (!id || !tur) return;
+
+      const ref = doc(db, tur === "yolculuk" ? "yolculuklar" : "talepler", id);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        setKayit({ id: snap.id, ...snap.data() });
+        await fetchTeklifler();
+      } else {
+        alert("Kayıt bulunamadı.");
       }
       setLoading(false);
     };
-    fetchTalep();
-  }, [id]);
+
+    fetchKayit();
+  }, [id, tur]);
 
   if (loading) return <p className="text-center mt-10">Yükleniyor...</p>;
-  if (!talep) return <p className="text-center mt-10 text-red-600">Talep bulunamadı.</p>;
+  if (!kayit) return <p className="text-center mt-10 text-red-600">Kayıt bulunamadı.</p>;
 
   return (
     <>
       <Head>
-        <title>{talep.baslik} | Yolcu Beraberi</title>
-        <meta name="description" content={talep.aciklama} />
+        <title>{kayit.baslik || "Yolculuk"} | Yolcu Beraberi</title>
       </Head>
 
       <main className="bg-white text-gray-800 min-h-screen px-4 py-20 max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">{talep.baslik}</h1>
-        <p className="mb-4 text-gray-700">{talep.aciklama}</p>
-        <p className="mb-2 text-sm text-gray-600">Ülke: {talep.ulke}</p>
-        <p className="mb-2 text-sm text-gray-600">
-          Tarih: {talep.tarih?.toDate ? format(talep.tarih.toDate(), "dd.MM.yyyy HH:mm") : "Bilinmiyor"}
-        </p>
+        <h1 className="text-3xl font-bold mb-6">{kayit.baslik || "Yolculuk Detayı"}</h1>
+        {tur === "yolculuk" ? (
+          <>
+            <p className="mb-2 text-gray-700">Kalkış: {kayit.kalkis}</p>
+            <p className="mb-2 text-gray-700">Varış: {kayit.varis}</p>
+            <p className="mb-2 text-gray-700">Tarih: {kayit.tarih}</p>
+            <p className="mb-2 text-gray-700">Not: {kayit.not || "-"}</p>
+          </>
+        ) : (
+          <>
+            <p className="mb-2 text-gray-700">{kayit.aciklama}</p>
+            <p className="mb-2 text-sm text-gray-600">Ülke: {kayit.ulke}</p>
+            <p className="mb-2 text-sm text-gray-600">
+              Tarih: {kayit.tarih?.toDate?.() ? format(kayit.tarih.toDate(), "dd.MM.yyyy HH:mm") : "Bilinmiyor"}
+            </p>
+          </>
+        )}
 
         {/* Teklif Verme Formu */}
         <form onSubmit={handleTeklifSubmit} className="bg-gray-100 p-4 rounded mt-6">
@@ -184,4 +197,4 @@ export default function TalepDetay() {
       </main>
     </>
   );
-          }
+                }
