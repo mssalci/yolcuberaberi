@@ -188,8 +188,7 @@ export default function TaleplerYolculuklar() {
                     <p className="text-sm mb-1">Kalkış: {y.kalkis}</p>
                     <p className="text-sm mb-1">Varış: {y.varis}</p>
                     <p className="text-sm mb-1">Tarih: {y.tarih}</p>
-                    <p className="text-sm text-gray-600 mb-2">{y.not || "-"}</p>
-                    <Link href={`/yolculuklar/${y.id}`} className="text-blue-600 hover:underline">
+                     <Link href={`/yolculuklar/${y.id}`} className="text-blue-600 hover:underline">
                       Detayları Gör
                     </Link>
                   </div>
