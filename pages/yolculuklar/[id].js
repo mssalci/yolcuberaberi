@@ -101,7 +101,7 @@ export default function YolculukDetay() {
       <p className="text-gray-700 mb-2">Varış: {yolculuk.varis}</p>
       <p className="text-gray-700 mb-2">Tarih: {yolculuk.tarih || "-"}</p>
       <p className="text-gray-700 mb-2">Not: {yolculuk.not || "-"}</p>
-      <p className="text-sm text-gray-500 mb-6">Yolcu: {yolcuAdi || "Yükleniyor..."}</p>
+      <p className="text-gray-700 mb-2">Yolcu: {yolcuAdi || "Yükleniyor..."}</p>
 
       {kullaniciYolculukSahibiMi && (
         <button
