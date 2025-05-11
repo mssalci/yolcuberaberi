@@ -56,7 +56,21 @@ export default function YolculukDetay() {
       alert("Silme işlemi başarısız oldu.");
     }
   };
+const [kullaniciAdlari, setKullaniciAdlari] = useState({});
 
+const fetchYolcular = async (yolculuklar) => {
+  const yeniAdlar = {};
+  for (const y of yolculuklar) {
+    if (y.kullaniciId && !kullaniciAdlari[y.kullaniciId]) {
+      const docRef = doc(db, "kullanicilar", y.kullaniciId);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        yeniAdlar[y.kullaniciId] = snap.data().adSoyad || "Bilinmiyor";
+      }
+    }
+  }
+  setKullaniciAdlari((prev) => ({ ...prev, ...yeniAdlar }));
+};
   const kullaniciYolculukSahibiMi = user && yolculuk?.kullaniciId === user.uid;
 
   if (yukleniyor) return <p className="p-4 text-center">Yükleniyor...</p>;
@@ -69,7 +83,8 @@ export default function YolculukDetay() {
       <p className="text-gray-700 mb-2">Varış: {yolculuk.varis}</p>
       <p className="text-gray-700 mb-2">Tarih: {yolculuk.tarih || "-"}</p>
       <p className="text-gray-700 mb-6">Not: {yolculuk.not || "-"}</p>
-
+<p className="text-sm text-gray-500">Yolcu: {kullaniciAdlari[y.kullaniciId] || "Yükleniyor..."}</p>
+  
       {kullaniciYolculukSahibiMi && (
         <button
           onClick={handleYolculukSil}
