@@ -52,10 +52,11 @@ export default function Eslesmeler() {
           );
           setEslesmeler(veriler);
         } else {
-          // Taleplerim: tüm talepleri getir + varsa eşleşmeleri dahil et
-          const taleplerSnap = await getDocs(
-            query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))
-          );
+          const [taleplerSnap, yolculuklarSnap] = await Promise.all([
+            getDocs(query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))),
+            getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
+          ]);
+
           const talepler = await Promise.all(
             taleplerSnap.docs.map(async (talepDoc) => {
               const talepData = { id: talepDoc.id, ...talepDoc.data() };
@@ -68,6 +69,7 @@ export default function Eslesmeler() {
                 const teklifDoc = await getDoc(doc(db, "teklifler", eslesmeData.teklifId));
                 return {
                   id: eslesmeDoc.id,
+                  tip: "talep",
                   talep: talepData,
                   teklif: teklifDoc.exists() ? teklifDoc.data() : null,
                   teklifId: eslesmeData.teklifId,
@@ -75,13 +77,21 @@ export default function Eslesmeler() {
               } else {
                 return {
                   id: null,
+                  tip: "talep",
                   talep: talepData,
                   teklif: null,
                 };
               }
             })
           );
-          setEslesmeler(talepler);
+
+          const yolculuklar = yolculuklarSnap.docs.map((docSnap) => ({
+            id: docSnap.id,
+            tip: "yolculuk",
+            yolculuk: docSnap.data(),
+          }));
+
+          setEslesmeler([...talepler, ...yolculuklar]);
         }
       } catch (error) {
         console.error("Eşleşmeler alınırken hata:", error);
@@ -108,16 +118,16 @@ export default function Eslesmeler() {
     }
   };
 
-  const handleTalepSil = async (talepId) => {
-    const onay = confirm("Bu talebi silmek istediğinize emin misiniz?");
+  const handleSil = async (tip, id) => {
+    const onay = confirm(`Bu ${tip === "talep" ? "talebi" : "yolculuğu"} silmek istediğinize emin misiniz?`);
     if (!onay) return;
     try {
-      await deleteDoc(doc(db, "talepler", talepId));
-      alert("Talep silindi.");
-      setEslesmeler((prev) => prev.filter((e) => e.talep.id !== talepId));
+      await deleteDoc(doc(db, tip === "talep" ? "talepler" : "yolculuklar", id));
+      alert(`${tip === "talep" ? "Talep" : "Yolculuk"} silindi.`);
+      setEslesmeler((prev) => prev.filter((e) => (e.tip === tip ? e[tip].id : e.id) !== id));
     } catch (err) {
-      console.error("Talep silme hatası:", err);
-      alert("Talep silinemedi.");
+      console.error("Silme hatası:", err);
+      alert("Silinemedi.");
     }
   };
 
@@ -147,67 +157,82 @@ export default function Eslesmeler() {
       {yukleniyor ? (
         <p>Yükleniyor...</p>
       ) : eslesmeler.length === 0 ? (
-        <p>Hiç eşleşme bulunamadı.</p>
+        <p>Hiç kayıt bulunamadı.</p>
       ) : (
         <ul className="space-y-4">
-          {eslesmeler.map((eslesme) => (
-            <li key={eslesme.id || eslesme.talep.id} className="border p-4 rounded bg-white shadow space-y-2">
-              <p className="font-semibold">Talep: {eslesme.talep?.baslik || "-"}</p>
-              <p className="text-sm text-gray-600">Ülke: {eslesme.talep?.ulke || "-"}</p>
-              <p className="text-sm text-gray-600">Açıklama: {eslesme.talep?.aciklama || "-"}</p>
-
-              {eslesme.teklif ? (
-                <>
-                 <p className="text-sm text-gray-500">
-                    Tarih: {eslesme.teklif?.olusturmaZamani?.toDate?.().toLocaleString() || "-"}
-                  </p> 
-                <p className="text-sm text-gray-600">
-                    Fiyat: ₺{typeof eslesme.teklif?.fiyat === "number"
-                      ? eslesme.teklif.fiyat.toFixed(2)
-                      : parseFloat(eslesme.teklif?.fiyat)?.toFixed(2) || "-"}
-                  </p>
-                  <p className="text-sm text-gray-600">Not: {eslesme.teklif?.not || "-"}</p>
-                  
-                  <div className="flex gap-3 pt-2">
-                    <Link
-                      href={`/eslesmeler/tekliflerim/${eslesme.teklifId}`}
-                      className="text-blue-600 underline"
-                    >
-                      Teklif Detayı
-                    </Link>
-                    <Link
-                      href={`/chat/${eslesme.id}`}
-                      className="text-green-600 underline"
-                    >
-                      Mesajlaş
-                    </Link>
-                    {aktifSekme === "tekliflerim" && (
-                      <button
-                        onClick={() => teklifIptalEt(eslesme.teklifId, eslesme.id)}
-                        className="text-red-600 underline"
-                      >
-                        Teklifi İptal Et
-                      </button>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-yellow-600">Henüz teklif alınmadı.</p>
-              )}
-
-              {/* Talep sahibine ait silme butonu her zaman gösterilecek */}
-              {aktifSekme === "taleplerim" && (
+          {eslesmeler.map((eslesme) =>
+            eslesme.tip === "yolculuk" ? (
+              <li key={eslesme.id} className="border p-4 rounded bg-white shadow space-y-2">
+                <p className="font-semibold">Yolculuk</p>
+                <p className="text-sm text-gray-600">Kalkış: {eslesme.yolculuk.kalkis}</p>
+                <p className="text-sm text-gray-600">Varış: {eslesme.yolculuk.varis}</p>
+                <p className="text-sm text-gray-600">Tarih: {eslesme.yolculuk.tarih}</p>
+                <p className="text-sm text-gray-600">Not: {eslesme.yolculuk.not || "-"}</p>
                 <button
-                  onClick={() => handleTalepSil(eslesme.talep.id)}
+                  onClick={() => handleSil("yolculuk", eslesme.id)}
                   className="text-red-600 underline mt-2"
                 >
-                  Talebi Sil
+                  Yolculuğu Sil
                 </button>
-              )}
-            </li>
-          ))}
+              </li>
+            ) : (
+              <li key={eslesme.id || eslesme.talep.id} className="border p-4 rounded bg-white shadow space-y-2">
+                <p className="font-semibold">Talep: {eslesme.talep?.baslik || "-"}</p>
+                <p className="text-sm text-gray-600">Ülke: {eslesme.talep?.ulke || "-"}</p>
+                <p className="text-sm text-gray-600">Açıklama: {eslesme.talep?.aciklama || "-"}</p>
+
+                {eslesme.teklif ? (
+                  <>
+                    <p className="text-sm text-gray-500">
+                      Tarih: {eslesme.teklif?.olusturmaZamani?.toDate?.().toLocaleString() || "-"}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Fiyat: ₺{typeof eslesme.teklif?.fiyat === "number"
+                        ? eslesme.teklif.fiyat.toFixed(2)
+                        : parseFloat(eslesme.teklif?.fiyat)?.toFixed(2) || "-"}
+                    </p>
+                    <p className="text-sm text-gray-600">Not: {eslesme.teklif?.not || "-"}</p>
+
+                    <div className="flex gap-3 pt-2">
+                      <Link
+                        href={`/eslesmeler/tekliflerim/${eslesme.teklifId}`}
+                        className="text-blue-600 underline"
+                      >
+                        Teklif Detayı
+                      </Link>
+                      <Link
+                        href={`/chat/${eslesme.id}`}
+                        className="text-green-600 underline"
+                      >
+                        Mesajlaş
+                      </Link>
+                      {aktifSekme === "tekliflerim" && (
+                        <button
+                          onClick={() => teklifIptalEt(eslesme.teklifId, eslesme.id)}
+                          className="text-red-600 underline"
+                        >
+                          Teklifi İptal Et
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-yellow-600">Henüz teklif alınmadı.</p>
+                )}
+
+                {aktifSekme === "taleplerim" && (
+                  <button
+                    onClick={() => handleSil("talep", eslesme.talep.id)}
+                    className="text-red-600 underline mt-2"
+                  >
+                    Talebi Sil
+                  </button>
+                )}
+              </li>
+            )
+          )}
         </ul>
       )}
     </main>
   );
-                     }
+}
