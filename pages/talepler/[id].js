@@ -20,10 +20,13 @@ export default function TalepDetay() {
   const [talep, setTalep] = useState(null);
   const [fiyat, setFiyat] = useState("");
   const [not, setNot] = useState("");
+  const [tarih, setTarih] = useState("");
   const [loading, setLoading] = useState(false);
   const [eslesmeler, setEslesmeler] = useState([]);
   const [user, setUser] = useState(null);
   const [talepSahibiadSoyad, setTalepSahibiAdSoyad] = useState("");
+
+  const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD formatı
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => {
@@ -41,7 +44,6 @@ export default function TalepDetay() {
           const talepData = { id: docSnap.id, ...docSnap.data() };
           setTalep(talepData);
 
-          // Talep sahibinin ad soyadını al
           const kullaniciRef = doc(db, "kullanicilar", talepData.kullaniciId);
           const kullaniciSnap = await getDoc(kullaniciRef);
           if (kullaniciSnap.exists()) {
@@ -83,6 +85,11 @@ export default function TalepDetay() {
     e.preventDefault();
     if (!user || !fiyat || !talep) return;
 
+    if (new Date(tarih) < new Date(todayStr)) {
+      alert("Teslim tarihi bugünden önce olamaz.");
+      return;
+    }
+
     const mevcutTeklifVarMi = eslesmeler.some(
       (eslesme) => eslesme.teklifVerenId === user.uid
     );
@@ -99,6 +106,7 @@ export default function TalepDetay() {
         teklifVerenId: user.uid,
         fiyat: parseFloat(fiyat),
         not,
+        tarih,
         olusturmaZamani: serverTimestamp(),
       });
 
@@ -112,8 +120,8 @@ export default function TalepDetay() {
 
       alert("Teklif ve eşleşme başarıyla oluşturuldu.");
       setFiyat("");
-      //tarih de gelmeli
       setNot("");
+      setTarih("");
       router.reload();
     } catch (error) {
       console.error("Teklif/Eşleşme hatası:", error);
@@ -174,7 +182,17 @@ export default function TalepDetay() {
               required
             />
           </div>
-                //tarih de gelmeli
+          <div>
+            <label className="block text-sm font-medium">Teslim Tarihi</label>
+            <input
+              type="date"
+              value={tarih}
+              onChange={(e) => setTarih(e.target.value)}
+              min={todayStr}
+              className="w-full border rounded px-3 py-2"
+              required
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium">Not</label>
             <textarea
@@ -202,7 +220,9 @@ export default function TalepDetay() {
               <li key={eslesme.id} className="p-3 bg-white rounded shadow flex justify-between items-center">
                 <div>
                   <p className="font-medium">Fiyat: ₺{eslesme.teklif?.fiyat}</p>
-        //tarih de gelmeli
+                  <p className="text-sm text-gray-600">
+                    Teslim Tarihi: {eslesme.teklif?.tarih || "-"}
+                  </p>
                   <p className="text-sm text-gray-600">Not: {eslesme.teklif?.not || "-"}</p>
                 </div>
                 <button
@@ -218,4 +238,4 @@ export default function TalepDetay() {
       )}
     </main>
   );
-              }
+                }
