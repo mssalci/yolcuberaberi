@@ -106,24 +106,14 @@ export default function TeklifDetay() {
       <div className="bg-gray-50 border p-4 rounded mb-6 space-y-1">
         <p><strong>Talep Başlığı:</strong> {talepBaslik || "-"}</p>
         <p><strong>Teklif Sahibi:</strong> {teklifVerenAd || "-"}</p>
-        <p><strong>Fiyat:</strong> ₺{teklif.fiyat}</p>
         <p><strong>Teslim Tarihi:</strong> {teklif.tarih || "-"}</p>
-        <p><strong>Not:</strong> {teklif.not || "-"}</p>
+    <p><strong>Fiyat:</strong> ₺{teklif.fiyat}</p>
+         <p><strong>Not:</strong> {teklif.not || "-"}</p>
         <p><strong>Mesaj Sayısı:</strong> {mesajSayisi !== null ? mesajSayisi : "Yükleniyor..."}</p>
       </div>
 
       {yetkili ? (
         <form onSubmit={handleUpdate} className="space-y-4">
-          <div>
-            <label className="block text-sm">Fiyat (₺)</label>
-            <input
-              type="number"
-              value={fiyat}
-              onChange={(e) => setFiyat(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
-          </div>
           <div>
             <label className="block text-sm">Tarih</label>
             <input
@@ -133,6 +123,17 @@ export default function TeklifDetay() {
               className="w-full p-2 border rounded"
             />
           </div>
+        <div>
+            <label className="block text-sm">Fiyat (₺)</label>
+            <input
+              type="number"
+              value={fiyat}
+              onChange={(e) => setFiyat(e.target.value)}
+              className="w-full p-2 border rounded"
+              required
+            />
+          </div>
+          
           <div>
             <label className="block text-sm">Not</label>
             <textarea
