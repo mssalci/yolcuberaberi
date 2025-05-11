@@ -112,6 +112,7 @@ export default function TalepDetay() {
 
       alert("Teklif ve eşleşme başarıyla oluşturuldu.");
       setFiyat("");
+      //tarih de gelmeli
       setNot("");
       router.reload();
     } catch (error) {
@@ -173,6 +174,7 @@ export default function TalepDetay() {
               required
             />
           </div>
+                //tarih de gelmeli
           <div>
             <label className="block text-sm font-medium">Not</label>
             <textarea
@@ -200,6 +202,7 @@ export default function TalepDetay() {
               <li key={eslesme.id} className="p-3 bg-white rounded shadow flex justify-between items-center">
                 <div>
                   <p className="font-medium">Fiyat: ₺{eslesme.teklif?.fiyat}</p>
+        //tarih de gelmeli
                   <p className="text-sm text-gray-600">Not: {eslesme.teklif?.not || "-"}</p>
                 </div>
                 <button
