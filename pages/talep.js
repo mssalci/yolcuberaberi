@@ -132,7 +132,14 @@ export default function TalepYolculukOlustur() {
               </div>
               <div>
                 <label className="block mb-1 font-semibold">Tarih</label>
-                <input name="tarih" type="date" onChange={(e) => handleChange(e, setYolculukData)} className="w-full border px-4 py-2 rounded" required />
+                <input
+  name="tarih"
+  type="date"
+  min={new Date().toISOString().split("T")[0]} // geçmiş tarih engeli
+  onChange={(e) => handleChange(e, setYolculukData)}
+  className="w-full border px-4 py-2 rounded"
+  required
+/>
               </div>
               <div>
                 <label className="block mb-1 font-semibold">Not (Opsiyonel)</label>
