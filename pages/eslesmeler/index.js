@@ -158,15 +158,16 @@ export default function Eslesmeler() {
 
               {eslesme.teklif ? (
                 <>
-                  <p className="text-sm text-gray-600">
+                 <p className="text-sm text-gray-500">
+                    Tarih: {eslesme.teklif?.olusturmaZamani?.toDate?.().toLocaleString() || "-"}
+                  </p> 
+                <p className="text-sm text-gray-600">
                     Fiyat: ₺{typeof eslesme.teklif?.fiyat === "number"
                       ? eslesme.teklif.fiyat.toFixed(2)
                       : parseFloat(eslesme.teklif?.fiyat)?.toFixed(2) || "-"}
                   </p>
                   <p className="text-sm text-gray-600">Not: {eslesme.teklif?.not || "-"}</p>
-                  <p className="text-sm text-gray-500">
-                    Tarih: {eslesme.teklif?.olusturmaZamani?.toDate?.().toLocaleString() || "-"}
-                  </p>
+                  
                   <div className="flex gap-3 pt-2">
                     <Link
                       href={`/eslesmeler/tekliflerim/${eslesme.teklifId}`}
