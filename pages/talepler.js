@@ -127,9 +127,8 @@ export default function Talepler() {
                 <div key={talep.id} className="border p-6 rounded-lg shadow-sm hover:shadow-md transition">
                   <h3 className="text-xl font-semibold mb-2">{talep.baslik}</h3>
                   <p className="mb-2">{talep.aciklama}</p>
-                  <p className="text-sm text-gray-600 mb-1">Ülke: {talep.ulke}</p>
-                  <p className="text-sm text-gray-600 mb-4">Şehir: {talep.sehir || "-"}</p>
-                  <Link href={`/talepler/${talep.id}`} className="text-blue-600 hover:underline">
+                  <p className="text-sm text-gray-600 mb-1">Ülke/Şehir: {talep.ulke}</p>
+                 <Link href={`/talepler/${talep.id}`} className="text-blue-600 hover:underline">
                     Detayları Gör
                   </Link>
                 </div>
