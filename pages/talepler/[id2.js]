@@ -1,32 +1,25 @@
+// pages/yolculuklar/[id].js
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../firebase/firebaseConfig";
 import {
   doc,
   getDoc,
+  deleteDoc,
   addDoc,
   collection,
-  query,
-  where,
-  getDocs,
   serverTimestamp,
-  deleteDoc,
 } from "firebase/firestore";
 
-export default function TalepDetay() {
+export default function YolculukDetay() {
   const router = useRouter();
   const { id } = router.query;
 
-  const [talep, setTalep] = useState(null);
-  const [fiyat, setFiyat] = useState("");
-  const [not, setNot] = useState("");
-  const [tarih, setTarih] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [eslesmeler, setEslesmeler] = useState([]);
+  const [yolculuk, setYolculuk] = useState(null);
   const [user, setUser] = useState(null);
-  const [talepSahibiadSoyad, setTalepSahibiAdSoyad] = useState("");
-
-  const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD formatı
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const [yolcuAdi, setYolcuAdi] = useState("");
+  const [teklif, setTeklif] = useState({ fiyat: "", teslimTarihi: "", not: "" });
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => {
@@ -36,206 +29,121 @@ export default function TalepDetay() {
   }, []);
 
   useEffect(() => {
-    const fetchTalep = async () => {
-      try {
-        const docRef = doc(db, "talepler", id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const talepData = { id: docSnap.id, ...docSnap.data() };
-          setTalep(talepData);
-
-          const kullaniciRef = doc(db, "kullanicilar", talepData.kullaniciId);
-          const kullaniciSnap = await getDoc(kullaniciRef);
-          if (kullaniciSnap.exists()) {
-            setTalepSahibiAdSoyad(kullaniciSnap.data().adSoyad || "Bilinmiyor");
-          }
-        }
-      } catch (error) {
-        console.error("Talep çekilirken hata:", error);
-      }
-    };
-
-    const fetchEslesmeler = async () => {
+    const fetchYolculuk = async () => {
       if (!id) return;
       try {
-        const q = query(collection(db, "eslesmeler"), where("talepId", "==", id));
-        const querySnapshot = await getDocs(q);
-        const data = [];
-        for (let docSnap of querySnapshot.docs) {
-          const teklifDoc = await getDoc(doc(db, "teklifler", docSnap.data().teklifId));
-          data.push({
-            id: docSnap.id,
-            ...docSnap.data(),
-            teklif: teklifDoc.exists() ? teklifDoc.data() : null,
-          });
+        const ref = doc(db, "yolculuklar", id);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const data = { id: snap.id, ...snap.data() };
+          setYolculuk(data);
+
+          // Yolcu adı çek
+          const userRef = doc(db, "kullanicilar", data.kullaniciId);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            setYolcuAdi(userSnap.data().adSoyad || "Bilinmiyor");
+          }
         }
-        setEslesmeler(data);
-      } catch (error) {
-        console.error("Eşleşmeler alınamadı:", error);
+      } catch (err) {
+        console.error("Yolculuk alınamadı:", err);
+      } finally {
+        setYukleniyor(false);
       }
     };
 
-    if (id) {
-      fetchTalep();
-      fetchEslesmeler();
-    }
+    fetchYolculuk();
   }, [id]);
+
+  const handleYolculukSil = async () => {
+    const onay = confirm("Yolculuğu silmek istediğinize emin misiniz?");
+    if (!onay || !yolculuk) return;
+
+    try {
+      await deleteDoc(doc(db, "yolculuklar", yolculuk.id));
+      setYolculuk(null);
+      alert("Yolculuk silindi.");
+      router.push("/talepler?sekme=yolculuklar");
+    } catch (err) {
+      console.error("Silme hatası:", err);
+      alert("Silme işlemi başarısız oldu.");
+    }
+  };
 
   const handleTeklifVer = async (e) => {
     e.preventDefault();
-    if (!user || !fiyat || !talep) return;
-
-    if (new Date(tarih) < new Date(todayStr)) {
-      alert("Teslim tarihi bugünden önce olamaz.");
-      return;
-    }
-
-    const mevcutTeklifVarMi = eslesmeler.some(
-      (eslesme) => eslesme.teklifVerenId === user.uid
-    );
-    if (mevcutTeklifVarMi) {
-      alert("Bu talebe zaten bir teklif verdiniz.");
-      return;
-    }
-
     try {
-      setLoading(true);
-
-      const teklifRef = await addDoc(collection(db, "teklifler"), {
-        talepId: talep.id,
+      await addDoc(collection(db, "yolculukTeklifleri"), {
+        yolculukId: yolculuk.id,
         teklifVerenId: user.uid,
-        fiyat: parseFloat(fiyat),
-        not,
-        tarih,
+        fiyat: parseFloat(teklif.fiyat),
+        teslimTarihi: teklif.teslimTarihi,
+        not: teklif.not,
         olusturmaZamani: serverTimestamp(),
       });
-
-      await addDoc(collection(db, "eslesmeler"), {
-        talepId: talep.id,
-        teklifId: teklifRef.id,
-        teklifVerenId: user.uid,
-        talepSahibiId: talep.kullaniciId || null,
-        olusturmaZamani: serverTimestamp(),
-      });
-
-      alert("Teklif ve eşleşme başarıyla oluşturuldu.");
-      setFiyat("");
-      setNot("");
-      setTarih("");
-      router.reload();
-    } catch (error) {
-      console.error("Teklif/Eşleşme hatası:", error);
-      alert("Bir hata oluştu. Lütfen tekrar deneyin.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleTalepSil = async () => {
-    const onay = confirm("Talebi silmek istediğinize emin misiniz?");
-    if (!onay) return;
-    try {
-      await deleteDoc(doc(db, "talepler", talep.id));
-      alert("Talep silindi.");
-      router.push("/talepler");
+      alert("Teklif gönderildi!");
+      setTeklif({ fiyat: "", teslimTarihi: "", not: "" });
     } catch (err) {
-      console.error("Talep silme hatası:", err);
-      alert("Talep silinemedi.");
+      console.error("Teklif hatası:", err);
+      alert("Teklif gönderilemedi.");
     }
   };
 
-  const kullaniciTalepSahibiMi = user && talep?.kullaniciId === user.uid;
+  const kullaniciYolculukSahibiMi = user && yolculuk?.kullaniciId === user.uid;
 
-  if (!talep) {
-    return <p className="text-center mt-10">Yükleniyor...</p>;
-  }
+  if (yukleniyor) return <p className="p-4 text-center">Yükleniyor...</p>;
+  if (!yolculuk) return <p className="p-4 text-center">Yolculuk bulunamadı.</p>;
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold mb-4">{talep.baslik}</h1>
-      <p className="text-gray-700 mb-2">{talep.aciklama}</p>
-      <p className="text-gray-600 text-sm mb-1">Ülke/Şehir: {talep.ulke || "-"}</p>
-      <p className="text-gray-600 text-sm mb-1">
-        Tarih: {talep.tarih?.toDate?.().toLocaleDateString() || "-"}
-      </p>
-      <p className="text-gray-600 text-sm mb-1">Bütçe: {talep.butce || "-"}</p>
-      <p className="text-gray-600 text-sm mb-6">Talep Sahibi: {talepSahibiadSoyad || "-"}</p>
+      <h1 className="text-2xl font-bold mb-4">Yolculuk Detayı</h1>
+      <p className="text-gray-700 mb-2">Kalkış: {yolculuk.kalkis}</p>
+      <p className="text-gray-700 mb-2">Varış: {yolculuk.varis}</p>
+      <p className="text-gray-700 mb-2">Tarih: {yolculuk.tarih || "-"}</p>
+      <p className="text-gray-700 mb-2">Not: {yolculuk.not || "-"}</p>
+      <p className="text-gray-700 mb-2">Yolcu: {yolcuAdi || "Yükleniyor..."}</p>
 
-      {kullaniciTalepSahibiMi && (
+      {kullaniciYolculukSahibiMi && (
         <button
-          onClick={handleTalepSil}
-          className="mb-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          onClick={handleYolculukSil}
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
         >
-          Talebi Sil
+          Yolculuğu Sil
         </button>
       )}
 
-      {user && !kullaniciTalepSahibiMi && (
-        <form onSubmit={handleTeklifVer} className="space-y-4 bg-gray-100 p-4 rounded mb-8">
-          <div>
-            <label className="block text-sm font-medium">Fiyat (₺)</label>
-            <input
-              type="number"
-              value={fiyat}
-              onChange={(e) => setFiyat(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Teslim Tarihi</label>
-            <input
-              type="date"
-              value={tarih}
-              onChange={(e) => setTarih(e.target.value)}
-              min={todayStr}
-              className="w-full border rounded px-3 py-2"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Not</label>
-            <textarea
-              value={not}
-              onChange={(e) => setNot(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-              rows={3}
-            />
-          </div>
+      {!kullaniciYolculukSahibiMi && user && (
+        <form onSubmit={handleTeklifVer} className="mt-10 space-y-4 bg-gray-100 p-4 rounded">
+          <h2 className="text-lg font-semibold">Teklif Ver</h2>
+          <input
+            type="number"
+            placeholder="Fiyat (₺)"
+            value={teklif.fiyat}
+            onChange={(e) => setTeklif({ ...teklif, fiyat: e.target.value })}
+            className="w-full border px-3 py-2 rounded"
+            required
+          />
+          <input
+            type="date"
+            value={teklif.teslimTarihi}
+            onChange={(e) => setTeklif({ ...teklif, teslimTarihi: e.target.value })}
+            className="w-full border px-3 py-2 rounded"
+            required
+          />
+          <textarea
+            placeholder="Not (Opsiyonel)"
+            value={teklif.not}
+            onChange={(e) => setTeklif({ ...teklif, not: e.target.value })}
+            className="w-full border px-3 py-2 rounded"
+          />
           <button
             type="submit"
-            disabled={loading}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
-            {loading ? "Gönderiliyor..." : "Teklif Ver"}
+            Gönder
           </button>
         </form>
       )}
-
-      {eslesmeler.length > 0 && kullaniciTalepSahibiMi && (
-        <section>
-          <h2 className="text-xl font-semibold mb-4">Teklif Verenler</h2>
-          <ul className="space-y-3">
-            {eslesmeler.map((eslesme) => (
-              <li key={eslesme.id} className="p-3 bg-white rounded shadow flex justify-between items-center">
-                <div>
-                  <p className="font-medium">Fiyat: ₺{eslesme.teklif?.fiyat}</p>
-                  <p className="text-sm text-gray-600">
-                    Teslim Tarihi: {eslesme.teklif?.tarih || "-"}
-                  </p>
-                  <p className="text-sm text-gray-600">Not: {eslesme.teklif?.not || "-"}</p>
-                </div>
-                <button
-                  onClick={() => router.push(`/chat/${eslesme.id}`)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded"
-                >
-                  Sohbete Git
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </main>
   );
-      }
+              }
