@@ -48,8 +48,9 @@ export default function YolculukDetay() {
 
     try {
       await deleteDoc(doc(db, "yolculuklar", yolculuk.id));
+      setYolculuk(null); // 404 hatasını önlemek için önce state boşalt
       alert("Yolculuk silindi.");
-      router.push("/yolculuklar");
+      router.push("/talepler"); // yönlendirme yeni hedefe
     } catch (err) {
       console.error("Silme hatası:", err);
       alert("Silme işlemi başarısız oldu.");
