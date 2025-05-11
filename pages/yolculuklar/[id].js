@@ -18,12 +18,12 @@ export default function YolculukDetay() {
   const { id } = router.query;
 
   const [yolculuk, setYolculuk] = useState(null);
-  const [user, setUser] = useState(null);
-  const [teklifler, setTeklifler] = useState([]);
   const [fiyat, setFiyat] = useState("");
   const [not, setNot] = useState("");
   const [tarih, setTarih] = useState("");
   const [loading, setLoading] = useState(false);
+  const [eslesmeler, setEslesmeler] = useState([]);
+  const [user, setUser] = useState(null);
 
   const todayStr = new Date().toISOString().split("T")[0];
 
@@ -47,54 +47,51 @@ export default function YolculukDetay() {
       }
     };
 
-    const fetchTeklifler = async () => {
+    const fetchEslesmeler = async () => {
       try {
-        const q = query(collection(db, "yolculukEslesmeleri"), where("yolculukId", "==", id));
+        const q = query(collection(db, "eslesmeler"), where("yolculukId", "==", id));
         const snapshot = await getDocs(q);
         const data = [];
-
-        for (let eslesme of snapshot.docs) {
-          const teklifDoc = await getDoc(doc(db, "yolculukTeklifleri", eslesme.data().teklifId));
+        for (let docSnap of snapshot.docs) {
+          const teklifDoc = await getDoc(doc(db, "teklifler", docSnap.data().teklifId));
           data.push({
-            id: eslesme.id,
-            ...eslesme.data(),
+            id: docSnap.id,
+            ...docSnap.data(),
             teklif: teklifDoc.exists() ? teklifDoc.data() : null,
           });
         }
-
-        setTeklifler(data);
+        setEslesmeler(data);
       } catch (err) {
-        console.error("Teklifler alınamadı:", err);
+        console.error("Eşleşme alınamadı:", err);
       }
     };
 
     if (id) {
       fetchYolculuk();
-      fetchTeklifler();
+      fetchEslesmeler();
     }
   }, [id]);
 
   const handleTeklifVer = async (e) => {
     e.preventDefault();
-
-    if (!user || !fiyat || !tarih || !yolculuk) return;
+    if (!user || !fiyat || !yolculuk) return;
 
     if (new Date(tarih) < new Date(todayStr)) {
       alert("Teslim tarihi bugünden önce olamaz.");
       return;
     }
 
-    const mevcutTeklifVarMi = teklifler.some(
+    const mevcutTeklifVarMi = eslesmeler.some(
       (eslesme) => eslesme.teklifVerenId === user.uid
     );
     if (mevcutTeklifVarMi) {
-      alert("Bu yolculuğa zaten teklif verdiniz.");
+      alert("Bu yolculuğa zaten bir teklif verdiniz.");
       return;
     }
 
     try {
       setLoading(true);
-      const teklifRef = await addDoc(collection(db, "yolculukTeklifleri"), {
+      const teklifRef = await addDoc(collection(db, "teklifler"), {
         yolculukId: yolculuk.id,
         teklifVerenId: user.uid,
         fiyat: parseFloat(fiyat),
@@ -103,11 +100,11 @@ export default function YolculukDetay() {
         olusturmaZamani: serverTimestamp(),
       });
 
-      await addDoc(collection(db, "yolculukEslesmeleri"), {
+      await addDoc(collection(db, "eslesmeler"), {
         yolculukId: yolculuk.id,
         teklifId: teklifRef.id,
         teklifVerenId: user.uid,
-        yolculukSahibiId: yolculuk.kullaniciId || null,
+        yolculukSahibiId: yolculuk.kullaniciId,
         olusturmaZamani: serverTimestamp(),
       });
 
@@ -117,8 +114,8 @@ export default function YolculukDetay() {
       setTarih("");
       router.reload();
     } catch (err) {
-      console.error("Teklif/Eşleşme hatası:", err);
-      alert("Bir hata oluştu.");
+      console.error("Teklif oluşturulamadı:", err);
+      alert("Bir hata oluştu. Lütfen tekrar deneyin.");
     } finally {
       setLoading(false);
     }
@@ -126,7 +123,7 @@ export default function YolculukDetay() {
 
   const handleYolculukSil = async () => {
     const onay = confirm("Yolculuğu silmek istediğinize emin misiniz?");
-    if (!onay || !yolculuk) return;
+    if (!onay) return;
 
     try {
       await deleteDoc(doc(db, "yolculuklar", yolculuk.id));
@@ -134,23 +131,23 @@ export default function YolculukDetay() {
       router.push("/talepler?sekme=yolculuklar");
     } catch (err) {
       console.error("Silme hatası:", err);
-      alert("Silme işlemi başarısız oldu.");
+      alert("Yolculuk silinemedi.");
     }
   };
 
-  const kullaniciSahibiMi = user && yolculuk?.kullaniciId === user.uid;
+  const kullaniciYolculukSahibiMi = user && yolculuk?.kullaniciId === user.uid;
 
   if (!yolculuk) return <p className="p-4 text-center">Yükleniyor...</p>;
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold mb-4">Yolculuk Detayı</h1>
+      <h1 className="text-2xl font-bold mb-4">Yolculuk</h1>
       <p className="text-gray-700 mb-2">Kalkış: {yolculuk.kalkis}</p>
       <p className="text-gray-700 mb-2">Varış: {yolculuk.varis}</p>
-      <p className="text-gray-700 mb-2">Tarih: {yolculuk.tarih || "-"}</p>
+      <p className="text-gray-700 mb-2">Tarih: {yolculuk.tarih}</p>
       <p className="text-gray-700 mb-6">Not: {yolculuk.not || "-"}</p>
 
-      {kullaniciSahibiMi && (
+      {kullaniciYolculukSahibiMi && (
         <button
           onClick={handleYolculukSil}
           className="mb-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
@@ -159,11 +156,8 @@ export default function YolculukDetay() {
         </button>
       )}
 
-      {user && !kullaniciSahibiMi && (
-        <form
-          onSubmit={handleTeklifVer}
-          className="space-y-4 bg-gray-100 p-4 rounded mb-8"
-        >
+      {user && !kullaniciYolculukSahibiMi && (
+        <form onSubmit={handleTeklifVer} className="space-y-4 bg-gray-100 p-4 rounded mb-8">
           <div>
             <label className="block text-sm font-medium">Fiyat (₺)</label>
             <input
@@ -204,18 +198,15 @@ export default function YolculukDetay() {
         </form>
       )}
 
-      {teklifler.length > 0 && kullaniciSahibiMi && (
+      {eslesmeler.length > 0 && kullaniciYolculukSahibiMi && (
         <section>
           <h2 className="text-xl font-semibold mb-4">Teklif Verenler</h2>
           <ul className="space-y-3">
-            {teklifler.map((eslesme) => (
-              <li
-                key={eslesme.id}
-                className="p-3 bg-white rounded shadow flex justify-between items-center"
-              >
+            {eslesmeler.map((eslesme) => (
+              <li key={eslesme.id} className="p-3 bg-white rounded shadow flex justify-between items-center">
                 <div>
                   <p className="font-medium">Fiyat: ₺{eslesme.teklif?.fiyat}</p>
-                  <p className="text-sm text-gray-600">Tarih: {eslesme.teklif?.tarih || "-"}</p>
+                  <p className="text-sm text-gray-600">Teslim Tarihi: {eslesme.teklif?.tarih || "-"}</p>
                   <p className="text-sm text-gray-600">Not: {eslesme.teklif?.not || "-"}</p>
                 </div>
                 <button
@@ -231,4 +222,4 @@ export default function YolculukDetay() {
       )}
     </main>
   );
-                }
+    }
