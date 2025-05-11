@@ -56,19 +56,19 @@ export default function TalepYolculukOlustur() {
   };
 
   const handleYolculukSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await addDoc(collection(db, "yolculuklar"), {
-        ...yolculukData,
-        kullaniciId: user.uid,
-        kullaniciEmail: user.email,
-        tarihOlusturma: serverTimestamp(),
-      });
-      router.push("/yolculuklar");
-    } catch (err) {
-      alert("Yolculuk oluşturulamadı: " + err.message);
-    }
-  };
+  e.preventDefault();
+  try {
+    await addDoc(collection(db, "yolculuklar"), {
+      ...yolculukData,
+      kullaniciId: user.uid,
+      kullaniciEmail: user.email,
+      tarihOlusturma: serverTimestamp(),
+    });
+    router.push("/talepler?sekme=yolculuklar"); // yönlendirme düzeltildi
+  } catch (err) {
+    alert("Yolculuk oluşturulamadı: " + err.message);
+  }
+};
 
   if (loading) return <Loading />;
 
