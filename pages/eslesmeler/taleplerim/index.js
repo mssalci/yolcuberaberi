@@ -17,26 +17,24 @@ export default function Taleplerim() {
   const [veriler, setVeriler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
 
-  // Kullanıcıyı dinle
+  // user'ı sadece 1 kere ayarla
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((usr) => {
-      setUser(usr);
+      if (usr) setUser(usr);
     });
     return () => unsubscribe();
   }, []);
 
-  // user geldiğinde verileri çek
+  // user yüklendiğinde verileri getir
   useEffect(() => {
-    if (!user) return;
+    if (!user || !user.uid) return;
 
     const fetchData = async () => {
       try {
-        const taleplerSnap = await getDocs(
-          query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))
-        );
-        const yolculuklarSnap = await getDocs(
-          query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))
-        );
+        const [taleplerSnap, yolculuklarSnap] = await Promise.all([
+          getDocs(query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))),
+          getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
+        ]);
 
         const talepler = await Promise.all(
           taleplerSnap.docs.map(async (docSnap) => {
@@ -46,14 +44,12 @@ export default function Taleplerim() {
             );
             const teklifler = await Promise.all(
               eslesmeSnap.docs.map(async (esDoc) => {
-                const teklif = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
-                return {
-                  eslesmeId: esDoc.id,
-                  ...teklif.data(),
-                };
+                const teklifRef = doc(db, "teklifler", esDoc.data().teklifId);
+                const teklifSnap = await getDoc(teklifRef);
+                return teklifSnap.exists() ? { eslesmeId: esDoc.id, ...teklifSnap.data() } : null;
               })
             );
-            return { ...data, teklifler };
+            return { ...data, teklifler: teklifler.filter(Boolean) };
           })
         );
 
@@ -65,14 +61,12 @@ export default function Taleplerim() {
             );
             const teklifler = await Promise.all(
               eslesmeSnap.docs.map(async (esDoc) => {
-                const teklif = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
-                return {
-                  eslesmeId: esDoc.id,
-                  ...teklif.data(),
-                };
+                const teklifRef = doc(db, "teklifler", esDoc.data().teklifId);
+                const teklifSnap = await getDoc(teklifRef);
+                return teklifSnap.exists() ? { eslesmeId: esDoc.id, ...teklifSnap.data() } : null;
               })
             );
-            return { ...data, teklifler };
+            return { ...data, teklifler: teklifler.filter(Boolean) };
           })
         );
 
@@ -87,7 +81,7 @@ export default function Taleplerim() {
     fetchData();
   }, [user]);
 
-  if (yukleniyor || !user) return <p className="p-4">Yükleniyor...</p>;
+  if (yukleniyor) return <p className="p-4">Yükleniyor...</p>;
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
@@ -147,4 +141,4 @@ export default function Taleplerim() {
       )}
     </main>
   );
-                                      }
+                  }
