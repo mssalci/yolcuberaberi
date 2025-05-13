@@ -17,6 +17,7 @@ export default function Taleplerim() {
   const [veriler, setVeriler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
 
+  // Kullanıcıyı dinle
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((usr) => {
       setUser(usr);
@@ -24,10 +25,11 @@ export default function Taleplerim() {
     return () => unsubscribe();
   }, []);
 
+  // user geldiğinde verileri çek
   useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return;
+    if (!user) return;
 
+    const fetchData = async () => {
       try {
         const taleplerSnap = await getDocs(
           query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))
@@ -85,7 +87,7 @@ export default function Taleplerim() {
     fetchData();
   }, [user]);
 
-  if (yukleniyor) return <p className="p-4">Yükleniyor...</p>;
+  if (yukleniyor || !user) return <p className="p-4">Yükleniyor...</p>;
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
@@ -145,4 +147,4 @@ export default function Taleplerim() {
       )}
     </main>
   );
-                          }
+                                      }
