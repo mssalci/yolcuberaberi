@@ -1,3 +1,4 @@
+// pages/eslesmeler/taleplerim/[id].js
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { useEffect, useState } from "react";
@@ -11,7 +12,6 @@ import {
   where,
   getDocs,
   updateDoc,
-  setDoc,
 } from "firebase/firestore";
 import { format } from "date-fns";
 import { auth, db } from "../../../firebase/firebaseConfig";
@@ -45,7 +45,8 @@ export default function KayitDetay() {
     e.preventDefault();
     const user = auth.currentUser;
     if (!user) return alert("Lütfen giriş yapın.");
-    if (kayit.kullaniciId === user.uid) return alert("Kendi oluşturduğunuz kayda teklif veremezsiniz.");
+    if (kayit.kullaniciId === user.uid)
+      return alert("Kendi oluşturduğunuz kayda teklif veremezsiniz.");
 
     try {
       const teklif = {
@@ -72,7 +73,6 @@ export default function KayitDetay() {
         kabulZamani: serverTimestamp(),
       });
 
-      // Eşleşmeyi addDoc ile ekliyoruz. Aynı kayda tekrar eşleşme eklenmemesi için doğru doküman adlandırması kullanıldı.
       await addDoc(collection(db, "eslesmeler"), {
         [tur === "yolculuk" ? "yolculukId" : "talepId"]: id,
         teklifId: teklif.id,
@@ -117,7 +117,9 @@ export default function KayitDetay() {
       </Head>
 
       <main className="bg-white text-gray-800 min-h-screen px-4 py-20 max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">{kayit.baslik || "Yolculuk Detayı"}</h1>
+        <h1 className="text-3xl font-bold mb-6">
+          {kayit.baslik || "Yolculuk Detayı"}
+        </h1>
         {tur === "yolculuk" ? (
           <>
             <p className="mb-2 text-gray-700">Kalkış: {kayit.kalkis}</p>
@@ -130,7 +132,10 @@ export default function KayitDetay() {
             <p className="mb-2 text-gray-700">{kayit.aciklama}</p>
             <p className="mb-2 text-sm text-gray-600">Ülke: {kayit.ulke}</p>
             <p className="mb-2 text-sm text-gray-600">
-              Tarih: {kayit.tarih?.toDate?.() ? format(kayit.tarih.toDate(), "dd.MM.yyyy HH:mm") : "Bilinmiyor"}
+              Tarih:{" "}
+              {kayit.tarih?.toDate?.()
+                ? format(kayit.tarih.toDate(), "dd.MM.yyyy HH:mm")
+                : "Bilinmiyor"}
             </p>
           </>
         )}
@@ -176,10 +181,19 @@ export default function KayitDetay() {
           <h2 className="text-xl font-semibold mb-4">Gelen Teklifler</h2>
           {teklifler.length === 0 && <p>Henüz teklif yok.</p>}
           {teklifler.map((teklif) => (
-            <div key={teklif.id} className="border p-4 mb-4 rounded bg-gray-50">
-              <p><strong>Fiyat:</strong> {teklif.fiyat}</p>
-              <p><strong>Not:</strong> {teklif.not}</p>
-              <p><strong>Teslim Tarihi:</strong> {teklif.tarih}</p>
+            <div
+              key={teklif.id}
+              className="border p-4 mb-4 rounded bg-gray-50"
+            >
+              <p>
+                <strong>Fiyat:</strong> {teklif.fiyat}
+              </p>
+              <p>
+                <strong>Not:</strong> {teklif.not}
+              </p>
+              <p>
+                <strong>Teslim Tarihi:</strong> {teklif.tarih}
+              </p>
 
               {!teklif.kabulEdildi ? (
                 <button
@@ -189,7 +203,9 @@ export default function KayitDetay() {
                   Kabul Et
                 </button>
               ) : (
-                <p className="text-green-700 mt-2 font-semibold">Bu teklif kabul edildi.</p>
+                <p className="text-green-700 mt-2 font-semibold">
+                  Bu teklif kabul edildi.
+                </p>
               )}
             </div>
           ))}
@@ -197,4 +213,4 @@ export default function KayitDetay() {
       </main>
     </>
   );
-}
+        }
