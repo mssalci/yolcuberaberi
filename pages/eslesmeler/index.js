@@ -12,6 +12,7 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import Link from "next/link";
+import GirisUyari from "../../components/GirisUyari";
 
 export default function Eslesmeler() {
   const router = useRouter();
@@ -19,10 +20,12 @@ export default function Eslesmeler() {
   const [eslesmeler, setEslesmeler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [user, setUser] = useState(null);
+  const [kontrolEdildi, setKontrolEdildi] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((usr) => {
       setUser(usr);
+      setKontrolEdildi(true);
     });
     return () => unsubscribe();
   }, []);
@@ -94,6 +97,7 @@ export default function Eslesmeler() {
             id: docSnap.id,
             tip: "yolculuk",
             yolculuk: docSnap.data(),
+            teklifler: [], // teklif eşleşmesi yapılmadıysa boş array
           }));
 
           setEslesmeler([...talepler, ...yolculuklar]);
@@ -121,6 +125,9 @@ export default function Eslesmeler() {
       alert("Bir hata oluştu.");
     }
   };
+
+  if (!kontrolEdildi) return null;
+  if (!user) return <GirisUyari />;
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
@@ -153,35 +160,14 @@ export default function Eslesmeler() {
         <ul className="space-y-4">
           {eslesmeler.map((e) =>
             e.tip === "yolculuk" ? (
-  <li key={e.id} className="border p-4 rounded bg-white shadow space-y-2">
-    <p className="font-semibold">Yolculuk</p>
-    <p className="text-sm text-gray-600">Kalkış: {e.yolculuk?.kalkis || "-"}</p>
-    <p className="text-sm text-gray-600">Varış: {e.yolculuk?.varis || "-"}</p>
-    <p className="text-sm text-gray-600">Tarih: {e.yolculuk?.tarih || "-"}</p>
-    <p className="text-sm text-gray-600">Not: {e.yolculuk?.not || "-"}</p>
-
-    {/* Teklif yoksa uyarı göster */}
-    {!e.teklifler || e.teklifler.length === 0 ? (
-      <p className="text-sm text-yellow-600 mt-2">Henüz teklif alınmadı.</p>
-    ) : (
-      <div className="mt-2 space-y-2">
-        <p className="text-sm font-semibold">Teklifler:</p>
-        {e.teklifler.map((teklif, idx) => (
-          <div key={idx} className="text-sm text-gray-700 border p-2 rounded">
-            <p>Fiyat: ₺{teklif.fiyat}</p>
-            <p>Not: {teklif.not || "-"}</p>
-            <p>Teslim Tarihi: {teklif.tarih}</p>
-            <button
-              onClick={() => router.push(`/chat/${teklif.eslesmeId}`)}
-              className="text-blue-600 underline text-sm mt-1"
-            >
-              Mesajlaş
-            </button>
-          </div>
-        ))}
-      </div>
-    )}
-  </li>
+              <li key={e.id} className="border p-4 rounded bg-white shadow space-y-2">
+                <p className="font-semibold">Yolculuk</p>
+                <p className="text-sm text-gray-600">Kalkış: {e.yolculuk?.kalkis || "-"}</p>
+                <p className="text-sm text-gray-600">Varış: {e.yolculuk?.varis || "-"}</p>
+                <p className="text-sm text-gray-600">Tarih: {e.yolculuk?.tarih || "-"}</p>
+                <p className="text-sm text-gray-600">Not: {e.yolculuk?.not || "-"}</p>
+                <p className="text-sm text-yellow-600">Henüz teklif alınmadı.</p>
+              </li>
             ) : (
               <li key={e.id || e.talep?.id} className="border p-4 rounded bg-white shadow space-y-2">
                 <p className="font-semibold">Talep: {e.talep?.baslik || "-"}</p>
@@ -227,4 +213,4 @@ export default function Eslesmeler() {
       )}
     </main>
   );
-}
+        }
