@@ -65,39 +65,48 @@ export default function Eslesmeler() {
             getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
           ]);
 
-          const talepler = await Promise.all(
-            taleplerSnap.docs.map(async (talepDoc) => {
-              const talepData = { id: talepDoc.id, ...talepDoc.data() };
-              const eslesmeSnap = await getDocs(
-                query(collection(db, "eslesmeler"), where("talepId", "==", talepDoc.id))
-              );
-              if (!eslesmeSnap.empty) {
-                const eslesmeDoc = eslesmeSnap.docs[0];
-                const eslesmeData = eslesmeDoc.data();
-                const teklifDoc = await getDoc(doc(db, "teklifler", eslesmeData.teklifId));
-                return {
-                  id: eslesmeDoc.id,
-                  tip: "talep",
-                  talep: talepData,
-                  teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
-                  teklifId: eslesmeData.teklifId,
-                };
-              } else {
-                return {
-                  id: null,
-                  tip: "talep",
-                  talep: talepData,
-                  teklif: null,
-                };
-              }
-            })
-          );
+          // Burada tüm eşleşmeleri listelemek için flatMap ve map kombinasyonu kullanıyoruz
+          const talepler = (
+            await Promise.all(
+              taleplerSnap.docs.flatMap(async (talepDoc) => {
+                const talepData = { id: talepDoc.id, ...talepDoc.data() };
+                const eslesmeSnap = await getDocs(
+                  query(collection(db, "eslesmeler"), where("talepId", "==", talepDoc.id))
+                );
+
+                if (eslesmeSnap.empty) {
+                  return [{
+                    id: null,
+                    tip: "talep",
+                    talep: talepData,
+                    teklif: null,
+                  }];
+                }
+
+                const teklifler = await Promise.all(
+                  eslesmeSnap.docs.map(async (esDoc) => {
+                    const eslesmeData = esDoc.data();
+                    const teklifDoc = await getDoc(doc(db, "teklifler", eslesmeData.teklifId));
+                    return {
+                      id: esDoc.id,
+                      tip: "talep",
+                      talep: talepData,
+                      teklif: teklifDoc.exists() ? teklifDoc.data() : null,
+                      teklifId: eslesmeData.teklifId,
+                    };
+                  })
+                );
+
+                return teklifler;
+              })
+            )
+          ).flat();
 
           const yolculuklar = yolculuklarSnap.docs.map((docSnap) => ({
             id: docSnap.id,
             tip: "yolculuk",
             yolculuk: docSnap.data(),
-            teklifler: [], // teklif eşleşmesi yapılmadıysa boş array
+            teklifler: [], // yolculuk için teklif eşleşmesi yoksa boş array
           }));
 
           setEslesmeler([...talepler, ...yolculuklar]);
@@ -213,4 +222,4 @@ export default function Eslesmeler() {
       )}
     </main>
   );
-        }
+}
