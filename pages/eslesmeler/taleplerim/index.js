@@ -1,3 +1,4 @@
+// pages/eslesmeler/taleplerim/index.js
 import { useRouter } from "next/router";
 import Link from "next/link";
 import {
@@ -10,23 +11,25 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "../../../firebase/firebaseConfig";
 import { useEffect, useState } from "react";
+import GirisUyari from "../../../components/GirisUyari";
 
 export default function Taleplerim() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [veriler, setVeriler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [kontrolEdildi, setKontrolEdildi] = useState(false);
 
-  // Kullanıcıyı dinle ve sadece tanımlandığında işlemlere başla
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((usr) => {
-      if (usr) setUser(usr);
+      setUser(usr);
+      setKontrolEdildi(true);
     });
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!user || !user.uid) return;
+    if (!user) return;
 
     const fetchData = async () => {
       setYukleniyor(true);
@@ -36,30 +39,44 @@ export default function Taleplerim() {
           getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
         ]);
 
-        const talepler = await Promise.all(
-          taleplerSnap.docs.map(async (docSnap) => {
-            const talepId = docSnap.id;
-            const eslesmeSnap = await getDocs(
-              query(collection(db, "eslesmeler"), where("talepId", "==", talepId))
-            );
-            const teklifler = await Promise.all(
-              eslesmeSnap.docs.map(async (esDoc) => {
-                const teklifSnap = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
-                return teklifSnap.exists()
-                  ? { eslesmeId: esDoc.id, ...teklifSnap.data() }
-                  : null;
-              })
-            );
+        // === Talep Eşleşmeleri ===
+        const talepler = (
+          await Promise.all(
+            taleplerSnap.docs.flatMap(async (talepDoc) => {
+              const talepData = { id: talepDoc.id, ...talepDoc.data() };
+              const eslesmeSnap = await getDocs(
+                query(collection(db, "eslesmeler"), where("talepId", "==", talepDoc.id))
+              );
 
-            return {
-              id: talepId,
-              ...docSnap.data(),
-              tur: "talep",
-              teklifler: teklifler.filter(Boolean),
-            };
-          })
-        );
+              if (eslesmeSnap.empty) {
+                return [{
+                  id: talepDoc.id,
+                  ...talepData,
+                  tur: "talep",
+                  teklifler: [],
+                }];
+              }
 
+              const teklifler = await Promise.all(
+                eslesmeSnap.docs.map(async (esDoc) => {
+                  const teklifSnap = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
+                  return teklifSnap.exists()
+                    ? { eslesmeId: esDoc.id, ...teklifSnap.data() }
+                    : null;
+                })
+              );
+
+              return [{
+                id: talepDoc.id,
+                ...talepData,
+                tur: "talep",
+                teklifler: teklifler.filter(Boolean),
+              }];
+            })
+          )
+        ).flat();
+
+        // === Yolculuk Eşleşmeleri ===
         const yolculuklar = await Promise.all(
           yolculuklarSnap.docs.map(async (docSnap) => {
             const yolculukId = docSnap.id;
@@ -95,6 +112,8 @@ export default function Taleplerim() {
     fetchData();
   }, [user]);
 
+  if (!kontrolEdildi) return null;
+  if (!user) return <GirisUyari />;
   if (yukleniyor) return <p className="p-4 text-center">Yükleniyor...</p>;
 
   return (
@@ -157,4 +176,4 @@ export default function Taleplerim() {
       )}
     </main>
   );
-                                      }
+                }
