@@ -1,4 +1,3 @@
-// pages/eslesmeler/taleplerim/[id].js
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { useEffect, useState } from "react";
@@ -73,7 +72,8 @@ export default function KayitDetay() {
         kabulZamani: serverTimestamp(),
       });
 
-      await setDoc(doc(db, "eslesmeler", `${tur}_${id}`), {
+      // Eşleşmeyi addDoc ile ekliyoruz. Aynı kayda tekrar eşleşme eklenmemesi için doğru doküman adlandırması kullanıldı.
+      await addDoc(collection(db, "eslesmeler"), {
         [tur === "yolculuk" ? "yolculukId" : "talepId"]: id,
         teklifId: teklif.id,
         teklifVerenId: teklif.kullaniciId,
@@ -197,4 +197,4 @@ export default function KayitDetay() {
       </main>
     </>
   );
-                }
+}
