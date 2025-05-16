@@ -44,6 +44,7 @@ const handleLogout = async () => {
           <Link href="/talep" className="hover:text-blue-600">Talep Oluştur</Link>
           <Link href="/talepler" className="hover:text-blue-600">Talepler</Link>
           <Link href="/eslesmeler" className="hover:text-blue-600">Eşleşmeler</Link>
+    <Link href="/iletisim" className="hover:text-blue-600">İletişim</Link>
         </nav>
 
         <div className="hidden sm:flex space-x-2 text-sm">
