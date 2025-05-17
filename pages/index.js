@@ -29,22 +29,6 @@ export default function HomePage() {
             Yukarıdaki menüden talepleri görüntüleyebilir, yeni talepler oluşturabilir veya eşleşmeleri yönetebilirsiniz.
           </p>
 
-          <div className="flex flex-col md:flex-row gap-4 bg-white shadow-md rounded-xl p-6">
-            <select className="border px-4 py-2 rounded w-full md:w-60">
-              <option>Ülke seç</option>
-              <option>Almanya</option>
-              <option>Fransa</option>
-              <option>ABD</option>
-            </select>
-            <input
-              type="text"
-              placeholder="Tarih aralığı"
-              className="border px-4 py-2 rounded w-full md:w-60"
-            />
-            <button className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-              Ara
-            </button>
-          </div>
         </section>
 
         {/* Nasıl Çalışır */}
@@ -72,26 +56,6 @@ export default function HomePage() {
                 Güvenli teslimat ile eşyana kavuş.
               </p>
             </div>
-          </div>
-        </section>
-
-        {/* Öne Çıkan Gönderiler */}
-        <section>
-          <h2 className="text-2xl font-bold text-center mb-6">Öne Çıkan Gönderiler</h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            {[
-              { from: "Berlin", to: "İstanbul", date: "10–20 Mayıs", weight: "1 kg", price: "50 €" },
-              { from: "New York", to: "Ankara", date: "5–12 Haziran", weight: "8 kg", price: "150 $" },
-              { from: "İzmir", to: "Paris", date: "20–25 Nisan", weight: "3 kg", price: "40 €" },
-              { from: "Londra", to: "Adana", date: "1–4 Temmuz", weight: "12 kg", price: "200 £" },
-            ].map((item, i) => (
-              <div key={i} className="border p-4 rounded-lg shadow hover:shadow-lg transition">
-                <div className="font-semibold">{item.from} → {item.to}</div>
-                <div className="text-sm text-gray-500">{item.date}</div>
-                <div className="text-sm mt-2">{item.weight} eşya</div>
-                <div className="font-semibold">{item.price}</div>
-              </div>
-            ))}
           </div>
         </section>
 
