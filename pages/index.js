@@ -61,8 +61,6 @@ export default function HomePage() {
 
         {/* Footer */}
         <footer className="text-center text-sm text-gray-500 mt-10 space-x-4">
-          <a href="#">Hakkımızda</a>
-          <a href="#">KVKK</a>
           <a href="/iletisim">İletişim</a>
         </footer>
       </main>
