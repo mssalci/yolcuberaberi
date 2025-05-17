@@ -8,7 +8,7 @@ export default function HomePage() {
         <title>Yolcu Beraberi | Yurt Dışından Eşya Getir, Kazan</title>
         <meta
           name="description"
-          content="Yurt dışından eşya getirmek isteyenlerle seyahat eden yolcuları buluşturan platform. Hemen talep oluştur ve gelir elde et."
+          content="Yurt dışından eşya getirmek isteyenlerle seyahat eden yolcuları buluşturan İLK ve TEK platform. Hemen talep oluştur ve gelir elde et."
         />
         <meta property="og:title" content="Yolcu Beraberi" />
         <meta property="og:description" content="Yurt dışından eşya getir, yolculuğunu kazanca dönüştür." />
@@ -37,21 +37,21 @@ export default function HomePage() {
           <div className="grid md:grid-cols-3 gap-8">
             <div className="space-y-3">
               <PackageSearch className="mx-auto w-8 h-8 text-blue-600" />
-              <h3 className="font-semibold">Gönderi ilanı oluştur</h3>
+              <h3 className="font-semibold">Eşyan için talep oluştur yada talepler için yolculuk oluştur</h3>
               <p className="text-gray-500 text-sm">
-                Ürününü tanımla ve almak istediğin ülkeyi belirt.
+                Ürününü tanımla ve getirtmek istediğin ülkeyi belirt yada gideceğin ülkeyi ve tarihi belirt.
               </p>
             </div>
             <div className="space-y-3">
               <CalendarDays className="mx-auto w-8 h-8 text-blue-600" />
-              <h3 className="font-semibold">Yolcunu bul</h3>
+              <h3 className="font-semibold">Teklif et yada teklif al ve Yolcunu bul yada getiren yolcu ol</h3>
               <p className="text-gray-500 text-sm">
-                Uygun tarihte seyahat eden yolcuyu seç.
+                Uygun tarihte seyahat eden yolcu taleple eşleşsin.
               </p>
             </div>
             <div className="space-y-3">
               <Users className="mx-auto w-8 h-8 text-blue-600" />
-              <h3 className="font-semibold">Eşyayı teslim al</h3>
+              <h3 className="font-semibold">Eşyayı teslim et ödemeni al</h3>
               <p className="text-gray-500 text-sm">
                 Güvenli teslimat ile eşyana kavuş.
               </p>
