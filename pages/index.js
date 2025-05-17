@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { CalendarDays, PackageSearch, Handshake } from "lucide-react";
+import { CalendarDays, PackageSearch, Users } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -66,7 +66,7 @@ export default function HomePage() {
               </p>
             </div>
             <div className="space-y-3">
-              <Handshake className="mx-auto w-8 h-8 text-blue-600" />
+              <Users className="mx-auto w-8 h-8 text-blue-600" />
               <h3 className="font-semibold">Eşyayı teslim al</h3>
               <p className="text-gray-500 text-sm">
                 Güvenli teslimat ile eşyana kavuş.
