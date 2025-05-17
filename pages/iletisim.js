@@ -1,6 +1,6 @@
 import Head from "next/head";
 import { useState } from "react";
-import { db } from "../lib/firebase"; // Firebase bağlantın burada olmalı
+import { db } from "../firebase/firebaseConfig";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 
 export default function Iletisim() {
