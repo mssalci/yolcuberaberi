@@ -15,9 +15,7 @@ export default function Iletisim() {
         </p>
 
         <div className="space-y-4">
-          <p><strong>E-posta:</strong> <a href="mailto:destek@yolcuberaberi.com" className="text-blue-600 underline">destek@yolcuberaberi.com</a></p>
-          <p><strong>Telefon:</strong> +90 530 000 0000</p>
-          <p><strong>Adres:</strong> İstanbul, Türkiye</p>
+         <p><strong>Adres:</strong> İstanbul, Türkiye</p>
         </div>
 
         <div className="mt-10">
@@ -46,11 +44,10 @@ export default function Iletisim() {
               className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
               disabled
             >
-              Gönder (Pasif)
+              Gönder
             </button>
           </form>
-          <p className="text-sm text-gray-500 mt-2">* Bu form şu anda demo amaçlıdır.</p>
-        </div>
+         </div>
       </main>
     </>
   );
