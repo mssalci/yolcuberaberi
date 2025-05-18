@@ -2,7 +2,11 @@
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
+} from "firebase/auth";
 import { auth } from "../firebase/firebaseConfig";
 
 export default function Giris() {
@@ -13,8 +17,8 @@ export default function Giris() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        router.replace("/"); // Giriş yaptıysa anasayfaya
+      if (user && user.emailVerified) {
+        router.replace("/"); // Doğrulandıysa yönlendir
       }
     });
     return () => unsubscribe();
@@ -22,8 +26,18 @@ export default function Giris() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setHata(null);
+
     try {
-      await signInWithEmailAndPassword(auth, email, sifre);
+      const userCredential = await signInWithEmailAndPassword(auth, email, sifre);
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        await signOut(auth);
+        setHata("Lütfen e-posta adresinizi doğrulayın. Gelen kutunuzu kontrol edin.");
+        return;
+      }
+
       router.push("/");
     } catch (error) {
       setHata("Giriş başarısız: " + error.message);
@@ -52,6 +66,7 @@ export default function Giris() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full border px-4 py-2 rounded"
+            required
           />
           <input
             type="password"
@@ -59,6 +74,7 @@ export default function Giris() {
             value={sifre}
             onChange={(e) => setSifre(e.target.value)}
             className="w-full border px-4 py-2 rounded"
+            required
           />
           {hata && <p className="text-red-500 text-sm">{hata}</p>}
           <button
