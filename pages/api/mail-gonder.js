@@ -11,9 +11,9 @@ export default async function handler(req, res) {
 
   const { ad, email, mesaj } = req.body;
 
-  if (!ad || !email || !mesaj) {
-    return res.status(400).json({ message: "Tüm alanlar gereklidir" });
-  }
+if (!ad || !email || !mesaj) {
+  return res.status(400).json({ message: "Tüm alanlar gereklidir" });
+}
 
   try {
     // Firestore'a kaydet (isteğe bağlı; zaten iletisim.js'te kaydediliyor)
@@ -34,15 +34,15 @@ export default async function handler(req, res) {
     });
 
     await transporter.sendMail({
-      from: `"Yolcu Beraberi" <${process.env.MAIL_USER}>`,
-      to: "serdarsalci@hotmail.com",
-      subject: "Yeni İletişim Mesajı",
-      html: `
-        <p><strong>Ad:</strong> ${ad}</p>
-        <p><strong>E-posta:</strong> ${email}</p>
-        <p><strong>Mesaj:</strong><br>${mesaj}</p>
-      `,
-    });
+  from: `"Yolcu Beraberi" <${process.env.MAIL_USER}>`,
+  to: "serdarsalci@hotmail.com", // sadece sen alırsın
+  subject: "Yeni İletişim Mesajı",
+  html: `
+    <p><strong>Ad:</strong> ${ad}</p>
+    <p><strong>E-posta:</strong> ${email}</p>
+    <p><strong>Mesaj:</strong><br>${mesaj}</p>
+  `,
+});
 
     return res.status(200).json({ message: "Mesaj gönderildi" });
   } catch (error) {
