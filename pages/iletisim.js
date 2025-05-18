@@ -1,3 +1,5 @@
+//pages/iletisim.js
+  
 import Head from "next/head";
 import { useState } from "react";
 import { db } from "../firebase/firebaseConfig";
