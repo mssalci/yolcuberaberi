@@ -5,6 +5,7 @@ import {
   db
 } from "../firebase/firebaseConfig";
 import {
+  getAuth,
   onAuthStateChanged,
   updateProfile,
   deleteUser,
