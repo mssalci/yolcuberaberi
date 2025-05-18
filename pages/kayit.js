@@ -4,6 +4,7 @@ import Head from "next/head";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import {
+  getAuth,
   createUserWithEmailAndPassword,
   updateProfile,
   onAuthStateChanged,
@@ -45,9 +46,13 @@ export default function Kayit() {
       });
 
       // E-posta doğrulama bağlantısı gönder
-      await sendEmailVerification(user);
-
-      alert("Kayıt başarılı! Lütfen e-posta adresinizi doğrulamak için gelen kutunuzu kontrol edin.");
+      await auth = getAuth();
+sendEmailVerification(auth.currentUser)
+  .then(() => {
+    // Email verification sent!
+    // ...
+    alert("Kayıt başarılı! Lütfen e-posta adresinizi doğrulamak için gelen kutunuzu kontrol edin.");
+  });
 
       router.push("/giris"); // Giriş sayfasına yönlendirme
     } catch (error) {
