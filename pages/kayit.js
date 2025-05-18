@@ -7,6 +7,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   onAuthStateChanged,
+  sendEmailVerification,
 } from "firebase/auth";
 import { setDoc, doc } from "firebase/firestore";
 import { auth, db } from "../firebase/firebaseConfig";
@@ -40,10 +41,15 @@ export default function Kayit() {
         uid: user.uid,
         email: user.email,
         adSoyad: adSoyad,
-        iban: "", // Başlangıç için boş bırakılabilir
+        iban: "",
       });
 
-      router.push("/");
+      // E-posta doğrulama bağlantısı gönder
+      await sendEmailVerification(user);
+
+      alert("Kayıt başarılı! Lütfen e-posta adresinizi doğrulamak için gelen kutunuzu kontrol edin.");
+
+      router.push("/giris"); // Giriş sayfasına yönlendirme
     } catch (error) {
       setHata("Kayıt başarısız: " + error.message);
     }
@@ -100,4 +106,4 @@ export default function Kayit() {
       </div>
     </>
   );
-              }
+          }
