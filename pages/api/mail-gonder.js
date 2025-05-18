@@ -35,7 +35,8 @@ if (!ad || !email || !mesaj) {
 
     await transporter.sendMail({
   from: `"Yolcu Beraberi" <${process.env.MAIL_USER}>`,
-  to: "serdarsalci@hotmail.com", // sadece sen alırsın
+  to: "serdarsalci@hotmail.com",
+  replyTo: email, // kullanıcının e-postası
   subject: "Yeni İletişim Mesajı",
   html: `
     <p><strong>Ad:</strong> ${ad}</p>
@@ -43,7 +44,6 @@ if (!ad || !email || !mesaj) {
     <p><strong>Mesaj:</strong><br>${mesaj}</p>
   `,
 });
-
     return res.status(200).json({ message: "Mesaj gönderildi" });
   } catch (error) {
     console.error("Hata:", error);
