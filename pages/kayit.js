@@ -46,7 +46,7 @@ export default function Kayit() {
       });
 
       // E-posta doğrulama bağlantısı gönder
-      await auth = getAuth();
+      const auth = getAuth();
 sendEmailVerification(auth.currentUser)
   .then(() => {
     // Email verification sent!
