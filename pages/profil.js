@@ -7,7 +7,8 @@ import {
 import {
   onAuthStateChanged,
   updateProfile,
-  deleteUser
+  deleteUser,
+  sendEmailVerification
 } from "firebase/auth";
 import {
   doc,
@@ -22,13 +23,16 @@ export default function Profil() {
   const [adSoyad, setAdSoyad] = useState("");
   const [iban, setIban] = useState("");
   const [loading, setLoading] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
         router.push("/giris");
       } else {
+        await currentUser.reload(); // doğrulama durumu güncel olsun
         setUser(currentUser);
+        setEmailVerified(currentUser.emailVerified);
 
         const ref = doc(db, "kullanicilar", currentUser.uid);
         const docSnap = await getDoc(ref);
@@ -47,29 +51,40 @@ export default function Profil() {
     return () => unsubscribe();
   }, [router]);
 
+  const handleSendVerification = async () => {
+    if (user && !user.emailVerified) {
+      try {
+        await sendEmailVerification(user);
+        alert("Doğrulama e-postası gönderildi. Lütfen gelen kutunuzu kontrol edin.");
+      } catch (error) {
+        console.error("Doğrulama e-postası gönderilemedi:", error);
+        alert("E-posta gönderilemedi. Lütfen tekrar deneyin.");
+      }
+    }
+  };
+
   const handleSave = async () => {
-  try {
-    if (!user) return;
+    try {
+      if (!user) return;
 
-    await setDoc(doc(db, "kullanicilar", user.uid), {
-      adSoyad,
-      iban,
-      email: user.email,
-    });
+      await setDoc(doc(db, "kullanicilar", user.uid), {
+        adSoyad,
+        iban,
+        email: user.email,
+      });
 
-    await updateProfile(user, { displayName: adSoyad });
+      await updateProfile(user, { displayName: adSoyad });
 
-    // Firebase auth bilgisini güncelle
-    await auth.currentUser.reload();
-    setUser(auth.currentUser);
+      await auth.currentUser.reload();
+      setUser(auth.currentUser);
 
-    alert("Profil başarıyla güncellendi.");
-    router.reload();
-  } catch (error) {
-    console.error("Güncelleme hatası:", error);
-    alert("Profil güncellenemedi.");
-  }
-};
+      alert("Profil başarıyla güncellendi.");
+      router.reload();
+    } catch (error) {
+      console.error("Güncelleme hatası:", error);
+      alert("Profil güncellenemedi.");
+    }
+  };
 
   const handleHesapSil = async () => {
     const onay = confirm("Hesabınızı silmek istediğinizden emin misiniz?");
@@ -91,6 +106,20 @@ export default function Profil() {
   return (
     <main className="max-w-2xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Profil Bilgilerim</h1>
+
+      {!emailVerified && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-6">
+          <p>
+            E-posta adresiniz henüz doğrulanmamış.{" "}
+            <button
+              onClick={handleSendVerification}
+              className="text-blue-600 underline font-medium"
+            >
+              Doğrulama e-postası gönder
+            </button>
+          </p>
+        </div>
+      )}
 
       <div className="space-y-4">
         <div>
