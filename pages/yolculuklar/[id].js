@@ -75,8 +75,8 @@ export default function YolculukDetay() {
   }, [id]);
 
   const handleTeklifVer = async (e) => {
-    e.preventDefault();
-    if (!user) return;
+  e.preventDefault();
+  if (!user) return;
 
   // *** E-POSTA DOĞRULAMASI KONTROLÜ ***
   if (!user.emailVerified) {
@@ -85,50 +85,69 @@ export default function YolculukDetay() {
   }
 
   if (!fiyat || !yolculuk) return;
-    if (new Date(tarih) < new Date(todayStr)) {
-      alert("Teslim tarihi bugünden önce olamaz.");
-      return;
-    }
+  if (new Date(tarih) < new Date(todayStr)) {
+    alert("Teslim tarihi bugünden önce olamaz.");
+    return;
+  }
 
-    const mevcutTeklifVarMi = eslesmeler.some(
-      (eslesme) => eslesme.teklifVerenId === user.uid
+  // *** KULLANICININ HERHANGİ BİR TEKLİFİ VAR MI KONTROLÜ ***
+  try {
+    const teklifQuery = query(
+      collection(db, "teklifler"),
+      where("teklifVerenId", "==", user.uid)
     );
-    if (mevcutTeklifVarMi) {
-      alert("Bu yolculuğa zaten bir teklif verdiniz.");
+    const teklifSnapshot = await getDocs(teklifQuery);
+
+    if (!teklifSnapshot.empty) {
+      alert("Zaten bir teklif verdiniz. Yeni teklif veremezsiniz.");
       return;
     }
+  } catch (err) {
+    console.error("Teklif kontrolü sırasında hata:", err);
+    alert("Teklif kontrolü sırasında bir hata oluştu.");
+    return;
+  }
 
-    try {
-      setLoading(true);
-      const teklifRef = await addDoc(collection(db, "teklifler"), {
-        yolculukId: yolculuk.id,
-        teklifVerenId: user.uid,
-        fiyat: parseFloat(fiyat),
-        not,
-        tarih,
-        olusturmaZamani: serverTimestamp(),
-      });
+  // *** BU YOLCULUĞA ZATEN TEKLİF VERİLMİŞ Mİ KONTROLÜ ***
+  const mevcutTeklifVarMi = eslesmeler.some(
+    (eslesme) => eslesme.teklifVerenId === user.uid
+  );
+  if (mevcutTeklifVarMi) {
+    alert("Bu yolculuğa zaten bir teklif verdiniz.");
+    return;
+  }
 
-      await addDoc(collection(db, "eslesmeler"), {
-        yolculukId: yolculuk.id,
-        teklifId: teklifRef.id,
-        teklifVerenId: user.uid,
-        yolculukSahibiId: yolculuk.kullaniciId,
-        olusturmaZamani: serverTimestamp(),
-      });
+  try {
+    setLoading(true);
+    const teklifRef = await addDoc(collection(db, "teklifler"), {
+      yolculukId: yolculuk.id,
+      teklifVerenId: user.uid,
+      fiyat: parseFloat(fiyat),
+      not,
+      tarih,
+      olusturmaZamani: serverTimestamp(),
+    });
 
-      alert("Teklif ve eşleşme başarıyla oluşturuldu.");
-      setFiyat("");
-      setNot("");
-      setTarih("");
-      router.reload();
-    } catch (err) {
-      console.error("Teklif oluşturulamadı:", err);
-      alert("Bir hata oluştu. Lütfen tekrar deneyin.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    await addDoc(collection(db, "eslesmeler"), {
+      yolculukId: yolculuk.id,
+      teklifId: teklifRef.id,
+      teklifVerenId: user.uid,
+      yolculukSahibiId: yolculuk.kullaniciId,
+      olusturmaZamani: serverTimestamp(),
+    });
+
+    alert("Teklif ve eşleşme başarıyla oluşturuldu.");
+    setFiyat("");
+    setNot("");
+    setTarih("");
+    router.reload();
+  } catch (err) {
+    console.error("Teklif oluşturulamadı:", err);
+    alert("Bir hata oluştu. Lütfen tekrar deneyin.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleYolculukSil = async () => {
     const onay = confirm("Yolculuğu silmek istediğinize emin misiniz?");
