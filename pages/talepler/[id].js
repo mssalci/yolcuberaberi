@@ -83,7 +83,7 @@ export default function TalepDetay() {
     }
   }, [id]);
 
-  const handleTeklifVer = async (e) => {
+const handleTeklifVer = async (e) => {
   e.preventDefault();
 
   if (!user) {
@@ -103,17 +103,33 @@ export default function TalepDetay() {
     return;
   }
 
-  const mevcutTeklifVarMi = eslesmeler.some(
-    (eslesme) => eslesme.teklifVerenId === user.uid
-  );
-  if (mevcutTeklifVarMi) {
-    alert("Bu talebe zaten bir teklif verdiniz.");
-    return;
-  }
-
   try {
     setLoading(true);
 
+    // 1. Kullanıcının daha önce herhangi bir teklifi var mı kontrol et
+    const q = query(
+      collection(db, "teklifler"),
+      where("teklifVerenId", "==", user.uid)
+    );
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      alert("Zaten başka bir talep veya yolculuğa teklif verdiniz. Yeni teklif veremezsiniz.");
+      setLoading(false);
+      return;
+    }
+
+    // 2. Bu talebe özel daha önce teklif verildi mi kontrolü (opsiyonel ama kalsın)
+    const mevcutTeklifVarMi = eslesmeler.some(
+      (eslesme) => eslesme.teklifVerenId === user.uid
+    );
+    if (mevcutTeklifVarMi) {
+      alert("Bu talebe zaten bir teklif verdiniz.");
+      setLoading(false);
+      return;
+    }
+
+    // 3. Teklif oluştur
     const teklifRef = await addDoc(collection(db, "teklifler"), {
       talepId: talep.id,
       teklifVerenId: user.uid,
