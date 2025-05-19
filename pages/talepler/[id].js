@@ -1,3 +1,5 @@
+//pages/talepler/[id].js
+
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../firebase/firebaseConfig";
@@ -82,54 +84,65 @@ export default function TalepDetay() {
   }, [id]);
 
   const handleTeklifVer = async (e) => {
-    e.preventDefault();
-    if (!user || !fiyat || !talep) return;
+  e.preventDefault();
 
-    if (new Date(tarih) < new Date(todayStr)) {
-      alert("Teslim tarihi bugünden önce olamaz.");
-      return;
-    }
+  if (!user) {
+    alert("Teklif verebilmek için giriş yapmalısınız.");
+    return;
+  }
 
-    const mevcutTeklifVarMi = eslesmeler.some(
-      (eslesme) => eslesme.teklifVerenId === user.uid
-    );
-    if (mevcutTeklifVarMi) {
-      alert("Bu talebe zaten bir teklif verdiniz.");
-      return;
-    }
+  if (!user.emailVerified) {
+    alert("Teklif verebilmek için e-posta adresinizi doğrulamanız gerekiyor.");
+    return;
+  }
 
-    try {
-      setLoading(true);
+  if (!fiyat || !talep) return;
 
-      const teklifRef = await addDoc(collection(db, "teklifler"), {
-        talepId: talep.id,
-        teklifVerenId: user.uid,
-        fiyat: parseFloat(fiyat),
-        not,
-        tarih,
-        olusturmaZamani: serverTimestamp(),
-      });
+  if (new Date(tarih) < new Date(todayStr)) {
+    alert("Teslim tarihi bugünden önce olamaz.");
+    return;
+  }
 
-      await addDoc(collection(db, "eslesmeler"), {
-        talepId: talep.id,
-        teklifId: teklifRef.id,
-        teklifVerenId: user.uid,
-        talepSahibiId: talep.kullaniciId || null,
-        olusturmaZamani: serverTimestamp(),
-      });
+  const mevcutTeklifVarMi = eslesmeler.some(
+    (eslesme) => eslesme.teklifVerenId === user.uid
+  );
+  if (mevcutTeklifVarMi) {
+    alert("Bu talebe zaten bir teklif verdiniz.");
+    return;
+  }
 
-      alert("Teklif ve eşleşme başarıyla oluşturuldu.");
-      setFiyat("");
-      setNot("");
-      setTarih("");
-      router.reload();
-    } catch (error) {
-      console.error("Teklif/Eşleşme hatası:", error);
-      alert("Bir hata oluştu. Lütfen tekrar deneyin.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+
+    const teklifRef = await addDoc(collection(db, "teklifler"), {
+      talepId: talep.id,
+      teklifVerenId: user.uid,
+      fiyat: parseFloat(fiyat),
+      not,
+      tarih,
+      olusturmaZamani: serverTimestamp(),
+    });
+
+    await addDoc(collection(db, "eslesmeler"), {
+      talepId: talep.id,
+      teklifId: teklifRef.id,
+      teklifVerenId: user.uid,
+      talepSahibiId: talep.kullaniciId || null,
+      olusturmaZamani: serverTimestamp(),
+    });
+
+    alert("Teklif ve eşleşme başarıyla oluşturuldu.");
+    setFiyat("");
+    setNot("");
+    setTarih("");
+    router.reload();
+  } catch (error) {
+    console.error("Teklif/Eşleşme hatası:", error);
+    alert("Bir hata oluştu. Lütfen tekrar deneyin.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleTalepSil = async () => {
     const onay = confirm("Talebi silmek istediğinize emin misiniz?");
