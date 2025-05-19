@@ -38,6 +38,7 @@ export default function Giris() {
 } catch (error) {
   setHata("Giriş başarısız: " + error.message);
     }
+  };
 
   return (
     <>
