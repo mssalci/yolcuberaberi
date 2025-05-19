@@ -30,7 +30,7 @@ export default function Giris() {
     setHata(null);
 
     try {
-  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  const userCredential = await signInWithEmailAndPassword(auth, email, sifre);
   const user = userCredential.user;
 
   // Giriş başarılı, yönlendirme yap
