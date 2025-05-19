@@ -49,7 +49,7 @@ const handleRegister = async (e) => {
     await sendEmailVerification(user);
     alert("Kayıt başarılı! Lütfen e-posta adresinizi doğrulamak için gelen kutunuzu kontrol edin.");
 
-    router.push("/giris"); // Giriş sayfasına yönlendirme
+    router.push("/profil"); // Profil sayfasına yönlendirme
   } catch (error) {
     setHata("Kayıt başarısız: " + error.message);
   }
