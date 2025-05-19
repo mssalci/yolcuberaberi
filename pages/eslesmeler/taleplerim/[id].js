@@ -158,14 +158,14 @@ export default function KayitDetay() {
         </h1>
 
         {/* Kaydı Sil butonu */}
-        {auth.currentUser?.uid === kayit.kullaniciId && (
-          <button
-  onClick={handleTalepSil}
-  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 mb-6"
->
-  Kaydı Sil
-</button>
-        )}
+{auth.currentUser?.uid === kayit.kullaniciId && (
+  <button
+    onClick={handleTalepSil}
+    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 mb-6"
+  >
+    Kaydı Sil
+  </button>
+)}
 
         {tur === "yolculuk" ? (
           <>
