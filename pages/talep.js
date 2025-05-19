@@ -1,4 +1,5 @@
-// pages/talep-yolculuk-olustur.js
+// pages/talep.js
+
 import { useState, useEffect } from "react";
 import { db } from "../firebase/firebaseConfig";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -28,10 +29,21 @@ export default function TalepYolculukOlustur() {
   });
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/giris");
-    }
-  }, [loading, user]);
+  if (!loading && (!user || !user.emailVerified)) {
+    router.push("/giris");
+  }
+}, [loading, user]);
+
+  if (user && !user.emailVerified) {
+  return (
+    <main className="min-h-screen flex items-center justify-center text-center p-4">
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">E-posta Doğrulaması Gerekli</h2>
+        <p>Lütfen hesabınıza ait e-posta adresini doğrulayın. Doğrulama tamamlandıktan sonra bu sayfaya tekrar erişebilirsiniz.</p>
+      </div>
+    </main>
+  );
+  }
 
   const handleChange = (e, setStateFunc) => {
     setStateFunc((prev) => ({
