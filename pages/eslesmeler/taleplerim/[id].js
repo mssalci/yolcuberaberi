@@ -1,4 +1,3 @@
-// pages/eslesmeler/taleplerim/[id].js
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { useEffect, useState } from "react";
@@ -12,6 +11,7 @@ import {
   where,
   getDocs,
   updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { format } from "date-fns";
 import { auth, db } from "../../../firebase/firebaseConfig";
@@ -89,6 +89,42 @@ export default function KayitDetay() {
     }
   };
 
+  const handleTalepSil = async () => {
+  const onay = confirm("Bu talebi silmek istediğinize emin misiniz?");
+  if (!onay) return;
+
+  try {
+    const talepRef = doc(db, "talepler", id);
+
+    // 1. Bu talebe ait tüm teklifleri bul
+    const teklifQuery = query(collection(db, "teklifler"), where("talepId", "==", id));
+    const teklifSnapshot = await getDocs(teklifQuery);
+
+    // 2. Her teklifin mesajlarını sil ve teklifi sil
+    for (const teklifDoc of teklifSnapshot.docs) {
+      const teklifId = teklifDoc.id;
+
+      // a. Bu teklife ait mesajları sil
+      const mesajQuery = query(collection(db, "mesajlar"), where("teklifId", "==", teklifId));
+      const mesajSnapshot = await getDocs(mesajQuery);
+      for (const mesajDoc of mesajSnapshot.docs) {
+        await deleteDoc(doc(db, "mesajlar", mesajDoc.id));
+      }
+
+      // b. Teklifi sil
+      await deleteDoc(doc(db, "teklifler", teklifId));
+    }
+
+    // 3. Talebi sil
+    await deleteDoc(talepRef);
+
+    alert("Talep ve ilişkili teklifler ile mesajlar silindi.");
+    router.push("/profil"); // ya da uygun yönlendirme
+  } catch (err) {
+    alert("Silme işlemi başarısız: " + err.message);
+  }
+};
+
   useEffect(() => {
     const fetchKayit = async () => {
       if (!id || !tur) return;
@@ -120,6 +156,17 @@ export default function KayitDetay() {
         <h1 className="text-3xl font-bold mb-6">
           {kayit.baslik || "Yolculuk Detayı"}
         </h1>
+
+        {/* Kaydı Sil butonu */}
+        {auth.currentUser?.uid === kayit.kullaniciId && (
+          <button
+            onClick={handleSil}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 mb-6"
+          >
+            Kaydı Sil
+          </button>
+        )}
+
         {tur === "yolculuk" ? (
           <>
             <p className="mb-2 text-gray-700">Kalkış: {kayit.kalkis}</p>
@@ -213,4 +260,4 @@ export default function KayitDetay() {
       </main>
     </>
   );
-        }
+}
