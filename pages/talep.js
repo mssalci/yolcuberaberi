@@ -30,7 +30,7 @@ export default function TalepYolculukOlustur() {
 
   useEffect(() => {
   if (!loading && (!user || !user.emailVerified)) {
-    router.push("/giris");
+    router.push("/profil");
   }
 }, [loading, user]);
 
