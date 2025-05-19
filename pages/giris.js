@@ -1,4 +1,5 @@
 // pages/giris.js
+
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
@@ -29,20 +30,14 @@ export default function Giris() {
     setHata(null);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, sifre);
-      const user = userCredential.user;
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  const user = userCredential.user;
 
-      if (!user.emailVerified) {
-        await signOut(auth);
-        setHata("Lütfen e-posta adresinizi doğrulayın. Gelen kutunuzu kontrol edin.");
-        return;
-      }
-
-      router.push("/");
-    } catch (error) {
-      setHata("Giriş başarısız: " + error.message);
+  // Giriş başarılı, yönlendirme yap
+  router.push("/profil"); // veya doğrudan "/"
+} catch (error) {
+  setHata("Giriş başarısız: " + error.message);
     }
-  };
 
   return (
     <>
