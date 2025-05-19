@@ -29,36 +29,31 @@ export default function Kayit() {
     return () => unsubscribe();
   }, []);
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, sifre);
-      const user = userCredential.user;
+const handleRegister = async (e) => {
+  e.preventDefault();
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, sifre);
+    const user = userCredential.user;
 
-      await updateProfile(user, { displayName: adSoyad });
+    await updateProfile(user, { displayName: adSoyad });
 
-      // Firestore'a kullanıcı bilgilerini yaz
-      await setDoc(doc(db, "kullanicilar", user.uid), {
-        uid: user.uid,
-        email: user.email,
-        adSoyad: adSoyad,
-        iban: "",
-      });
+    // Firestore'a kullanıcı bilgilerini yaz
+    await setDoc(doc(db, "kullanicilar", user.uid), {
+      uid: user.uid,
+      email: user.email,
+      adSoyad: adSoyad,
+      iban: "",
+    });
 
-      // E-posta doğrulama bağlantısı gönder
-      const auth = getAuth();
-sendEmailVerification(auth.currentUser)
-  .then(() => {
-    // Email verification sent!
-    // ...
+    // E-posta doğrulama bağlantısı gönder
+    await sendEmailVerification(user);
     alert("Kayıt başarılı! Lütfen e-posta adresinizi doğrulamak için gelen kutunuzu kontrol edin.");
-  });
 
-      router.push("/giris"); // Giriş sayfasına yönlendirme
-    } catch (error) {
-      setHata("Kayıt başarısız: " + error.message);
-    }
-  };
+    router.push("/giris"); // Giriş sayfasına yönlendirme
+  } catch (error) {
+    setHata("Kayıt başarısız: " + error.message);
+  }
+};
 
   return (
     <>
