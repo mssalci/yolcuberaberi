@@ -1,3 +1,5 @@
+//pages/yolculuklar/[id].js
+
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../firebase/firebaseConfig";
@@ -74,8 +76,15 @@ export default function YolculukDetay() {
 
   const handleTeklifVer = async (e) => {
     e.preventDefault();
-    if (!user || !fiyat || !yolculuk) return;
+    if (!user) return;
 
+  // *** E-POSTA DOĞRULAMASI KONTROLÜ ***
+  if (!user.emailVerified) {
+    alert("Teklif verebilmek için e-posta adresinizi doğrulamanız gerekir.");
+    return;
+  }
+
+  if (!fiyat || !yolculuk) return;
     if (new Date(tarih) < new Date(todayStr)) {
       alert("Teslim tarihi bugünden önce olamaz.");
       return;
