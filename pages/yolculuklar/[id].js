@@ -150,18 +150,43 @@ export default function YolculukDetay() {
 };
 
   const handleYolculukSil = async () => {
-    const onay = confirm("Yolculuğu silmek istediğinize emin misiniz?");
-    if (!onay) return;
+  const onay = confirm("Yolculuğu silmek istediğinize emin misiniz?");
+  if (!onay) return;
 
-    try {
-      await deleteDoc(doc(db, "yolculuklar", yolculuk.id));
-      alert("Yolculuk silindi.");
-      router.push("/talepler?sekme=yolculuklar");
-    } catch (err) {
-      console.error("Silme hatası:", err);
-      alert("Yolculuk silinemedi.");
+  try {
+    // 1. Bu yolculukla ilişkili eşleşmeleri bul
+    const eslesmeQuery = query(collection(db, "eslesmeler"), where("yolculukId", "==", yolculuk.id));
+    const eslesmeSnap = await getDocs(eslesmeQuery);
+
+    // 2. Her eşleşme için teklifi ve sohbet mesajlarını sil
+    for (const eslesmeDoc of eslesmeSnap.docs) {
+      const eslesme = eslesmeDoc.data();
+      const teklifId = eslesme.teklifId;
+
+      // Teklifi sil
+      await deleteDoc(doc(db, "teklifler", teklifId));
+
+      // Mesajları sil
+      const mesajQuery = query(collection(db, "mesajlar"), where("eslesmeId", "==", eslesmeDoc.id));
+      const mesajSnap = await getDocs(mesajQuery);
+      for (const mesaj of mesajSnap.docs) {
+        await deleteDoc(mesaj.ref);
+      }
+
+      // Eşleşmeyi sil
+      await deleteDoc(eslesmeDoc.ref);
     }
-  };
+
+    // 3. Yolculuğu sil
+    await deleteDoc(doc(db, "yolculuklar", yolculuk.id));
+
+    alert("Yolculuk, teklifleri ve mesajlar silindi.");
+    router.push("/talepler?sekme=yolculuklar");
+  } catch (err) {
+    console.error("Silme hatası:", err);
+    alert("Silme işlemi sırasında bir hata oluştu.");
+  }
+};
 
   const kullaniciYolculukSahibiMi = user && yolculuk?.kullaniciId === user.uid;
 
