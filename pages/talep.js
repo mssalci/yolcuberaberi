@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "../firebase/firebaseConfig";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { query, where, getDocs, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useAuth } from "../context/AuthContext";
@@ -53,30 +53,55 @@ export default function TalepYolculukOlustur() {
   };
 
   const handleTalepSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await addDoc(collection(db, "talepler"), {
-        ...talepData,
-        kullaniciId: user.uid,
-        kullaniciEmail: user.email,
-        tarih: serverTimestamp(),
-      });
-      router.push("/talepler");
-    } catch (err) {
-      alert("Talep oluşturulamadı: " + err.message);
-    }
-  };
+  e.preventDefault();
 
+  try {
+    const talepQuery = query(
+      collection(db, "talepler"),
+      where("kullaniciId", "==", user.uid)
+    );
+    const talepSnapshot = await getDocs(talepQuery);
+
+    if (!talepSnapshot.empty) {
+      alert("Sadece bir talep oluşturabilirsiniz. Daha fazlası için lütfen premium üyelik edinin.");
+      return;
+    }
+
+    await addDoc(collection(db, "talepler"), {
+      ...talepData,
+      kullaniciId: user.uid,
+      kullaniciEmail: user.email,
+      tarih: serverTimestamp(),
+    });
+
+    router.push("/talepler");
+  } catch (err) {
+    alert("Talep oluşturulamadı: " + err.message);
+  }
+};
   const handleYolculukSubmit = async (e) => {
   e.preventDefault();
+
   try {
+    const yolculukQuery = query(
+      collection(db, "yolculuklar"),
+      where("kullaniciId", "==", user.uid)
+    );
+    const yolculukSnapshot = await getDocs(yolculukQuery);
+
+    if (!yolculukSnapshot.empty) {
+      alert("Sadece bir yolculuk oluşturabilirsiniz. Daha fazlası için lütfen premium üyelik edinin.");
+      return;
+    }
+
     await addDoc(collection(db, "yolculuklar"), {
       ...yolculukData,
       kullaniciId: user.uid,
       kullaniciEmail: user.email,
       tarihOlusturma: serverTimestamp(),
     });
-    router.push("/talepler?sekme=yolculuklar"); // yönlendirme düzeltildi
+
+    router.push("/talepler?sekme=yolculuklar");
   } catch (err) {
     alert("Yolculuk oluşturulamadı: " + err.message);
   }
