@@ -42,22 +42,24 @@ export default function Eslesmeler() {
           );
           const snapshot = await getDocs(q);
           const veriler = await Promise.all(
-            snapshot.docs.map(async (docSnap) => {
-              const data = docSnap.data();
-              const talepDoc = data.talepId
-                ? await getDoc(doc(db, "talepler", data.talepId))
-                : null;
-              const teklifDoc = data.teklifId
-                ? await getDoc(doc(db, "teklifler", data.teklifId))
-                : null;
-              return {
-                id: docSnap.id,
-                ...data,
-                talep: talepDoc?.exists() ? talepDoc.data() : null,
-                teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
-              };
-            })
-          );
+  snapshot.docs.map(async (docSnap) => {
+    const data = docSnap.data();
+    const talepDoc = data.talepId
+      ? await getDoc(doc(db, "talepler", data.talepId))
+      : null;
+    const teklifDoc = data.teklifId
+      ? await getDoc(doc(db, "teklifler", data.teklifId))
+      : null;
+    return {
+      id: docSnap.id,
+      ...data,
+      tip: "teklif", // BURASI EKLENDİ
+      talep: talepDoc?.exists() ? talepDoc.data() : null,
+      teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
+      teklifId: data.teklifId, // Detay için gerekebilir
+    };
+  })
+);
           setEslesmeler(veriler);
         } else {
           const [taleplerSnap, yolculuklarSnap] = await Promise.all([
