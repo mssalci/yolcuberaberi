@@ -197,7 +197,7 @@ export default function Eslesmeler() {
         <ul className="space-y-4">
           {eslesmeler.map((e) => (
             <li key={e.id || e.talep?.id || Math.random()} className="border p-4 rounded bg-white shadow space-y-2">
-              {e.tip === "yolculuk" ? (
+              {e.yolculuk ? (
                 <>
                   <p className="font-semibold">Yolculuk</p>
                   <p className="text-sm text-gray-600">Kalkış: {e.yolculuk?.kalkis || "-"}</p>
