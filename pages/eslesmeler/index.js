@@ -119,33 +119,88 @@ export default function Eslesmeler() {
                   }];
                 }
 
-                return await Promise.all(
-                  eslesmeSnap.docs.map(async (esDoc) => {
-                    const eslesmeData = esDoc.data();
-                    const teklifDoc = await getDoc(doc(db, "teklifler", eslesmeData.teklifId));
-                    const talepDoc = eslesmeData.talepId
-                      ? await getDoc(doc(db, "talepler", eslesmeData.talepId))
-                      : null;
+const fetchEslesmeler = async () => {
+  if (!user) return;
 
-                    return {
-                      id: esDoc.id,
-                      tip: "yolculuk",
-                      yolculuk: yolculukData,
-                      teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
-                      teklifId: eslesmeData.teklifId,
-                      talep: talepDoc?.exists() ? talepDoc.data() : null,
-                    };
-                  })
-                );
-              })
-            )
-          ).flat();
+  try {
+    if (aktifSekme === "aldiklarim") {
+      const q = query(
+        collection(db, "eslesmeler"),
+        where("talepSahibiId", "==", user.uid)
+      );
+      const snapshot = await getDocs(q);
 
-          setEslesmeler([...talepler, ...yolculuklar]);
-        }
-      } catch (error) {
-        console.error("Eşleşmeler alınırken hata:", error);
-      } finally {
+      const veriler = await Promise.all(
+        snapshot.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+
+          const talepDoc = data.talepId
+            ? await getDoc(doc(db, "talepler", data.talepId))
+            : null;
+
+          const teklifDoc = data.teklifId
+            ? await getDoc(doc(db, "teklifler", data.teklifId))
+            : null;
+
+          const yolculukDoc = data.yolculukId
+            ? await getDoc(doc(db, "yolculuklar", data.yolculukId))
+            : null;
+
+          return {
+            id: docSnap.id,
+            ...data,
+            tip: "talep",
+            talep: talepDoc?.exists() ? talepDoc.data() : null,
+            teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
+            yolculuk: yolculukDoc?.exists() ? yolculukDoc.data() : null,
+            teklifId: data.teklifId,
+          };
+        })
+      );
+
+      setEslesmeler(veriler);
+    }
+
+    if (aktifSekme === "tekliflerim") {
+      const q = query(
+        collection(db, "eslesmeler"),
+        where("teklifVerenId", "==", user.uid)
+      );
+      const snapshot = await getDocs(q);
+
+      const veriler = await Promise.all(
+        snapshot.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+
+          const talepDoc = data.talepId
+            ? await getDoc(doc(db, "talepler", data.talepId))
+            : null;
+
+          const teklifDoc = data.teklifId
+            ? await getDoc(doc(db, "teklifler", data.teklifId))
+            : null;
+
+          const yolculukDoc = data.yolculukId
+            ? await getDoc(doc(db, "yolculuklar", data.yolculukId))
+            : null;
+
+          return {
+            id: docSnap.id,
+            ...data,
+            tip: "teklif",
+            talep: talepDoc?.exists() ? talepDoc.data() : null,
+            teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
+            yolculuk: yolculukDoc?.exists() ? yolculukDoc.data() : null,
+            teklifId: data.teklifId,
+          };
+        })
+      );
+
+      setEslesmeler(veriler);
+    }
+  } catch (error) {
+    console.error("Eşleşmeler alınırken hata oluştu:", error);
+  } finally {
         setYukleniyor(false);
       }
     };
