@@ -1,4 +1,5 @@
 // pages/eslesmeler/index.js
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { auth, db } from "../../firebase/firebaseConfig";
@@ -15,7 +16,6 @@ import Link from "next/link";
 import GirisUyari from "../../components/GirisUyari";
 
 export default function Eslesmeler() {
-  const router = useRouter();
   const [aktifSekme, setAktifSekme] = useState("tekliflerim");
   const [eslesmeler, setEslesmeler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
@@ -69,7 +69,7 @@ export default function Eslesmeler() {
 
           const talepler = (
             await Promise.all(
-              taleplerSnap.docs.flatMap(async (talepDoc) => {
+              taleplerSnap.docs.map(async (talepDoc) => {
                 const talepData = { id: talepDoc.id, ...talepDoc.data() };
                 const eslesmeSnap = await getDocs(
                   query(collection(db, "eslesmeler"), where("talepId", "==", talepDoc.id))
@@ -84,7 +84,7 @@ export default function Eslesmeler() {
                   }];
                 }
 
-                const teklifler = await Promise.all(
+                return await Promise.all(
                   eslesmeSnap.docs.map(async (esDoc) => {
                     const eslesmeData = esDoc.data();
                     const teklifDoc = await getDoc(doc(db, "teklifler", eslesmeData.teklifId));
@@ -92,56 +92,54 @@ export default function Eslesmeler() {
                       id: esDoc.id,
                       tip: "talep",
                       talep: talepData,
-                      teklif: teklifDoc.exists() ? teklifDoc.data() : null,
+                      teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
                       teklifId: eslesmeData.teklifId,
                     };
                   })
                 );
-
-                return teklifler;
               })
             )
           ).flat();
 
-          const yolculuklar = await Promise.all(
-            yolculuklarSnap.docs.flatMap(async (yolculukDoc) => {
-              const yolculukData = { id: yolculukDoc.id, ...yolculukDoc.data() };
-              const eslesmeSnap = await getDocs(
-                query(collection(db, "eslesmeler"), where("yolculukId", "==", yolculukDoc.id))
-              );
+          const yolculuklar = (
+            await Promise.all(
+              yolculuklarSnap.docs.map(async (yolculukDoc) => {
+                const yolculukData = { id: yolculukDoc.id, ...yolculukDoc.data() };
+                const eslesmeSnap = await getDocs(
+                  query(collection(db, "eslesmeler"), where("yolculukId", "==", yolculukDoc.id))
+                );
 
-              if (eslesmeSnap.empty) {
-                return [{
-                  id: null,
-                  tip: "yolculuk",
-                  yolculuk: yolculukData,
-                  teklif: null,
-                  talep: null,
-                }];
-              }
-
-              const teklifler = await Promise.all(
-                eslesmeSnap.docs.map(async (esDoc) => {
-                  const eslesmeData = esDoc.data();
-                  const teklifDoc = await getDoc(doc(db, "teklifler", eslesmeData.teklifId));
-                  const talepDoc = eslesmeData.talepId
-                    ? await getDoc(doc(db, "talepler", eslesmeData.talepId))
-                    : null;
-
-                  return {
-                    id: esDoc.id,
+                if (eslesmeSnap.empty) {
+                  return [{
+                    id: null,
                     tip: "yolculuk",
                     yolculuk: yolculukData,
-                    teklif: teklifDoc.exists() ? teklifDoc.data() : null,
-                    teklifId: eslesmeData.teklifId,
-                    talep: talepDoc?.exists() ? talepDoc.data() : null,
-                  };
-                })
-              );
+                    teklif: null,
+                    talep: null,
+                  }];
+                }
 
-              return teklifler;
-            })
-          ).then((res) => res.flat());
+                return await Promise.all(
+                  eslesmeSnap.docs.map(async (esDoc) => {
+                    const eslesmeData = esDoc.data();
+                    const teklifDoc = await getDoc(doc(db, "teklifler", eslesmeData.teklifId));
+                    const talepDoc = eslesmeData.talepId
+                      ? await getDoc(doc(db, "talepler", eslesmeData.talepId))
+                      : null;
+
+                    return {
+                      id: esDoc.id,
+                      tip: "yolculuk",
+                      yolculuk: yolculukData,
+                      teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
+                      teklifId: eslesmeData.teklifId,
+                      talep: talepDoc?.exists() ? talepDoc.data() : null,
+                    };
+                  })
+                );
+              })
+            )
+          ).flat();
 
           setEslesmeler([...talepler, ...yolculuklar]);
         }
@@ -197,54 +195,52 @@ export default function Eslesmeler() {
         <p>Hiç kayıt bulunamadı.</p>
       ) : (
         <ul className="space-y-4">
-          {eslesmeler.map((e) =>
-            e.tip === "yolculuk" ? (
-              <li key={e.id} className="border p-4 rounded bg-white shadow space-y-2">
-                <p className="font-semibold">Yolculuk</p>
-                <p className="text-sm text-gray-600">Kalkış: {e.yolculuk?.kalkis || "-"}</p>
-                <p className="text-sm text-gray-600">Varış: {e.yolculuk?.varis || "-"}</p>
-                <p className="text-sm text-gray-600">Tarih: {e.yolculuk?.tarih || "-"}</p>
-                <p className="text-sm text-gray-600">Not: {e.yolculuk?.not || "-"}</p>
-                <p className="text-sm text-yellow-600">Henüz teklif alınmadı.</p>
-              </li>
-            ) : (
-              <li key={e.id || e.talep?.id} className="border p-4 rounded bg-white shadow space-y-2">
-                <p className="font-semibold">Talep: {e.talep?.baslik || "-"}</p>
-                <p className="text-sm text-gray-600">Ülke: {e.talep?.ulke || "-"}</p>
-                <p className="text-sm text-gray-600">Açıklama: {e.talep?.aciklama || "-"}</p>
-                <p className="text-sm text-gray-600">
-                  Tarih: {e.talep?.tarih?.toDate?.().toLocaleDateString?.() || "-"}
-                </p>
-                <p className="text-sm text-gray-600">Bütçe: ₺{e.talep?.butce || "-"}</p>
+          {eslesmeler.map((e) => (
+            <li key={e.id || e.talep?.id || Math.random()} className="border p-4 rounded bg-white shadow space-y-2">
+              {e.tip === "yolculuk" ? (
+                <>
+                  <p className="font-semibold">Yolculuk</p>
+                  <p className="text-sm text-gray-600">Kalkış: {e.yolculuk?.kalkis || "-"}</p>
+                  <p className="text-sm text-gray-600">Varış: {e.yolculuk?.varis || "-"}</p>
+                  <p className="text-sm text-gray-600">Tarih: {e.yolculuk?.tarih || "-"}</p>
+                  <p className="text-sm text-gray-600">Not: {e.yolculuk?.not || "-"}</p>
+                  <p className="text-sm text-yellow-600">
+                    {e.teklif ? `Teklif: ₺${e.teklif.fiyat}` : "Henüz teklif alınmadı."}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold">Talep: {e.talep?.baslik || "-"}</p>
+                  <p className="text-sm text-gray-600">Ülke: {e.talep?.ulke || "-"}</p>
+                  <p className="text-sm text-gray-600">Açıklama: {e.talep?.aciklama || "-"}</p>
+                  <p className="text-sm text-gray-600">
+                    Tarih: {e.talep?.tarih?.toDate?.().toLocaleDateString?.() || "-"}
+                  </p>
+                  <p className="text-sm text-gray-600">Bütçe: ₺{e.talep?.butce || "-"}</p>
 
-                {e.teklif ? (
-                  <>
-                    <p className="text-sm text-gray-600">Fiyat: ₺{e.teklif?.fiyat}</p>
-                    <p className="text-sm text-gray-600">Not: {e.teklif?.not || "-"}</p>
-                    <div className="flex gap-3 pt-2">
-                      <Link
-                        href={`/eslesmeler/tekliflerim/${e.teklifId}`}
-                        className="text-blue-600 underline"
-                      >
-                        Teklif Detayı
-                      </Link>
-                      <Link href={`/chat/${e.id}`} className="text-green-600 underline">
-                        Mesajlaş
-                      </Link>
-                      <button
-                        onClick={() => teklifIptalEt(e.teklifId, e.id)}
-                        className="text-red-600 underline"
-                      >
-                        Teklifi İptal Et
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-yellow-600">Henüz teklif alınmadı.</p>
-                )}
-              </li>
-            )
-          )}
+                  {e.teklif ? (
+                    <>
+                      <p className="text-sm text-gray-600">Fiyat: ₺{e.teklif?.fiyat}</p>
+                      <p className="text-sm text-gray-600">Not: {e.teklif?.not || "-"}</p>
+                      <div className="flex gap-3 pt-2">
+                        <Link href={`/eslesmeler/tekliflerim/${e.teklifId}`} className="text-blue-600 underline">
+                          Teklif Detayı
+                        </Link>
+                        <Link href={`/chat/${e.id}`} className="text-green-600 underline">
+                          Mesajlaş
+                        </Link>
+                        <button onClick={() => teklifIptalEt(e.teklifId, e.id)} className="text-red-600 underline">
+                          Teklifi İptal Et
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-yellow-600">Henüz teklif alınmadı.</p>
+                  )}
+                </>
+              )}
+            </li>
+          ))}
         </ul>
       )}
     </main>
