@@ -42,24 +42,24 @@ export default function Eslesmeler() {
           );
           const snapshot = await getDocs(q);
           const veriler = await Promise.all(
-  snapshot.docs.map(async (docSnap) => {
-    const data = docSnap.data();
-    const talepDoc = data.talepId
-      ? await getDoc(doc(db, "talepler", data.talepId))
-      : null;
-    const teklifDoc = data.teklifId
-      ? await getDoc(doc(db, "teklifler", data.teklifId))
-      : null;
-    return {
-      id: docSnap.id,
-      ...data,
-      tip: "teklif", // BURASI EKLENDİ
-      talep: talepDoc?.exists() ? talepDoc.data() : null,
-      teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
-      teklifId: data.teklifId, // Detay için gerekebilir
-    };
-  })
-);
+            snapshot.docs.map(async (docSnap) => {
+              const data = docSnap.data();
+              const talepDoc = data.talepId
+                ? await getDoc(doc(db, "talepler", data.talepId))
+                : null;
+              const teklifDoc = data.teklifId
+                ? await getDoc(doc(db, "teklifler", data.teklifId))
+                : null;
+              return {
+                id: docSnap.id,
+                ...data,
+                tip: "teklif",
+                talep: talepDoc?.exists() ? talepDoc.data() : null,
+                teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
+                teklifId: data.teklifId,
+              };
+            })
+          );
           setEslesmeler(veriler);
         } else {
           const [taleplerSnap, yolculuklarSnap] = await Promise.all([
@@ -67,7 +67,6 @@ export default function Eslesmeler() {
             getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
           ]);
 
-          // Burada tüm eşleşmeleri listelemek için flatMap ve map kombinasyonu kullanıyoruz
           const talepler = (
             await Promise.all(
               taleplerSnap.docs.flatMap(async (talepDoc) => {
@@ -105,44 +104,44 @@ export default function Eslesmeler() {
           ).flat();
 
           const yolculuklar = await Promise.all(
-  yolculuklarSnap.docs.flatMap(async (yolculukDoc) => {
-    const yolculukData = { id: yolculukDoc.id, ...yolculukDoc.data() };
-    const eslesmeSnap = await getDocs(
-      query(collection(db, "eslesmeler"), where("yolculukId", "==", yolculukDoc.id))
-    );
+            yolculuklarSnap.docs.flatMap(async (yolculukDoc) => {
+              const yolculukData = { id: yolculukDoc.id, ...yolculukDoc.data() };
+              const eslesmeSnap = await getDocs(
+                query(collection(db, "eslesmeler"), where("yolculukId", "==", yolculukDoc.id))
+              );
 
-    if (eslesmeSnap.empty) {
-      return [{
-        id: null,
-        tip: "yolculuk",
-        yolculuk: yolculukData,
-        teklif: null,
-        talep: null,
-      }];
-    }
+              if (eslesmeSnap.empty) {
+                return [{
+                  id: null,
+                  tip: "yolculuk",
+                  yolculuk: yolculukData,
+                  teklif: null,
+                  talep: null,
+                }];
+              }
 
-    const teklifler = await Promise.all(
-      eslesmeSnap.docs.map(async (esDoc) => {
-        const eslesmeData = esDoc.data();
-        const teklifDoc = await getDoc(doc(db, "teklifler", eslesmeData.teklifId));
-        const talepDoc = eslesmeData.talepId
-          ? await getDoc(doc(db, "talepler", eslesmeData.talepId))
-          : null;
+              const teklifler = await Promise.all(
+                eslesmeSnap.docs.map(async (esDoc) => {
+                  const eslesmeData = esDoc.data();
+                  const teklifDoc = await getDoc(doc(db, "teklifler", eslesmeData.teklifId));
+                  const talepDoc = eslesmeData.talepId
+                    ? await getDoc(doc(db, "talepler", eslesmeData.talepId))
+                    : null;
 
-        return {
-          id: esDoc.id,
-          tip: "yolculuk",
-          yolculuk: yolculukData,
-          teklif: teklifDoc.exists() ? teklifDoc.data() : null,
-          teklifId: eslesmeData.teklifId,
-          talep: talepDoc?.exists() ? talepDoc.data() : null,
-        };
-      })
-    );
+                  return {
+                    id: esDoc.id,
+                    tip: "yolculuk",
+                    yolculuk: yolculukData,
+                    teklif: teklifDoc.exists() ? teklifDoc.data() : null,
+                    teklifId: eslesmeData.teklifId,
+                    talep: talepDoc?.exists() ? talepDoc.data() : null,
+                  };
+                })
+              );
 
-    return teklifler;
-  })
-).then((res) => res.flat());
+              return teklifler;
+            })
+          ).then((res) => res.flat());
 
           setEslesmeler([...talepler, ...yolculuklar]);
         }
@@ -180,17 +179,13 @@ export default function Eslesmeler() {
       <div className="flex space-x-4 mb-6">
         <button
           onClick={() => setAktifSekme("tekliflerim")}
-          className={`px-4 py-2 rounded ${
-            aktifSekme === "tekliflerim" ? "bg-blue-600 text-white" : "bg-gray-200"
-          }`}
+          className={`px-4 py-2 rounded ${aktifSekme === "tekliflerim" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
         >
           Tekliflerim
         </button>
         <button
           onClick={() => setAktifSekme("taleplerim")}
-          className={`px-4 py-2 rounded ${
-            aktifSekme === "taleplerim" ? "bg-blue-600 text-white" : "bg-gray-200"
-          }`}
+          className={`px-4 py-2 rounded ${aktifSekme === "taleplerim" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
         >
           Taleplerim
         </button>
@@ -233,10 +228,7 @@ export default function Eslesmeler() {
                       >
                         Teklif Detayı
                       </Link>
-                      <Link
-                        href={`/chat/${e.id}`}
-                        className="text-green-600 underline"
-                      >
+                      <Link href={`/chat/${e.id}`} className="text-green-600 underline">
                         Mesajlaş
                       </Link>
                       <button
@@ -257,4 +249,4 @@ export default function Eslesmeler() {
       )}
     </main>
   );
-}
+        }
