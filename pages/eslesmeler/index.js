@@ -1,7 +1,6 @@
 // pages/eslesmeler/index.js
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
 import { auth, db } from "../../firebase/firebaseConfig";
 import {
   collection,
@@ -35,114 +34,79 @@ export default function Eslesmeler() {
       if (!user) return;
       setYukleniyor(true);
       try {
+        let snapshot;
+
         if (aktifSekme === "tekliflerim") {
-          const q = query(
-            collection(db, "eslesmeler"),
-            where("teklifVerenId", "==", user.uid)
+          snapshot = await getDocs(
+            query(collection(db, "eslesmeler"), where("teklifVerenId", "==", user.uid))
           );
-          const snapshot = await getDocs(q);
-          const veriler = await Promise.all(
-            snapshot.docs.map(async (docSnap) => {
-              const data = docSnap.data();
-              const talepDoc = data.talepId
-                ? await getDoc(doc(db, "talepler", data.talepId))
-                : null;
-              const teklifDoc = data.teklifId
-                ? await getDoc(doc(db, "teklifler", data.teklifId))
-                : null;
-              return {
-                id: docSnap.id,
-                ...data,
-                tip: "teklif",
-                talep: talepDoc?.exists() ? talepDoc.data() : null,
-                teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
-                teklifId: data.teklifId,
-              };
-            })
-          );
-          setEslesmeler(veriler);
         } else {
           const [taleplerSnap, yolculuklarSnap] = await Promise.all([
             getDocs(query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))),
             getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
           ]);
 
-          const talepler = (
-            await Promise.all(
-              taleplerSnap.docs.map(async (talepDoc) => {
-                const talepData = { id: talepDoc.id, ...talepDoc.data() };
-                const eslesmeSnap = await getDocs(
-                  query(collection(db, "eslesmeler"), where("talepId", "==", talepDoc.id))
-                );
+          const eslesmelerArr = [];
 
-                if (eslesmeSnap.empty) {
-                  return [{
-                    id: null,
-                    tip: "talep",
-                    talep: talepData,
-                    teklif: null,
-                  }];
-                }
+          for (const talepDoc of taleplerSnap.docs) {
+            const esSnap = await getDocs(query(collection(db, "eslesmeler"), where("talepId", "==", talepDoc.id)));
+            for (const esDoc of esSnap.docs) {
+              const esData = esDoc.data();
+              const teklifDoc = await getDoc(doc(db, "teklifler", esData.teklifId));
+              eslesmelerArr.push({
+                id: esDoc.id,
+                tip: "talep",
+                talep: { id: talepDoc.id, ...talepDoc.data() },
+                teklif: teklifDoc.exists() ? teklifDoc.data() : null,
+                teklifId: esData.teklifId,
+                teklifVerenId: esData.teklifVerenId,
+              });
+            }
+          }
 
-                return await Promise.all(
-                  eslesmeSnap.docs.map(async (esDoc) => {
-                    const eslesmeData = esDoc.data();
-                    const teklifDoc = await getDoc(doc(db, "teklifler", eslesmeData.teklifId));
-                    return {
-                      id: esDoc.id,
-                      tip: "talep",
-                      talep: talepData,
-                      teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
-                      teklifId: eslesmeData.teklifId,
-                    };
-                  })
-                );
-              })
-            )
-          ).flat();
+          for (const yolculukDoc of yolculuklarSnap.docs) {
+            const esSnap = await getDocs(query(collection(db, "eslesmeler"), where("yolculukId", "==", yolculukDoc.id)));
+            for (const esDoc of esSnap.docs) {
+              const esData = esDoc.data();
+              const teklifDoc = await getDoc(doc(db, "teklifler", esData.teklifId));
+              const talepDoc = esData.talepId
+                ? await getDoc(doc(db, "talepler", esData.talepId))
+                : null;
 
-          const yolculuklar = (
-            await Promise.all(
-              yolculuklarSnap.docs.map(async (yolculukDoc) => {
-                const yolculukData = { id: yolculukDoc.id, ...yolculukDoc.data() };
-                const eslesmeSnap = await getDocs(
-                  query(collection(db, "eslesmeler"), where("yolculukId", "==", yolculukDoc.id))
-                );
+              eslesmelerArr.push({
+                id: esDoc.id,
+                tip: "yolculuk",
+                yolculuk: { id: yolculukDoc.id, ...yolculukDoc.data() },
+                teklif: teklifDoc.exists() ? teklifDoc.data() : null,
+                teklifId: esData.teklifId,
+                teklifVerenId: esData.teklifVerenId,
+                talep: talepDoc?.exists() ? talepDoc.data() : null,
+              });
+            }
+          }
 
-                if (eslesmeSnap.empty) {
-                  return [{
-                    id: null,
-                    tip: "yolculuk",
-                    yolculuk: yolculukData,
-                    teklif: null,
-                    talep: null,
-                  }];
-                }
-
-                return await Promise.all(
-                  eslesmeSnap.docs.map(async (esDoc) => {
-                    const eslesmeData = esDoc.data();
-                    const teklifDoc = await getDoc(doc(db, "teklifler", eslesmeData.teklifId));
-                    const talepDoc = eslesmeData.talepId
-                      ? await getDoc(doc(db, "talepler", eslesmeData.talepId))
-                      : null;
-
-                    return {
-                      id: esDoc.id,
-                      tip: "yolculuk",
-                      yolculuk: yolculukData,
-                      teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
-                      teklifId: eslesmeData.teklifId,
-                      talep: talepDoc?.exists() ? talepDoc.data() : null,
-                    };
-                  })
-                );
-              })
-            )
-          ).flat();
-
-          setEslesmeler([...talepler, ...yolculuklar]);
+          setEslesmeler(eslesmelerArr);
+          setYukleniyor(false);
+          return;
         }
+
+        const veriler = await Promise.all(
+          snapshot.docs.map(async (docSnap) => {
+            const data = docSnap.data();
+            const talepDoc = data.talepId ? await getDoc(doc(db, "talepler", data.talepId)) : null;
+            const teklifDoc = data.teklifId ? await getDoc(doc(db, "teklifler", data.teklifId)) : null;
+            const yolculukDoc = data.yolculukId ? await getDoc(doc(db, "yolculuklar", data.yolculukId)) : null;
+            return {
+              id: docSnap.id,
+              ...data,
+              tip: data.yolculukId ? "yolculuk" : "talep",
+              talep: talepDoc?.exists() ? talepDoc.data() : null,
+              teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
+              yolculuk: yolculukDoc?.exists() ? yolculukDoc.data() : null,
+            };
+          })
+        );
+        setEslesmeler(veriler);
       } catch (error) {
         console.error("Eşleşmeler alınırken hata:", error);
       } finally {
@@ -154,13 +118,12 @@ export default function Eslesmeler() {
   }, [aktifSekme, user]);
 
   const teklifIptalEt = async (teklifId, eslesmeId) => {
-    const onay = confirm("Teklifi iptal etmek istediğinize emin misiniz?");
-    if (!onay) return;
+    if (!confirm("Teklifi iptal etmek istediğinize emin misiniz?")) return;
     try {
       await deleteDoc(doc(db, "teklifler", teklifId));
       await deleteDoc(doc(db, "eslesmeler", eslesmeId));
-      alert("Teklif ve eşleşme iptal edildi.");
       setEslesmeler((prev) => prev.filter((e) => e.id !== eslesmeId));
+      alert("Teklif ve eşleşme iptal edildi.");
     } catch (err) {
       console.error("İptal hatası:", err);
       alert("Bir hata oluştu.");
@@ -192,61 +155,47 @@ export default function Eslesmeler() {
       {yukleniyor ? (
         <p>Yükleniyor...</p>
       ) : eslesmeler.length === 0 ? (
-        <p>Hiç kayıt bulunamadı.</p>
+        <p>Hiç eşleşme bulunamadı.</p>
       ) : (
         <ul className="space-y-4">
           {eslesmeler.map((e) => (
-            <li key={e.id || e.talep?.id || Math.random()} className="border p-4 rounded bg-white shadow space-y-2">
-              {e.yolculuk ? (
+            <li key={e.id || Math.random()} className="border p-4 rounded bg-white shadow space-y-2">
+              {e.tip === "yolculuk" && e.yolculuk ? (
                 <>
                   <p className="font-semibold">Yolculuk Teklifi</p>
                   <p className="text-sm text-gray-600">Kalkış: {e.yolculuk.kalkis || "-"}</p>
                   <p className="text-sm text-gray-600">Varış: {e.yolculuk.varis || "-"}</p>
                   <p className="text-sm text-gray-600">Tarih: {e.yolculuk.tarih || "-"}</p>
-                  <p className="text-sm text-gray-600">Not: {e.yolculuk.not || "-"}</p>
-                  {e.teklif && (
-                    <>
-                      <p className="text-sm text-gray-600">Fiyat: ₺{e.teklif.fiyat}</p>
-                      <p className="text-sm text-gray-600">Not: {e.teklif.not || "-"}</p>
-                      <div className="flex gap-3 pt-2">
-                        <Link href={`/eslesmeler/tekliflerim/${e.teklifId}`} className="text-blue-600 underline">
-                          Teklif Detayı
-                        </Link>
-                        <Link href={`/chat/${e.id}`} className="text-green-600 underline">
-                          Mesajlaş
-                        </Link>
-                        <button onClick={() => teklifIptalEt(e.teklifId, e.id)} className="text-red-600 underline">
-                          Teklifi İptal Et
-                        </button>
-                      </div>
-                    </>
-                  )}
                 </>
-              ) : e.talep ? (
+              ) : e.tip === "talep" && e.talep ? (
                 <>
                   <p className="font-semibold">Talep: {e.talep.baslik || "-"}</p>
                   <p className="text-sm text-gray-600">Kategori: {e.talep.kategori || "-"}</p>
                   <p className="text-sm text-gray-600">Açıklama: {e.talep.aciklama || "-"}</p>
-                  {e.teklif && (
-                    <>
-                      <p className="text-sm text-gray-600">Fiyat: ₺{e.teklif.fiyat}</p>
-                      <p className="text-sm text-gray-600">Not: {e.teklif.not || "-"}</p>
-                      <div className="flex gap-3 pt-2">
-                        <Link href={`/eslesmeler/tekliflerim/${e.teklifId}`} className="text-blue-600 underline">
-                          Teklif Detayı
-                        </Link>
-                        <Link href={`/chat/${e.id}`} className="text-green-600 underline">
-                          Mesajlaş
-                        </Link>
-                        <button onClick={() => teklifIptalEt(e.teklifId, e.id)} className="text-red-600 underline">
-                          Teklifi İptal Et
-                        </button>
-                      </div>
-                    </>
-                  )}
                 </>
-              ) : (
-                <p className="text-sm text-yellow-600">Henüz eşleşme bulunamadı.</p>
+              ) : null}
+
+              {e.teklif && (
+                <>
+                  <p className="text-sm text-gray-600">Fiyat: ₺{e.teklif.fiyat}</p>
+                  <p className="text-sm text-gray-600">Not: {e.teklif.not || "-"}</p>
+                  <div className="flex gap-3 pt-2">
+                    <Link href={`/eslesmeler/tekliflerim/${e.teklifId}`} className="text-blue-600 underline">
+                      Teklif Detayı
+                    </Link>
+                    <Link href={`/chat/${e.id}`} className="text-green-600 underline">
+                      Mesajlaş
+                    </Link>
+                    {e.teklifVerenId === user.uid && (
+                      <button
+                        onClick={() => teklifIptalEt(e.teklifId, e.id)}
+                        className="text-red-600 underline"
+                      >
+                        Teklifi İptal Et
+                      </button>
+                    )}
+                  </div>
+                </>
               )}
             </li>
           ))}
