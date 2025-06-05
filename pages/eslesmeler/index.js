@@ -246,14 +246,13 @@ export default function Eslesmeler() {
         )}
       </>
                   ) : (
-                    <p className="text-sm text-yellow-600">Henüz teklif alınmadı.</p>
-                  )}
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
-  );
-        }
+                      <p className="text-sm text-yellow-600">Henüz teklif alınmadı.</p>
+            )}
+          </>
+        ) : (
+          <p className="text-red-600">Geçersiz eşleşme verisi</p>
+        )}
+      </>
+    </li>
+  ))}
+</ul>
