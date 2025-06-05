@@ -1,3 +1,5 @@
+//pages/eslesmeler/tekliflerim/[id].js
+  
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../../firebase/firebaseConfig";
@@ -23,6 +25,7 @@ export default function TeklifDetay() {
   const [talepBaslik, setTalepBaslik] = useState("");
   const [teklifVerenAd, setTeklifVerenAd] = useState("");
   const [mesajSayisi, setMesajSayisi] = useState(null);
+  const [eslesmeVarMi, setEslesmeVarMi] = useState(false); // Yeni eklendi
 
   const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
 
@@ -63,11 +66,13 @@ export default function TeklifDetay() {
         );
         const eslesmeSnapshot = await getDocs(eslesmeQuery);
         if (!eslesmeSnapshot.empty) {
+          setEslesmeVarMi(true); // eşleşme varsa true
           const eslesmeDoc = eslesmeSnapshot.docs[0];
           const messagesRef = collection(db, "chat", eslesmeDoc.id, "messages");
           const countSnap = await getCountFromServer(messagesRef);
           setMesajSayisi(countSnap.data().count);
         } else {
+          setEslesmeVarMi(false);
           setMesajSayisi(0);
         }
       }
@@ -115,6 +120,7 @@ export default function TeklifDetay() {
         <p><strong>Fiyat:</strong> ₺{teklif.fiyat}</p>
         <p><strong>Not:</strong> {teklif.not || "-"}</p>
         <p><strong>Mesaj Sayısı:</strong> {mesajSayisi !== null ? mesajSayisi : "Yükleniyor..."}</p>
+        <p><strong>Eşleşme Durumu:</strong> {eslesmeVarMi ? "Eşleşti" : "Eşleşmedi"}</p>
       </div>
 
       {yetkili ? (
