@@ -245,7 +245,7 @@ export default function Eslesmeler() {
           </>
         )}
       </>
-                  }) : ( {/* <-- Burası düzeltildi */}
+                  }) : ( 
             <p className="text-sm text-yellow-600">Henüz eşleşme bulunamadı.</p>
           )}
         </li>
