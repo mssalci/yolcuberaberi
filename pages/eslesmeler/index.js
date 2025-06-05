@@ -249,7 +249,7 @@ export default function Eslesmeler() {
             <p className="text-sm text-yellow-600">Henüz eşleşme bulunamadı.</p>
           )}
         </li>
-      ))}
+      )}
     </ul>
   )}
 </main>
