@@ -1,15 +1,12 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../../firebase/firebaseConfig";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 export default function TeklifDetay() {
   const router = useRouter();
   const { id } = router.query;
+
   const [teklif, setTeklif] = useState(null);
   const [fiyat, setFiyat] = useState("");
   const [not, setNot] = useState("");
@@ -37,6 +34,7 @@ export default function TeklifDetay() {
           setYetkili(true);
         }
 
+        // Talep başlığı
         if (data.talepId) {
           const talepRef = doc(db, "talepler", data.talepId);
           const talepSnap = await getDoc(talepRef);
@@ -45,6 +43,7 @@ export default function TeklifDetay() {
           }
         }
 
+        // Teklif veren kullanıcı adı
         const kullaniciRef = doc(db, "kullanicilar", data.teklifVerenId);
         const kullaniciSnap = await getDoc(kullaniciRef);
         if (kullaniciSnap.exists()) {
@@ -93,7 +92,7 @@ export default function TeklifDetay() {
       <div className="bg-gray-50 border p-4 rounded mb-6 space-y-2">
         <p>
           <strong>{teklifTipi}:</strong>{" "}
-          {teklif?.talepId ? talepBaslik || "-" : "Yolculuk bilgisine bağlı teklif"}
+          {teklif?.talepId ? talepBaslik : "Yolculuk Teklifi"}
         </p>
         <p><strong>Teklif Sahibi:</strong> {teklifVerenAd || "-"}</p>
 
@@ -109,7 +108,6 @@ export default function TeklifDetay() {
 
         <p><strong>Fiyat:</strong> ₺{teklif.fiyat}</p>
         <p><strong>Not:</strong> {teklif.not || "-"}</p>
-
         {typeof teklif.mesajSayisi === "number" && (
           <p><strong>Mesaj Sayısı:</strong> {teklif.mesajSayisi}</p>
         )}
