@@ -198,59 +198,60 @@ export default function Eslesmeler() {
           {eslesmeler.map((e) => (
             <li key={e.id || e.talep?.id || Math.random()} className="border p-4 rounded bg-white shadow space-y-2">
               {e.yolculuk ? (
-      <>
-        <p className="font-semibold">Yolculuk Teklifi</p>
-        <p className="text-sm text-gray-600">Kalkış: {e.yolculuk.kalkis || "-"}</p>
-        <p className="text-sm text-gray-600">Varış: {e.yolculuk.varis || "-"}</p>
-        <p className="text-sm text-gray-600">Tarih: {e.yolculuk.tarih || "-"}</p>
-        <p className="text-sm text-gray-600">Not: {e.yolculuk.not || "-"}</p>
-        {e.teklif && (
-          <>
-            <p className="text-sm text-gray-600">Fiyat: ₺{e.teklif.fiyat}</p>
-            <p className="text-sm text-gray-600">Not: {e.teklif.not || "-"}</p>
-            <div className="flex gap-3 pt-2">
-              <Link href={`/eslesmeler/tekliflerim/${e.teklifId}`} className="text-blue-600 underline">
-                Teklif Detayı
-              </Link>
-              <Link href={`/chat/${e.id}`} className="text-green-600 underline">
-                Mesajlaş
-              </Link>
-              <button onClick={() => teklifIptalEt(e.teklifId, e.id)} className="text-red-600 underline">
-                Teklifi İptal Et
-              </button>
-            </div>
-          </>
-        )}
-      </>
-    ) : e.talep ? (
-      <>
-        <p className="font-semibold">Talep: {e.talep.baslik || "-"}</p>
-        <p className="text-sm text-gray-600">Kategori: {e.talep.kategori || "-"}</p>
-        <p className="text-sm text-gray-600">Açıklama: {e.talep.aciklama || "-"}</p>
-        {e.teklif && (
-          <>
-            <p className="text-sm text-gray-600">Fiyat: ₺{e.teklif.fiyat}</p>
-            <p className="text-sm text-gray-600">Not: {e.teklif.not || "-"}</p>
-            <div className="flex gap-3 pt-2">
-              <Link href={`/eslesmeler/tekliflerim/${e.teklifId}`} className="text-blue-600 underline">
-                Teklif Detayı
-              </Link>
-              <Link href={`/chat/${e.id}`} className="text-green-600 underline">
-                Mesajlaş
-              </Link>
-              <button onClick={() => teklifIptalEt(e.teklifId, e.id)} className="text-red-600 underline">
-                Teklifi İptal Et
-              </button>
-            </div>
-          </>
-        )}
-      </>
-    ) : (
-            <p className="text-sm text-yellow-600">Henüz eşleşme bulunamadı.</p>
-          )}
-        </li>
+                <>
+                  <p className="font-semibold">Yolculuk Teklifi</p>
+                  <p className="text-sm text-gray-600">Kalkış: {e.yolculuk.kalkis || "-"}</p>
+                  <p className="text-sm text-gray-600">Varış: {e.yolculuk.varis || "-"}</p>
+                  <p className="text-sm text-gray-600">Tarih: {e.yolculuk.tarih || "-"}</p>
+                  <p className="text-sm text-gray-600">Not: {e.yolculuk.not || "-"}</p>
+                  {e.teklif && (
+                    <>
+                      <p className="text-sm text-gray-600">Fiyat: ₺{e.teklif.fiyat}</p>
+                      <p className="text-sm text-gray-600">Not: {e.teklif.not || "-"}</p>
+                      <div className="flex gap-3 pt-2">
+                        <Link href={`/eslesmeler/tekliflerim/${e.teklifId}`} className="text-blue-600 underline">
+                          Teklif Detayı
+                        </Link>
+                        <Link href={`/chat/${e.id}`} className="text-green-600 underline">
+                          Mesajlaş
+                        </Link>
+                        <button onClick={() => teklifIptalEt(e.teklifId, e.id)} className="text-red-600 underline">
+                          Teklifi İptal Et
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : e.talep ? (
+                <>
+                  <p className="font-semibold">Talep: {e.talep.baslik || "-"}</p>
+                  <p className="text-sm text-gray-600">Kategori: {e.talep.kategori || "-"}</p>
+                  <p className="text-sm text-gray-600">Açıklama: {e.talep.aciklama || "-"}</p>
+                  {e.teklif && (
+                    <>
+                      <p className="text-sm text-gray-600">Fiyat: ₺{e.teklif.fiyat}</p>
+                      <p className="text-sm text-gray-600">Not: {e.teklif.not || "-"}</p>
+                      <div className="flex gap-3 pt-2">
+                        <Link href={`/eslesmeler/tekliflerim/${e.teklifId}`} className="text-blue-600 underline">
+                          Teklif Detayı
+                        </Link>
+                        <Link href={`/chat/${e.id}`} className="text-green-600 underline">
+                          Mesajlaş
+                        </Link>
+                        <button onClick={() => teklifIptalEt(e.teklifId, e.id)} className="text-red-600 underline">
+                          Teklifi İptal Et
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-yellow-600">Henüz eşleşme bulunamadı.</p>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
-    </ul>
-  )}
-</main>
-);
+    </main>
+  );
+        }
