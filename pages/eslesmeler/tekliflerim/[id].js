@@ -1,5 +1,3 @@
-//pages/eslesmeler/tekliflerim/[id].js
-  
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../../firebase/firebaseConfig";
@@ -7,11 +5,6 @@ import {
   doc,
   getDoc,
   updateDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-  getCountFromServer,
 } from "firebase/firestore";
 
 export default function TeklifDetay() {
@@ -24,10 +17,8 @@ export default function TeklifDetay() {
   const [yetkili, setYetkili] = useState(false);
   const [talepBaslik, setTalepBaslik] = useState("");
   const [teklifVerenAd, setTeklifVerenAd] = useState("");
-  const [mesajSayisi, setMesajSayisi] = useState(null);
-  const [eslesmeVarMi, setEslesmeVarMi] = useState(false); // Yeni eklendi
 
-  const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+  const todayStr = new Date().toISOString().split("T")[0];
 
   const fetchTeklif = async () => {
     if (!id) return;
@@ -50,7 +41,7 @@ export default function TeklifDetay() {
           const talepRef = doc(db, "talepler", data.talepId);
           const talepSnap = await getDoc(talepRef);
           if (talepSnap.exists()) {
-            setTalepBaslik(talepSnap.data().baslik || "");
+            setTalepBaslik(talepSnap.data().baslik || "Talep Başlığı");
           }
         }
 
@@ -58,22 +49,6 @@ export default function TeklifDetay() {
         const kullaniciSnap = await getDoc(kullaniciRef);
         if (kullaniciSnap.exists()) {
           setTeklifVerenAd(kullaniciSnap.data().adSoyad || "Bilinmiyor");
-        }
-
-        const eslesmeQuery = query(
-          collection(db, "eslesmeler"),
-          where("teklifId", "==", id)
-        );
-        const eslesmeSnapshot = await getDocs(eslesmeQuery);
-        if (!eslesmeSnapshot.empty) {
-          setEslesmeVarMi(true); // eşleşme varsa true
-          const eslesmeDoc = eslesmeSnapshot.docs[0];
-          const messagesRef = collection(db, "chat", eslesmeDoc.id, "messages");
-          const countSnap = await getCountFromServer(messagesRef);
-          setMesajSayisi(countSnap.data().count);
-        } else {
-          setEslesmeVarMi(false);
-          setMesajSayisi(0);
         }
       }
     } catch (error) {
@@ -109,18 +84,35 @@ export default function TeklifDetay() {
 
   if (!teklif) return <p className="p-4">Yükleniyor...</p>;
 
+  const teklifTipi = teklif?.talepId ? "Talep Teklifi" : "Yolculuk Teklifi";
+
   return (
     <div className="max-w-2xl mx-auto p-4">
       <h1 className="text-xl font-bold mb-4">Teklif Detayı</h1>
 
-      <div className="bg-gray-50 border p-4 rounded mb-6 space-y-1">
-        <p><strong>Talep Başlığı:</strong> {talepBaslik || "-"}</p>
+      <div className="bg-gray-50 border p-4 rounded mb-6 space-y-2">
+        <p>
+          <strong>{teklifTipi}:</strong>{" "}
+          {teklif?.talepId ? talepBaslik || "-" : "Yolculuk bilgisine bağlı teklif"}
+        </p>
         <p><strong>Teklif Sahibi:</strong> {teklifVerenAd || "-"}</p>
-        <p><strong>Teslim Tarihi:</strong> {teklif.tarih || "-"}</p>
+
+        {teklif?.talepId ? (
+          <p><strong>Teslim Tarihi:</strong> {teklif.tarih || "-"}</p>
+        ) : (
+          <>
+            <p><strong>Kalkış Ülkesi:</strong> {teklif.kalkisUlke || "-"}</p>
+            <p><strong>Varış Ülkesi:</strong> {teklif.varisUlke || "-"}</p>
+            <p><strong>Tahmini Geliş Tarihi:</strong> {teklif.tahminiTarih || "-"}</p>
+          </>
+        )}
+
         <p><strong>Fiyat:</strong> ₺{teklif.fiyat}</p>
         <p><strong>Not:</strong> {teklif.not || "-"}</p>
-        <p><strong>Mesaj Sayısı:</strong> {mesajSayisi !== null ? mesajSayisi : "Yükleniyor..."}</p>
-        <p><strong>Eşleşme Durumu:</strong> {eslesmeVarMi ? "Eşleşti" : "Eşleşmedi"}</p>
+
+        {typeof teklif.mesajSayisi === "number" && (
+          <p><strong>Mesaj Sayısı:</strong> {teklif.mesajSayisi}</p>
+        )}
       </div>
 
       {yetkili ? (
