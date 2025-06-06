@@ -86,32 +86,42 @@ export default function TeklifDetay() {
   const teklifTipi = teklif?.talepId ? "Talep Teklifi" : "Yolculuk Teklifi";
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <h1 className="text-xl font-bold mb-4">Teklif Detayı</h1>
+    <div className="bg-gray-50 border p-4 rounded mb-6 space-y-2">
+  <p>
+    <strong>{teklifTipi}:</strong>{" "}
+    {teklif?.talepId ? talepBaslik : "Yolculuk Teklifi"}
+  </p>
 
-      <div className="bg-gray-50 border p-4 rounded mb-6 space-y-2">
-        <p>
-          <strong>{teklifTipi}:</strong>{" "}
-          {teklif?.talepId ? talepBaslik : "Yolculuk Teklifi"}
-        </p>
-        <p><strong>Teklif Sahibi:</strong> {teklifVerenAd || "-"}</p>
+  <p><strong>Teklif Sahibi:</strong> {teklifVerenAd || "-"}</p>
 
-        {teklif?.talepId ? (
-          <p><strong>Teslim Tarihi:</strong> {teklif.tarih || "-"}</p>
-        ) : (
-          <>
-            <p><strong>Kalkış Ülkesi:</strong> {teklif.kalkisUlke || "-"}</p>
-            <p><strong>Varış Ülkesi:</strong> {teklif.varisUlke || "-"}</p>
-            <p><strong>Tahmini Geliş Tarihi:</strong> {teklif.tahminiTarih || "-"}</p>
-          </>
-        )}
+  {teklif.tarih && (
+    <p><strong>Teslim Tarihi:</strong> {teklif.tarih}</p>
+  )}
 
-        <p><strong>Fiyat:</strong> ₺{teklif.fiyat}</p>
-        <p><strong>Not:</strong> {teklif.not || "-"}</p>
-        {typeof teklif.mesajSayisi === "number" && (
-          <p><strong>Mesaj Sayısı:</strong> {teklif.mesajSayisi}</p>
-        )}
-      </div>
+  {teklif.kalkisUlke && (
+    <p><strong>Kalkış Ülkesi:</strong> {teklif.kalkisUlke}</p>
+  )}
+
+  {teklif.varisUlke && (
+    <p><strong>Varış Ülkesi:</strong> {teklif.varisUlke}</p>
+  )}
+
+  {teklif.tahminiTarih && (
+    <p><strong>Tahmini Geliş Tarihi:</strong> {teklif.tahminiTarih}</p>
+  )}
+
+  {teklif.fiyat !== undefined && (
+    <p><strong>Fiyat:</strong> ₺{teklif.fiyat}</p>
+  )}
+
+  {teklif.not && (
+    <p><strong>Not:</strong> {teklif.not}</p>
+  )}
+
+  {typeof teklif.mesajSayisi === "number" && (
+    <p><strong>Mesaj Sayısı:</strong> {teklif.mesajSayisi}</p>
+  )}
+</div>
 
       {yetkili ? (
         <form onSubmit={handleUpdate} className="space-y-4">
