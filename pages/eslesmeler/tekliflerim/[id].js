@@ -34,7 +34,6 @@ export default function TeklifDetay() {
           setYetkili(true);
         }
 
-        // Talep başlığı
         if (data.talepId) {
           const talepRef = doc(db, "talepler", data.talepId);
           const talepSnap = await getDoc(talepRef);
@@ -43,7 +42,6 @@ export default function TeklifDetay() {
           }
         }
 
-        // Teklif veren kullanıcı adı
         const kullaniciRef = doc(db, "kullanicilar", data.teklifVerenId);
         const kullaniciSnap = await getDoc(kullaniciRef);
         if (kullaniciSnap.exists()) {
@@ -86,57 +84,49 @@ export default function TeklifDetay() {
   const teklifTipi = teklif?.talepId ? "Talep Teklifi" : "Yolculuk Teklifi";
 
   return (
-    <div className="bg-gray-50 border p-4 rounded mb-6 space-y-2">
-  <p>
-    <strong>{teklifTipi}:</strong>{" "}
-    {teklif?.talepId ? talepBaslik : "Yolculuk Teklifi"}
-  </p>
-
-  <p><strong>Teklif Sahibi:</strong> {teklifVerenAd || "-"}</p>
-
-  {teklif.tarih && (
-    <p><strong>Teslim Tarihi:</strong> {teklif.tarih}</p>
-  )}
-
-  {teklif.kalkisUlke && (
-    <p><strong>Kalkış Ülkesi:</strong> {teklif.kalkisUlke}</p>
-  )}
-
-  {teklif.varisUlke && (
-    <p><strong>Varış Ülkesi:</strong> {teklif.varisUlke}</p>
-  )}
-
-  {teklif.tahminiTarih && (
-    <p><strong>Tahmini Geliş Tarihi:</strong> {teklif.tahminiTarih}</p>
-  )}
-
-  {teklif.fiyat !== undefined && (
-    <p><strong>Fiyat:</strong> ₺{teklif.fiyat}</p>
-  )}
-
-  {teklif.not && (
-    <p><strong>Not:</strong> {teklif.not}</p>
-  )}
-
-  {typeof teklif.mesajSayisi === "number" && (
-    <p><strong>Mesaj Sayısı:</strong> {teklif.mesajSayisi}</p>
-  )}
-</div>
+    <div className="p-4 max-w-xl mx-auto">
+      <div className="bg-gray-50 border p-4 rounded mb-6 space-y-2">
+        <p>
+          <strong>{teklifTipi}:</strong>{" "}
+          {teklif?.talepId ? talepBaslik : "Yolculuk Teklifi"}
+        </p>
+        <p><strong>Teklif Sahibi:</strong> {teklifVerenAd || "-"}</p>
+        {teklif.tarih && <p><strong>Teslim Tarihi:</strong> {teklif.tarih}</p>}
+        {teklif.kalkisUlke && (
+          <p><strong>Kalkış Ülkesi:</strong> {teklif.kalkisUlke}</p>
+        )}
+        {teklif.varisUlke && (
+          <p><strong>Varış Ülkesi:</strong> {teklif.varisUlke}</p>
+        )}
+        {teklif.tahminiTarih && (
+          <p><strong>Tahmini Geliş Tarihi:</strong> {teklif.tahminiTarih}</p>
+        )}
+        {teklif.fiyat !== undefined && (
+          <p><strong>Fiyat:</strong> ₺{teklif.fiyat}</p>
+        )}
+        {teklif.not && (
+          <p><strong>Not:</strong> {teklif.not}</p>
+        )}
+        {typeof teklif.mesajSayisi === "number" && (
+          <p><strong>Mesaj Sayısı:</strong> {teklif.mesajSayisi}</p>
+        )}
+      </div>
 
       {yetkili ? (
-        <form onSubmit={handleUpdate} className="space-y-4">
+        <form onSubmit={handleUpdate} className="space-y-4 bg-white p-4 border rounded shadow-sm">
           <div>
-            <label className="block text-sm">Tarih</label>
+            <label className="block text-sm font-medium mb-1">Tarih</label>
             <input
               type="date"
               value={tarih}
               onChange={(e) => setTarih(e.target.value)}
               min={todayStr}
               className="w-full p-2 border rounded"
+              required
             />
           </div>
           <div>
-            <label className="block text-sm">Fiyat (₺)</label>
+            <label className="block text-sm font-medium mb-1">Fiyat (₺)</label>
             <input
               type="number"
               value={fiyat}
@@ -146,11 +136,12 @@ export default function TeklifDetay() {
             />
           </div>
           <div>
-            <label className="block text-sm">Not</label>
+            <label className="block text-sm font-medium mb-1">Not</label>
             <textarea
               value={not}
               onChange={(e) => setNot(e.target.value)}
               className="w-full p-2 border rounded"
+              rows={4}
             />
           </div>
           <button
@@ -167,4 +158,4 @@ export default function TeklifDetay() {
       )}
     </div>
   );
-                }
+          }
