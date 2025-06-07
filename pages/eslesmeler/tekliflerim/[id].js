@@ -88,7 +88,7 @@ export default function TeklifDetay() {
       <div className="bg-gray-50 border p-4 rounded mb-6 space-y-2">
         <p>
           <strong>{teklifTipi}:</strong>{" "}
-          {teklif?.talepId ? talepBaslik}
+          {teklif?.talepId ? talepBaslik : " "}
         </p>
         <p><strong>Teklif Sahibi:</strong> {teklifVerenAd || "-"}</p>
         {teklif.tarih && <p><strong>Teslim Tarihi:</strong> {teklif.tarih}</p>}
