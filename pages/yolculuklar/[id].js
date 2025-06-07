@@ -201,9 +201,9 @@ export default function YolculukDetay() {
       <h1 className="text-2xl font-bold mb-4">Yolculuk Detayı</h1>
       <p className="text-gray-700 mb-2">Kalkış: {yolculuk.kalkis}</p>
       <p className="text-gray-700 mb-2">Varış: {yolculuk.varis}</p>
-      <p className="text-gray-600 text-sm mb-1">
-        Tarih: {yolculuk.tarih?.toDate?.().toLocaleDateString() || "-"}
-      </p>
+<p className="text-gray-600 text-sm mb-1">
+  Tarih: {yolculuk.tarih || "-"}
+</p>
       <p className="text-gray-600 text-sm mb-6">Yolculuk Sahibi: {yolculukSahibiAdSoyad || "-"}</p>
       <p className="text-gray-700 mb-6">Not: {yolculuk.not || "-"}</p>
 
