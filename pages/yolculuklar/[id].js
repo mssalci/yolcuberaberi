@@ -198,15 +198,15 @@ export default function YolculukDetay() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold mb-4">Yolculuk Detayı</h1>
-      <p className="text-gray-700 mb-2">Kalkış: {yolculuk.kalkis}</p>
-      <p className="text-gray-700 mb-2">Varış: {yolculuk.varis}</p>
-<p className="text-gray-600 text-sm mb-1">
-  Tarih: {yolculuk.tarih || "-"}
-</p>
-      <p className="text-gray-600 text-sm mb-6">Yolculuk Sahibi: {yolculukSahibiAdSoyad || "-"}</p>
-      <p className="text-gray-700 mb-6">Not: {yolculuk.not || "-"}</p>
-
+    <h1 className="text-2xl font-bold mb-6">Yolculuk Detayı</h1>
+    
+    <div className="space-y-3">
+      <p className="text-gray-700">Kalkış: {yolculuk.kalkis}</p>
+      <p className="text-gray-700">Varış: {yolculuk.varis}</p>
+      <p className="text-gray-700">Tarih: {formatTarih(yolculuk.tarih)}</p>
+      <p className="text-gray-700">Yolculuk Sahibi: {yolculukSahibiAdSoyad || "-"}</p>
+      <p className="text-gray-700">Not: {yolculuk.not || "-"}</p>
+  
       {kullaniciYolculukSahibiMi && (
         <button
           onClick={handleYolculukSil}
