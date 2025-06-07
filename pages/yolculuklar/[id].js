@@ -205,6 +205,7 @@ export default function YolculukDetay() {
         <p className="text-gray-600 text-sm mb-1">Tarih: {yolculuk.tarih || "-"}</p>      
         <p className="text-gray-700">Yolculuk Sahibi: {yolculukSahibiAdSoyad || "-"}</p>
         <p className="text-gray-700">Not: {yolculuk.not || "-"}</p>
+    </div>
     {kullaniciYolculukSahibiMi && (
         <button
           onClick={handleYolculukSil}
