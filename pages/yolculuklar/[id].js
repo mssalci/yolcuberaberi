@@ -198,16 +198,14 @@ export default function YolculukDetay() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
-    <h1 className="text-2xl font-bold mb-6">Yolculuk Detayı</h1>
-    
-    <div className="space-y-3">
-      <p className="text-gray-700">Kalkış: {yolculuk.kalkis}</p>
-      <p className="text-gray-700">Varış: {yolculuk.varis}</p>
-      <p className="text-gray-600 text-sm mb-1">Tarih: {yolculuk.tarih || "-"}</p>      
-      <p className="text-gray-700">Yolculuk Sahibi: {yolculukSahibiAdSoyad || "-"}</p>
-      <p className="text-gray-700">Not: {yolculuk.not || "-"}</p>
-  
-      {kullaniciYolculukSahibiMi && (
+      <h1 className="text-2xl font-bold mb-6">Yolculuk Detayı</h1>
+      <div className="space-y-3">
+        <p className="text-gray-700">Kalkış: {yolculuk.kalkis}</p>
+        <p className="text-gray-700">Varış: {yolculuk.varis}</p>
+        <p className="text-gray-600 text-sm mb-1">Tarih: {yolculuk.tarih || "-"}</p>      
+        <p className="text-gray-700">Yolculuk Sahibi: {yolculukSahibiAdSoyad || "-"}</p>
+        <p className="text-gray-700">Not: {yolculuk.not || "-"}</p>
+    {kullaniciYolculukSahibiMi && (
         <button
           onClick={handleYolculukSil}
           className="mb-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
