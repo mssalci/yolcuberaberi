@@ -151,27 +151,28 @@ export default function Taleplerim() {
           {veriler.map((item) => (
             <li key={item.id} className="border p-4 rounded bg-white shadow-sm">
               <div className="flex justify-between items-center mb-2">
-                <div>
-                  <h3 className="font-bold">
-                    {item.tur === "talep" ? "Talep" : "Yolculuk"}:
-                    {item.tur === "talep"
-                      ? ` ${item.baslik}`
-                      : ` ${item.kalkis} → ${item.varis}`}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    {item.tur === "talep"
-                      ? `Ülke: ${item.ulke} • Bütçe: ₺${item.butce || "-"}`
-                      : `Tarih: ${item.tarih || "-"}`}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleSil(item)}
-                  className="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-                  disabled={isDeleting === item.id}
-                >
-                  {isDeleting === item.id ? "Siliniyor..." : "Sil"}
-                </button>
-              </div>
+  <div>
+    <h3 className="font-bold">
+      {item.tur === "talep" ? "Talep" : "Yolculuk"}:
+      {item.tur === "talep"
+        ? ` ${item.baslik}`
+        : ` ${item.kalkis} → ${item.varis}`}
+    </h3>
+    <p className="text-sm text-gray-600">
+      {item.tur === "talep"
+        ? `Ülke: ${item.ulke} • Bütçe: ₺${item.butce || "-"}`
+        : `Tarih: ${item.tarih || "-"}`}
+    </p>
+  </div>
+
+  {/* Sil butonu her zaman gösterilir */}
+  <button
+    onClick={() => handleSil(item)}
+    className="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+  >
+    Sil
+  </button>
+</div>
 
               {item.teklifler?.length > 0 && (
                 <div className="mt-3">
