@@ -227,4 +227,4 @@ export default function Taleplerim() {
       )}
     </main>
   );
-              }
+                }
