@@ -147,52 +147,49 @@ export default function Taleplerim() {
       {veriler.length === 0 ? (
         <p>Henüz bir talep veya yolculuk oluşturmadınız.</p>
       ) : (
-        <ul className="space-y-6">
+        <ul className="space-y-4">
           {veriler.map((item) => (
-            <li key={item.id} className="border p-4 rounded bg-white shadow-sm">
-              <div className="flex justify-between items-center mb-2">
-  <div>
-    <h3 className="font-bold">
-      {item.tur === "talep" ? "Talep" : "Yolculuk"}:
-      {item.tur === "talep"
-        ? ` ${item.baslik}`
-        : ` ${item.kalkis} → ${item.varis}`}
-    </h3>
-    <p className="text-sm text-gray-600">
-      {item.tur === "talep"
-        ? `Ülke: ${item.ulke} • Bütçe: ₺${item.butce || "-"}`
-        : `Tarih: ${item.tarih || "-"}`}
-    </p>
-  </div>
+            <li key={item.id} className="border p-4 rounded bg-white shadow">
+              {/* ÜST KISIM - TALEP/YOLCULUK BİLGİSİ VE SİLME BUTONU */}
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="font-bold text-lg">
+                    {item.tur === "talep" ? "Talep" : "Yolculuk"}: 
+                    <span className="font-normal"> {item.tur === "talep" ? item.baslik : `${item.kalkis} → ${item.varis}`}</span>
+                  </h3>
+                  <div className="text-sm text-gray-600 mt-1">
+                    {item.tur === "talep" ? (
+                      <>
+                        <span>Ülke: {item.ulke}</span>
+                        <span className="mx-2">•</span>
+                        <span>Bütçe: ₺{item.butce || "-"}</span>
+                      </>
+                    ) : (
+                      <span>Tarih: {item.tarih || "-"}</span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* SİLME BUTONU - ARTIK KARTIN SAĞ ÜSTÜNDE */}
+                <button
+                  onClick={() => handleSil(item)}
+                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                  disabled={isDeleting === item.id}
+                >
+                  {isDeleting === item.id ? 'Siliniyor...' : 'Sil'}
+                </button>
+              </div>
 
-  {/* Sil butonu her zaman gösterilir */}
-  <button
-    onClick={() => handleSil(item)}
-    className="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-  >
-    Sil
-  </button>
-</div>
-
+              {/* TEKLİFLER LİSTESİ (SADECE GÖSTERİM AMAÇLI) */}
               {item.teklifler?.length > 0 && (
-                <div className="mt-3">
-                  <h4 className="text-sm font-semibold mb-2">Teklifler:</h4>
+                <div className="mt-3 border-t pt-3">
+                  <h4 className="text-sm font-semibold mb-2">Gelen Teklifler ({item.teklifler.length}):</h4>
                   {item.teklifler.map((teklif, index) => (
-                    <div key={index} className="p-3 border rounded mb-3 bg-gray-50">
-                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        <p>
-                          <span className="font-medium">Fiyat:</span> ₺{teklif.fiyat}
-                        </p>
-                        <p>
-                          <span className="font-medium">Tarih:</span> {teklif.tarih}
-                        </p>
-                        {teklif.not && (
-                          <p className="col-span-2">
-                            <span className="font-medium">Not:</span> {teklif.not}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
+                    <div key={index} className="p-2 border rounded mb-2 bg-gray-50">
+                      <p className="text-sm"><b>Fiyat:</b> ₺{teklif.fiyat}</p>
+                      <p className="text-sm"><b>Tarih:</b> {teklif.tarih}</p>
+                      {teklif.not && <p className="text-sm"><b>Not:</b> {teklif.not}</p>}
+                      <div className="flex gap-2 mt-2">
                         <button
                           onClick={() => router.push(`/chat/${teklif.eslesmeId}`)}
                           className="flex-1 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
@@ -201,7 +198,7 @@ export default function Taleplerim() {
                         </button>
                         <Link
                           href={`/teklifler/${teklif.id}`}
-                          className="flex-1 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm text-center"
+                          className="flex-1 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm text-center"
                         >
                           Detay
                         </Link>
@@ -216,4 +213,4 @@ export default function Taleplerim() {
       )}
     </main>
   );
-                                      }
+                    }
