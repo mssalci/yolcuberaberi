@@ -157,69 +157,52 @@ export default function Taleplerim() {
       {veriler.length === 0 ? (
         <p>Henüz bir talep veya yolculuk oluşturmadınız.</p>
       ) : (
-        <ul className="space-y-6">
+        <ul className="space-y-4">
           {veriler.map((item) => (
-            <li key={item.id} className="border p-4 rounded bg-white shadow">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <p className="font-semibold text-lg">
-                    {item.tur === "talep"
-                      ? `Talep: ${item.baslik}`
-                      : `Yolculuk: ${item.kalkis} → ${item.varis}`}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {item.tur === "talep" 
-                      ? `Ülke: ${item.ulke} • Bütçe: ₺${item.butce || "-"}` 
-                      : `Tarih: ${item.tarih || "-"}`}
-                  </p>
-                </div>
-                <div className="flex gap-3">
-                  <Link 
-                    href={`/${item.tur}ler/${item.id}`} 
-                    className="px-3 py-1 bg-blue-100 text-blue-600 rounded text-sm font-medium hover:bg-blue-200"
-                  >
-                    Detay
-                  </Link>
-                  <button 
-                    onClick={() => handleSil(item)}
-                    className="px-3 py-1 bg-red-100 text-red-600 rounded text-sm font-medium hover:bg-red-200"
-                    disabled={isDeleting === item.id}
-                  >
-                    {isDeleting === item.id ? 'Siliniyor...' : 'Sil'}
-                  </button>
-                </div>
+            <li key={item.id} className="border p-4 rounded bg-white">
+              <div>
+                <h3 className="font-bold">
+                  {item.tur === "talep" ? "Talep" : "Yolculuk"}:
+                  {item.tur === "talep" ? ` ${item.baslik}` : ` ${item.kalkis} → ${item.varis}`}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {item.tur === "talep" 
+                    ? `Ülke: ${item.ulke} • Bütçe: ₺${item.butce || "-"}` 
+                    : `Tarih: ${item.tarih || "-"}`}
+                </p>
               </div>
 
               {item.teklifler?.length > 0 && (
-                <div className="mt-4 border-t pt-3">
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Teklifler ({item.teklifler.length}):</p>
-                  <div className="space-y-3">
-                    {item.teklifler.map((teklif, index) => (
-                      <div key={index} className="border p-3 rounded bg-gray-50">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">Fiyat: ₺{teklif.fiyat}</p>
-                            <p className="text-sm">Teslim Tarihi: {teklif.tarih}</p>
-                            {teklif.not && <p className="text-sm mt-1">Not: {teklif.not}</p>}
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => router.push(`/chat/${teklif.eslesmeId}`)}
-                              className="px-3 py-1 bg-green-100 text-green-600 rounded text-sm font-medium hover:bg-green-200"
-                            >
-                              Mesajlaş
-                            </button>
-                            <Link 
-                              href={`/teklifler/${teklif.id}`}
-                              className="px-3 py-1 bg-blue-100 text-blue-600 rounded text-sm font-medium hover:bg-blue-200"
-                            >
-                              Detay
-                            </Link>
-                          </div>
-                        </div>
+                <div className="mt-3">
+                  <h4 className="text-sm font-semibold mb-2">Teklifler:</h4>
+                  {item.teklifler.map((teklif, index) => (
+                    <div key={index} className="p-2 border rounded mb-2">
+                      <p><b>Fiyat:</b> ₺{teklif.fiyat}</p>
+                      <p><b>Tarih:</b> {teklif.tarih}</p>
+                      {teklif.not && <p><b>Not:</b> {teklif.not}</p>}
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => router.push(`/chat/${teklif.eslesmeId}`)}
+                          className="px-3 py-1 bg-blue-100 text-blue-600 rounded text-sm"
+                        >
+                          Mesajlaş
+                        </button>
+                        <Link 
+                          href={`/teklifler/${teklif.id}`} 
+                          className="px-3 py-1 bg-green-100 text-green-600 rounded text-sm"
+                        >
+                          Detay
+                        </Link>
+                        <button
+                          onClick={() => handleSil(item)}
+                          className="px-3 py-1 bg-red-100 text-red-600 rounded text-sm"
+                          disabled={isDeleting === item.id}
+                        >
+                          {isDeleting === item.id ? 'Siliniyor...' : 'Sil'}
+                        </button>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </li>
