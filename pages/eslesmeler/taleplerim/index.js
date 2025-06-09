@@ -29,7 +29,7 @@ export default function Taleplerim() {
 
   const fetchData = async () => {
     if (!user?.uid) return;
-    
+
     setYukleniyor(true);
     try {
       const [taleplerSnap, yolculuklarSnap] = await Promise.all([
@@ -47,7 +47,7 @@ export default function Taleplerim() {
             eslesmeSnap.docs.map(async (esDoc) => {
               const teklifSnap = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
               return teklifSnap.exists()
-                ? { eslesmeId: esDoc.id, ...teklifSnap.data() }
+                ? { eslesmeId: esDoc.id, id: esDoc.data().teklifId, ...teklifSnap.data() }
                 : null;
             })
           );
@@ -71,7 +71,7 @@ export default function Taleplerim() {
             eslesmeSnap.docs.map(async (esDoc) => {
               const teklifSnap = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
               return teklifSnap.exists()
-                ? { eslesmeId: esDoc.id, ...teklifSnap.data() }
+                ? { eslesmeId: esDoc.id, id: esDoc.data().teklifId, ...teklifSnap.data() }
                 : null;
             })
           );
@@ -104,45 +104,35 @@ export default function Taleplerim() {
 
     setIsDeleting(item.id);
     try {
-      // 1. Önce eşleşmeleri bul
       const eslesmeQuery = query(
         collection(db, "eslesmeler"),
         where(item.tur === "talep" ? "talepId" : "yolculukId", "==", item.id)
       );
       const eslesmeSnap = await getDocs(eslesmeQuery);
 
-      // 2. Tüm eşleşmeleri ve bağlı verileri sil
       const deletionPromises = eslesmeSnap.docs.map(async (esDoc) => {
         const eslesmeId = esDoc.id;
         const teklifId = esDoc.data().teklifId;
-        
-        // Mesajları sil
+
         const mesajQuery = query(collection(db, "mesajlar"), where("eslesmeId", "==", eslesmeId));
         const mesajSnap = await getDocs(mesajQuery);
         const mesajSilmePromises = mesajSnap.docs.map(mesaj => deleteDoc(mesaj.ref));
-        
-        // Teklifi sil
+
         const teklifSilmePromise = deleteDoc(doc(db, "teklifler", teklifId));
-        
-        // Eşleşmeyi sil
         const eslesmeSilmePromise = deleteDoc(esDoc.ref);
-        
+
         return Promise.all([...mesajSilmePromises, teklifSilmePromise, eslesmeSilmePromise]);
       });
 
-      // 3. Ana dokümanı sil (talep veya yolculuk)
       const anaDocSilmePromise = deleteDoc(doc(db, `${item.tur}ler`, item.id));
 
-      // Tüm silme işlemlerini bekleyelim
       await Promise.all([...deletionPromises, anaDocSilmePromise]);
 
-      // 4. State'i güncelle
       setVeriler(prevVeriler => prevVeriler.filter(v => v.id !== item.id));
-      
-      alert(`${item.tur === "talep" ? "Talep" : "Yolculuk"} ve bağlı tüm veriler başarıyla silindi.`);
+      alert("Silme işlemi başarılı.");
     } catch (error) {
       console.error("Silme hatası:", error);
-      alert("Silme işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.");
+      alert("Silme işlemi sırasında bir hata oluştu.");
     } finally {
       setIsDeleting(null);
     }
@@ -157,19 +147,30 @@ export default function Taleplerim() {
       {veriler.length === 0 ? (
         <p>Henüz bir talep veya yolculuk oluşturmadınız.</p>
       ) : (
-        <ul className="space-y-4">
+        <ul className="space-y-6">
           {veriler.map((item) => (
-            <li key={item.id} className="border p-4 rounded bg-white">
-              <div>
-                <h3 className="font-bold">
-                  {item.tur === "talep" ? "Talep" : "Yolculuk"}:
-                  {item.tur === "talep" ? ` ${item.baslik}` : ` ${item.kalkis} → ${item.varis}`}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {item.tur === "talep" 
-                    ? `Ülke: ${item.ulke} • Bütçe: ₺${item.butce || "-"}` 
-                    : `Tarih: ${item.tarih || "-"}`}
-                </p>
+            <li key={item.id} className="border p-4 rounded bg-white shadow-sm">
+              <div className="flex justify-between items-center mb-2">
+                <div>
+                  <h3 className="font-bold">
+                    {item.tur === "talep" ? "Talep" : "Yolculuk"}:
+                    {item.tur === "talep"
+                      ? ` ${item.baslik}`
+                      : ` ${item.kalkis} → ${item.varis}`}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {item.tur === "talep"
+                      ? `Ülke: ${item.ulke} • Bütçe: ₺${item.butce || "-"}`
+                      : `Tarih: ${item.tarih || "-"}`}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleSil(item)}
+                  className="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                  disabled={isDeleting === item.id}
+                >
+                  {isDeleting === item.id ? "Siliniyor..." : "Sil"}
+                </button>
               </div>
 
               {item.teklifler?.length > 0 && (
@@ -178,9 +179,17 @@ export default function Taleplerim() {
                   {item.teklifler.map((teklif, index) => (
                     <div key={index} className="p-3 border rounded mb-3 bg-gray-50">
                       <div className="grid grid-cols-2 gap-2 mb-2">
-                        <p><span className="font-medium">Fiyat:</span> ₺{teklif.fiyat}</p>
-                        <p><span className="font-medium">Tarih:</span> {teklif.tarih}</p>
-                        {teklif.not && <p className="col-span-2"><span className="font-medium">Not:</span> {teklif.not}</p>}
+                        <p>
+                          <span className="font-medium">Fiyat:</span> ₺{teklif.fiyat}
+                        </p>
+                        <p>
+                          <span className="font-medium">Tarih:</span> {teklif.tarih}
+                        </p>
+                        {teklif.not && (
+                          <p className="col-span-2">
+                            <span className="font-medium">Not:</span> {teklif.not}
+                          </p>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -195,13 +204,6 @@ export default function Taleplerim() {
                         >
                           Detay
                         </Link>
-                        <button
-                          onClick={() => handleSil(item)}
-                          className="flex-1 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-                          disabled={isDeleting === item.id}
-                        >
-                          {isDeleting === item.id ? 'Siliniyor...' : 'Sil'}
-                        </button>
                       </div>
                     </div>
                   ))}
