@@ -1,7 +1,6 @@
-// pages/eslesmeler/index.js
-
-import { useEffect, useState } from "react";
-import { auth, db } from "../../firebase/firebaseConfig";
+// pages/eslesmeler/taleplerim/index.js
+import { useRouter } from "next/router";
+import Link from "next/link";
 import {
   collection,
   getDocs,
@@ -11,191 +10,208 @@ import {
   getDoc,
   deleteDoc,
 } from "firebase/firestore";
-import Link from "next/link";
-import GirisUyari from "../../components/GirisUyari";
+import { db, auth } from "../../../firebase/firebaseConfig";
+import { useEffect, useState } from "react";
 
-export default function Eslesmeler() {
-  const [aktifSekme, setAktifSekme] = useState("tekliflerim");
-  const [eslesmeler, setEslesmeler] = useState([]);
-  const [yukleniyor, setYukleniyor] = useState(true);
+export default function Taleplerim() {
+  const router = useRouter();
   const [user, setUser] = useState(null);
-  const [kontrolEdildi, setKontrolEdildi] = useState(false);
+  const [veriler, setVeriler] = useState([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(null);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((usr) => {
-      setUser(usr);
-      setKontrolEdildi(true);
+      if (usr) setUser(usr);
     });
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const fetchEslesmeler = async () => {
-      if (!user) return;
-      setYukleniyor(true);
-      try {
-        let snapshot;
-
-        if (aktifSekme === "tekliflerim") {
-          snapshot = await getDocs(
-            query(collection(db, "eslesmeler"), where("teklifVerenId", "==", user.uid))
-          );
-        } else {
-          const [taleplerSnap, yolculuklarSnap] = await Promise.all([
-            getDocs(query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))),
-            getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
-          ]);
-
-          const eslesmelerArr = [];
-
-          for (const talepDoc of taleplerSnap.docs) {
-            const esSnap = await getDocs(query(collection(db, "eslesmeler"), where("talepId", "==", talepDoc.id)));
-            for (const esDoc of esSnap.docs) {
-              const esData = esDoc.data();
-              const teklifDoc = await getDoc(doc(db, "teklifler", esData.teklifId));
-              eslesmelerArr.push({
-                id: esDoc.id,
-                tip: "talep",
-                talep: { id: talepDoc.id, ...talepDoc.data() },
-                teklif: teklifDoc.exists() ? teklifDoc.data() : null,
-                teklifId: esData.teklifId,
-                teklifVerenId: esData.teklifVerenId,
-              });
-            }
-          }
-
-          for (const yolculukDoc of yolculuklarSnap.docs) {
-            const esSnap = await getDocs(query(collection(db, "eslesmeler"), where("yolculukId", "==", yolculukDoc.id)));
-            for (const esDoc of esSnap.docs) {
-              const esData = esDoc.data();
-              const teklifDoc = await getDoc(doc(db, "teklifler", esData.teklifId));
-              const talepDoc = esData.talepId
-                ? await getDoc(doc(db, "talepler", esData.talepId))
-                : null;
-
-              eslesmelerArr.push({
-                id: esDoc.id,
-                tip: "yolculuk",
-                yolculuk: { id: yolculukDoc.id, ...yolculukDoc.data() },
-                teklif: teklifDoc.exists() ? teklifDoc.data() : null,
-                teklifId: esData.teklifId,
-                teklifVerenId: esData.teklifVerenId,
-                talep: talepDoc?.exists() ? talepDoc.data() : null,
-              });
-            }
-          }
-
-          setEslesmeler(eslesmelerArr);
-          setYukleniyor(false);
-          return;
-        }
-
-        const veriler = await Promise.all(
-          snapshot.docs.map(async (docSnap) => {
-            const data = docSnap.data();
-            const talepDoc = data.talepId ? await getDoc(doc(db, "talepler", data.talepId)) : null;
-            const teklifDoc = data.teklifId ? await getDoc(doc(db, "teklifler", data.teklifId)) : null;
-            const yolculukDoc = data.yolculukId ? await getDoc(doc(db, "yolculuklar", data.yolculukId)) : null;
-            return {
-              id: docSnap.id,
-              ...data,
-              tip: data.yolculukId ? "yolculuk" : "talep",
-              talep: talepDoc?.exists() ? talepDoc.data() : null,
-              teklif: teklifDoc?.exists() ? teklifDoc.data() : null,
-              yolculuk: yolculukDoc?.exists() ? yolculukDoc.data() : null,
-            };
-          })
-        );
-        setEslesmeler(veriler);
-      } catch (error) {
-        console.error("Eşleşmeler alınırken hata:", error);
-      } finally {
-        setYukleniyor(false);
-      }
-    };
-
-    fetchEslesmeler();
-  }, [aktifSekme, user]);
-
-  const teklifIptalEt = async (teklifId, eslesmeId) => {
-    if (!confirm("Teklifi iptal etmek istediğinize emin misiniz?")) return;
+  const fetchData = async () => {
+    if (!user?.uid) return;
+    setYukleniyor(true);
     try {
-      await deleteDoc(doc(db, "teklifler", teklifId));
-      await deleteDoc(doc(db, "eslesmeler", eslesmeId));
-      setEslesmeler((prev) => prev.filter((e) => e.id !== eslesmeId));
-      alert("Teklif ve eşleşme iptal edildi.");
-    } catch (err) {
-      console.error("İptal hatası:", err);
-      alert("Bir hata oluştu.");
+      const [taleplerSnap, yolculuklarSnap] = await Promise.all([
+        getDocs(query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))),
+        getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
+      ]);
+
+      const talepler = await Promise.all(
+        taleplerSnap.docs.map(async (docSnap) => {
+          const talepId = docSnap.id;
+          const eslesmeSnap = await getDocs(
+            query(collection(db, "eslesmeler"), where("talepId", "==", talepId))
+          );
+          const teklifler = await Promise.all(
+            eslesmeSnap.docs.map(async (esDoc) => {
+              const teklifSnap = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
+              return teklifSnap.exists()
+                ? { eslesmeId: esDoc.id, ...teklifSnap.data() }
+                : null;
+            })
+          );
+          return {
+            id: talepId,
+            ...docSnap.data(),
+            tur: "talep",
+            teklifler: teklifler.filter(Boolean),
+          };
+        })
+      );
+
+      const yolculuklar = await Promise.all(
+        yolculuklarSnap.docs.map(async (docSnap) => {
+          const yolculukId = docSnap.id;
+          const eslesmeSnap = await getDocs(
+            query(collection(db, "eslesmeler"), where("yolculukId", "==", yolculukId))
+          );
+          const teklifler = await Promise.all(
+            eslesmeSnap.docs.map(async (esDoc) => {
+              const teklifSnap = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
+              return teklifSnap.exists()
+                ? { eslesmeId: esDoc.id, ...teklifSnap.data() }
+                : null;
+            })
+          );
+          return {
+            id: yolculukId,
+            ...docSnap.data(),
+            tur: "yolculuk",
+            teklifler: teklifler.filter(Boolean),
+          };
+        })
+      );
+
+      setVeriler([...talepler, ...yolculuklar]);
+    } catch (error) {
+      console.error("Veri getirme hatası:", error);
+    } finally {
+      setYukleniyor(false);
     }
   };
 
-  if (!kontrolEdildi) return null;
-  if (!user) return <GirisUyari />;
+  useEffect(() => {
+    fetchData();
+  }, [user]);
+
+  const handleSil = async (item) => {
+    if (!confirm(`Bu ${item.tur === "talep" ? "talebi" : "yolculuğu"} silmek istediğinize emin misiniz?`)) {
+      return;
+    }
+
+    setIsDeleting(item.id);
+    try {
+      const eslesmeQuery = query(
+        collection(db, "eslesmeler"),
+        where(item.tur === "talep" ? "talepId" : "yolculukId", "==", item.id)
+      );
+      const eslesmeSnap = await getDocs(eslesmeQuery);
+
+      for (const esDoc of eslesmeSnap.docs) {
+        const teklifId = esDoc.data().teklifId;
+        await deleteDoc(doc(db, "teklifler", teklifId));
+
+        const mesajQuery = query(collection(db, "mesajlar"), where("eslesmeId", "==", esDoc.id));
+        const mesajSnap = await getDocs(mesajQuery);
+        const mesajlarSil = mesajSnap.docs.map((mesaj) => deleteDoc(mesaj.ref));
+        await Promise.all(mesajlarSil);
+
+        await deleteDoc(esDoc.ref);
+      }
+
+      const collectionName = item.tur === "talep" ? "talepler" : "yolculuklar";
+      await deleteDoc(doc(db, collectionName, item.id));
+
+      setVeriler((prev) => prev.filter((v) => v.id !== item.id));
+      alert(`${item.tur === "talep" ? "Talep" : "Yolculuk"} başarıyla silindi.`);
+    } catch (error) {
+      console.error("Silme hatası:", error);
+      alert("Silme işlemi sırasında bir hata oluştu.");
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  if (yukleniyor) return <p className="p-4 text-center">Yükleniyor...</p>;
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Eşleşmeler</h1>
+      <h1 className="text-2xl font-bold mb-6">Taleplerim & Yolculuklarım</h1>
 
-      <div className="flex space-x-4 mb-6">
-        <button
-          onClick={() => setAktifSekme("tekliflerim")}
-          className={`px-4 py-2 rounded ${aktifSekme === "tekliflerim" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-        >
-          Tekliflerim
-        </button>
-        <button
-          onClick={() => setAktifSekme("taleplerim")}
-          className={`px-4 py-2 rounded ${aktifSekme === "taleplerim" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-        >
-          Taleplerim
-        </button>
-      </div>
-
-      {yukleniyor ? (
-        <p>Yükleniyor...</p>
-      ) : eslesmeler.length === 0 ? (
-        <p>Hiç eşleşme bulunamadı.</p>
+      {veriler.length === 0 ? (
+        <p>Henüz bir talep veya yolculuk oluşturmadınız.</p>
       ) : (
-        <ul className="space-y-4">
-          {eslesmeler.map((e) => (
-            <li key={e.id || Math.random()} className="border p-4 rounded bg-white shadow space-y-2">
-              {e.tip === "yolculuk" && e.yolculuk ? (
-                <>
-                  <p className="font-semibold">Yolculuk Teklifi</p>
-                  <p className="text-sm text-gray-600">Kalkış: {e.yolculuk.kalkis || "-"}</p>
-                  <p className="text-sm text-gray-600">Varış: {e.yolculuk.varis || "-"}</p>
-                  <p className="text-sm text-gray-600">Tarih: {e.yolculuk.tarih || "-"}</p>
-                </>
-              ) : e.tip === "talep" && e.talep ? (
-                <>
-                  <p className="font-semibold">Talep: {e.talep.baslik || "-"}</p>
-                  <p className="text-sm text-gray-600">Kategori: {e.talep.kategori || "-"}</p>
-                  <p className="text-sm text-gray-600">Açıklama: {e.talep.aciklama || "-"}</p>
-                </>
-              ) : null}
+        <ul className="space-y-6">
+          {veriler.map((item) => (
+            <li key={item.id} className="border p-4 rounded bg-white shadow">
+              <p className="font-semibold">
+                {item.tur === "talep"
+                  ? `Talep: ${item.baslik}`
+                  : `Yolculuk: ${item.kalkis} → ${item.varis}`}
+              </p>
 
-              {e.teklif && (
+              {item.tur === "talep" ? (
                 <>
-                  <p className="text-sm text-gray-600">Fiyat: ₺{e.teklif.fiyat}</p>
-                  <p className="text-sm text-gray-600">Not: {e.teklif.not || "-"}</p>
-                  <div className="flex gap-3 pt-2">
-                    <Link href={`/eslesmeler/tekliflerim/${e.teklifId}`} className="text-blue-600 underline">
-                      Teklif Detayı
+                  <p className="text-sm text-gray-600">Ülke: {item.ulke}</p>
+                  <p className="text-sm text-gray-600">Bütçe: ₺{item.butce || "-"}</p>
+                  <div className="flex gap-3 mt-2">
+                    <Link href={`/talepler/${item.id}`} className="text-blue-600 underline text-sm">
+                      Detayları Gör
                     </Link>
-                    <Link href={`/chat/${e.id}`} className="text-green-600 underline">
-                      Mesajlaş
-                    </Link>
-                    {e.teklifVerenId === user.uid && (
-                      <button
-                        onClick={() => teklifIptalEt(e.teklifId, e.id)}
-                        className="text-red-600 underline"
-                      >
-                        Teklifi İptal Et
-                      </button>
-                    )}
+                    <button 
+                      onClick={() => handleSil(item)}
+                      className="text-red-600 underline text-sm"
+                      disabled={isDeleting === item.id}
+                    >
+                      {isDeleting === item.id ? 'Siliniyor...' : 'Talep Sil'}
+                    </button>
                   </div>
                 </>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-600">Tarih: {item.tarih || "-"}</p>
+                  <p className="text-sm text-gray-600">Not: {item.not || "-"}</p>
+                  <div className="flex gap-3 mt-2">
+                    <Link href={`/yolculuklar/${item.id}`} className="text-blue-600 underline text-sm">
+                      Detayları Gör
+                    </Link>
+                    <button 
+                      onClick={() => handleSil(item)}
+                      className="text-red-600 underline text-sm"
+                      disabled={isDeleting === item.id}
+                    >
+                      {isDeleting === item.id ? 'Siliniyor...' : 'Yolculuk Sil'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {item.teklifler?.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm font-semibold text-gray-700">Teklifler:</p>
+                  {item.teklifler.map((teklif, index) => (
+                    <div key={index} className="text-sm text-gray-700 border p-2 rounded">
+                      <p>Fiyat: ₺{teklif.fiyat}</p>
+                      <p>Not: {teklif.not || "-"}</p>
+                      <p>Teslim Tarihi: {teklif.tarih}</p>
+                      <div className="flex gap-3 mt-1">
+                        <button
+                          onClick={() => router.push(`/chat/${teklif.eslesmeId}`)}
+                          className="text-blue-600 underline text-sm"
+                        >
+                          Mesajlaş
+                        </button>
+                        <button
+                          onClick={() => handleSil(item)}
+                          className="text-red-600 underline text-sm"
+                          disabled={isDeleting === item.id}
+                        >
+                          {isDeleting === item.id ? 'Siliniyor...' : (item.tur === 'talep' ? 'Talep Sil' : 'Yolculuk Sil')}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </li>
           ))}
@@ -203,4 +219,4 @@ export default function Eslesmeler() {
       )}
     </main>
   );
-        }
+                        }
