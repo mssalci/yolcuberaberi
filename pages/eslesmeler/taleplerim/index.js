@@ -98,43 +98,51 @@ export default function Taleplerim() {
   }, [user]);
 
   const handleSil = async (item) => {
-    if (!confirm(`Bu ${item.tur === "talep" ? "talebi" : "yolculuğu"} silmek istediğinize emin misiniz?`)) {
+    if (!confirm(`Bu ${item.tur === "talep" ? "talebi" : "yolculuğu"} ve bağlı tüm teklifleri silmek istediğinize emin misiniz?`)) {
       return;
     }
 
     setIsDeleting(item.id);
     try {
-      // Eşleşmeleri ve teklifleri sil
+      // 1. Önce eşleşmeleri bul
       const eslesmeQuery = query(
         collection(db, "eslesmeler"),
         where(item.tur === "talep" ? "talepId" : "yolculukId", "==", item.id)
       );
       const eslesmeSnap = await getDocs(eslesmeQuery);
 
-      for (const esDoc of eslesmeSnap.docs) {
-        // Teklifi sil
-        await deleteDoc(doc(db, "teklifler", esDoc.data().teklifId));
+      // 2. Tüm eşleşmeleri ve bağlı verileri sil
+      const deletionPromises = eslesmeSnap.docs.map(async (esDoc) => {
+        const eslesmeId = esDoc.id;
+        const teklifId = esDoc.data().teklifId;
         
         // Mesajları sil
-        const mesajQuery = query(collection(db, "mesajlar"), where("eslesmeId", "==", esDoc.id));
+        const mesajQuery = query(collection(db, "mesajlar"), where("eslesmeId", "==", eslesmeId));
         const mesajSnap = await getDocs(mesajQuery);
-        mesajSnap.forEach(async (mesaj) => {
-          await deleteDoc(mesaj.ref);
-        });
-
+        const mesajSilmePromises = mesajSnap.docs.map(mesaj => deleteDoc(mesaj.ref));
+        
+        // Teklifi sil
+        const teklifSilmePromise = deleteDoc(doc(db, "teklifler", teklifId));
+        
         // Eşleşmeyi sil
-        await deleteDoc(esDoc.ref);
-      }
+        const eslesmeSilmePromise = deleteDoc(esDoc.ref);
+        
+        return Promise.all([...mesajSilmePromises, teklifSilmePromise, eslesmeSilmePromise]);
+      });
 
-      // Ana dokümanı sil (talep veya yolculuk)
-      await deleteDoc(doc(db, `${item.tur}ler`, item.id));
+      // 3. Ana dokümanı sil (talep veya yolculuk)
+      const anaDocSilmePromise = deleteDoc(doc(db, `${item.tur}ler`, item.id));
 
-      // Listeyi güncelle
-      setVeriler(veriler.filter(v => v.id !== item.id));
-      alert(`${item.tur === "talep" ? "Talep" : "Yolculuk"} başarıyla silindi.`);
+      // Tüm silme işlemlerini bekleyelim
+      await Promise.all([...deletionPromises, anaDocSilmePromise]);
+
+      // 4. State'i güncelle
+      setVeriler(prevVeriler => prevVeriler.filter(v => v.id !== item.id));
+      
+      alert(`${item.tur === "talep" ? "Talep" : "Yolculuk"} ve bağlı tüm veriler başarıyla silindi.`);
     } catch (error) {
       console.error("Silme hatası:", error);
-      alert("Silme işlemi sırasında bir hata oluştu.");
+      alert("Silme işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.");
     } finally {
       setIsDeleting(null);
     }
@@ -152,69 +160,52 @@ export default function Taleplerim() {
         <ul className="space-y-6">
           {veriler.map((item) => (
             <li key={item.id} className="border p-4 rounded bg-white shadow">
-              <p className="font-semibold">
-                {item.tur === "talep"
-                  ? `Talep: ${item.baslik}`
-                  : `Yolculuk: ${item.kalkis} → ${item.varis}`}
-              </p>
-
-              {item.tur === "talep" ? (
-                <>
-                  <p className="text-sm text-gray-600">Ülke: {item.ulke}</p>
-                  <p className="text-sm text-gray-600">Bütçe: ₺{item.butce || "-"}</p>
-                  <div className="flex gap-3 mt-2">
-                    <Link href={`/talepler/${item.id}`} className="text-blue-600 underline text-sm">
-                      Detayları Gör
-                    </Link>
-                    <button 
-                      onClick={() => handleSil(item)}
-                      className="text-red-600 underline text-sm"
-                      disabled={isDeleting === item.id}
-                    >
-                      {isDeleting === item.id ? 'Siliniyor...' : 'Talep Sil'}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm text-gray-600">Tarih: {item.tarih || "-"}</p>
-                  <p className="text-sm text-gray-600">Not: {item.not || "-"}</p>
-                  <div className="flex gap-3 mt-2">
-                    <Link href={`/yolculuklar/${item.id}`} className="text-blue-600 underline text-sm">
-                      Detayları Gör
-                    </Link>
-                    <button 
-                      onClick={() => handleSil(item)}
-                      className="text-red-600 underline text-sm"
-                      disabled={isDeleting === item.id}
-                    >
-                      {isDeleting === item.id ? 'Siliniyor...' : 'Yolculuk Sil'}
-                    </button>
-                  </div>
-                </>
-              )}
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-semibold">
+                    {item.tur === "talep"
+                      ? `Talep: ${item.baslik}`
+                      : `Yolculuk: ${item.kalkis} → ${item.varis}`}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {item.tur === "talep" 
+                      ? `Ülke: ${item.ulke} • Bütçe: ₺${item.butce || "-"}` 
+                      : `Tarih: ${item.tarih || "-"}`}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Link 
+                    href={`/${item.tur}ler/${item.id}`} 
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    Detay
+                  </Link>
+                  <button 
+                    onClick={() => handleSil(item)}
+                    className="text-red-600 hover:text-red-800 text-sm font-medium"
+                    disabled={isDeleting === item.id}
+                  >
+                    {isDeleting === item.id ? 'Siliniyor...' : 'Sil'}
+                  </button>
+                </div>
+              </div>
 
               {item.teklifler?.length > 0 && (
                 <div className="mt-3 space-y-2">
-                  <p className="text-sm font-semibold text-gray-700">Teklifler:</p>
+                  <p className="text-sm font-semibold text-gray-700">Teklifler ({item.teklifler.length}):</p>
                   {item.teklifler.map((teklif, index) => (
-                    <div key={index} className="text-sm text-gray-700 border p-2 rounded">
-                      <p>Fiyat: ₺{teklif.fiyat}</p>
-                      <p>Not: {teklif.not || "-"}</p>
-                      <p>Teslim Tarihi: {teklif.tarih}</p>
-                      <div className="flex gap-3 mt-1">
+                    <div key={index} className="text-sm text-gray-700 border p-2 rounded bg-gray-50">
+                      <div className="flex justify-between">
+                        <div>
+                          <p><span className="font-medium">Fiyat:</span> ₺{teklif.fiyat}</p>
+                          <p><span className="font-medium">Teslim Tarihi:</span> {teklif.tarih}</p>
+                          {teklif.not && <p><span className="font-medium">Not:</span> {teklif.not}</p>}
+                        </div>
                         <button
                           onClick={() => router.push(`/chat/${teklif.eslesmeId}`)}
-                          className="text-blue-600 underline text-sm"
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium self-start"
                         >
                           Mesajlaş
-                        </button>
-                        <button
-                          onClick={() => handleSil(item)}
-                          className="text-red-600 underline text-sm"
-                          disabled={isDeleting === item.id}
-                        >
-                          {isDeleting === item.id ? 'Siliniyor...' : (item.tur === 'talep' ? 'Talep Sil' : 'Yolculuk Sil')}
                         </button>
                       </div>
                     </div>
@@ -227,4 +218,4 @@ export default function Taleplerim() {
       )}
     </main>
   );
-                }
+        }
