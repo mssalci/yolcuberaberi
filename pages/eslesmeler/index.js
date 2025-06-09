@@ -10,7 +10,7 @@ import {
   getDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { db, auth } from "../../firebase/firebaseConfig";
+import { db, auth } from "../../../firebase/firebaseConfig";
 import { useEffect, useState } from "react";
 
 export default function Taleplerim() {
@@ -29,6 +29,7 @@ export default function Taleplerim() {
 
   const fetchData = async () => {
     if (!user?.uid) return;
+    
     setYukleniyor(true);
     try {
       const [taleplerSnap, yolculuklarSnap] = await Promise.all([
@@ -50,6 +51,7 @@ export default function Taleplerim() {
                 : null;
             })
           );
+
           return {
             id: talepId,
             ...docSnap.data(),
@@ -73,6 +75,7 @@ export default function Taleplerim() {
                 : null;
             })
           );
+
           return {
             id: yolculukId,
             ...docSnap.data(),
@@ -101,6 +104,7 @@ export default function Taleplerim() {
 
     setIsDeleting(item.id);
     try {
+      // Eşleşmeleri ve teklifleri sil
       const eslesmeQuery = query(
         collection(db, "eslesmeler"),
         where(item.tur === "talep" ? "talepId" : "yolculukId", "==", item.id)
@@ -108,21 +112,25 @@ export default function Taleplerim() {
       const eslesmeSnap = await getDocs(eslesmeQuery);
 
       for (const esDoc of eslesmeSnap.docs) {
-        const teklifId = esDoc.data().teklifId;
-        await deleteDoc(doc(db, "teklifler", teklifId));
-
+        // Teklifi sil
+        await deleteDoc(doc(db, "teklifler", esDoc.data().teklifId));
+        
+        // Mesajları sil
         const mesajQuery = query(collection(db, "mesajlar"), where("eslesmeId", "==", esDoc.id));
         const mesajSnap = await getDocs(mesajQuery);
-        const mesajlarSil = mesajSnap.docs.map((mesaj) => deleteDoc(mesaj.ref));
-        await Promise.all(mesajlarSil);
+        mesajSnap.forEach(async (mesaj) => {
+          await deleteDoc(mesaj.ref);
+        });
 
+        // Eşleşmeyi sil
         await deleteDoc(esDoc.ref);
       }
 
-      const collectionName = item.tur === "talep" ? "talepler" : "yolculuklar";
-      await deleteDoc(doc(db, collectionName, item.id));
+      // Ana dokümanı sil (talep veya yolculuk)
+      await deleteDoc(doc(db, `${item.tur}ler`, item.id));
 
-      setVeriler((prev) => prev.filter((v) => v.id !== item.id));
+      // Listeyi güncelle
+      setVeriler(veriler.filter(v => v.id !== item.id));
       alert(`${item.tur === "talep" ? "Talep" : "Yolculuk"} başarıyla silindi.`);
     } catch (error) {
       console.error("Silme hatası:", error);
@@ -219,4 +227,4 @@ export default function Taleplerim() {
       )}
     </main>
   );
-                        }
+}
