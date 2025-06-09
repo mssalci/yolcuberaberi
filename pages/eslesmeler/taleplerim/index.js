@@ -176,26 +176,28 @@ export default function Taleplerim() {
                 <div className="mt-3">
                   <h4 className="text-sm font-semibold mb-2">Teklifler:</h4>
                   {item.teklifler.map((teklif, index) => (
-                    <div key={index} className="p-2 border rounded mb-2">
-                      <p><b>Fiyat:</b> ₺{teklif.fiyat}</p>
-                      <p><b>Tarih:</b> {teklif.tarih}</p>
-                      {teklif.not && <p><b>Not:</b> {teklif.not}</p>}
-                      <div className="flex gap-2 mt-2">
+                    <div key={index} className="p-3 border rounded mb-3 bg-gray-50">
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <p><span className="font-medium">Fiyat:</span> ₺{teklif.fiyat}</p>
+                        <p><span className="font-medium">Tarih:</span> {teklif.tarih}</p>
+                        {teklif.not && <p className="col-span-2"><span className="font-medium">Not:</span> {teklif.not}</p>}
+                      </div>
+                      <div className="flex gap-2">
                         <button
                           onClick={() => router.push(`/chat/${teklif.eslesmeId}`)}
-                          className="px-3 py-1 bg-blue-100 text-blue-600 rounded text-sm"
+                          className="flex-1 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
                         >
                           Mesajlaş
                         </button>
-                        <Link 
-                          href={`/teklifler/${teklif.id}`} 
-                          className="px-3 py-1 bg-green-100 text-green-600 rounded text-sm"
+                        <Link
+                          href={`/teklifler/${teklif.id}`}
+                          className="flex-1 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm text-center"
                         >
                           Detay
                         </Link>
                         <button
                           onClick={() => handleSil(item)}
-                          className="px-3 py-1 bg-red-100 text-red-600 rounded text-sm"
+                          className="flex-1 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
                           disabled={isDeleting === item.id}
                         >
                           {isDeleting === item.id ? 'Siliniyor...' : 'Sil'}
