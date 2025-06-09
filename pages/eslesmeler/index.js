@@ -10,7 +10,7 @@ import {
   getDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { db, auth } from "../../../firebase/firebaseConfig";
+import { db, auth } from "../../firebase/firebaseConfig";
 import { useEffect, useState } from "react";
 
 export default function Taleplerim() {
