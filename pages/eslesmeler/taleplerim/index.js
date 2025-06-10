@@ -1,4 +1,5 @@
 // pages/eslesmeler/taleplerim/index.js
+
 import { useRouter } from "next/router";
 import Link from "next/link";
 import {
@@ -27,93 +28,86 @@ export default function Taleplerim() {
     return () => unsubscribe();
   }, []);
 
- const fetchData = async () => {
-  if (!user?.uid) return;
+  const fetchData = async () => {
+    if (!user?.uid) return;
 
-  setYukleniyor(true);
-  try {
-    const [taleplerSnap, yolculuklarSnap] = await Promise.all([
-      getDocs(query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))),
-      getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
-    ]);
+    setYukleniyor(true);
+    try {
+      const [taleplerSnap, yolculuklarSnap] = await Promise.all([
+        getDocs(query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))),
+        getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
+      ]);
 
-    const talepler = await Promise.all(
-      taleplerSnap.docs.map(async (docSnap) => {
-        const talepId = docSnap.id;
-        let teklifler = [];
-        try {
-          const eslesmeSnap = await getDocs(
-            query(collection(db, "eslesmeler"), where("talepId", "==", talepId))
-          );
-          teklifler = await Promise.all(
-            eslesmeSnap.docs.map(async (esDoc) => {
-              const teklifSnap = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
-              return teklifSnap.exists()
-                ? { eslesmeId: esDoc.id, id: esDoc.data().teklifId, ...teklifSnap.data() }
-                : null;
-            })
-          );
-        } catch (e) {
-          console.error("Teklif sorgusu hatası (talep):", e);
-        }
+      const talepler = await Promise.all(
+        taleplerSnap.docs.map(async (docSnap) => {
+          const talepId = docSnap.id;
+          let teklifler = [];
+          try {
+            const eslesmeSnap = await getDocs(
+              query(collection(db, "eslesmeler"), where("talepId", "==", talepId))
+            );
+            teklifler = await Promise.all(
+              eslesmeSnap.docs.map(async (esDoc) => {
+                const teklifSnap = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
+                return teklifSnap.exists()
+                  ? { eslesmeId: esDoc.id, id: esDoc.data().teklifId, ...teklifSnap.data() }
+                  : null;
+              })
+            );
+          } catch (e) {
+            console.error("Teklif sorgusu hatası (talep):", e);
+          }
 
-        return {
-          id: talepId,
-          ...docSnap.data(),
-          tur: "talep",
-          teklifler: teklifler.filter(Boolean),
-        };
-      })
-    );
+          return {
+            id: talepId,
+            ...docSnap.data(),
+            tur: "talep",
+            teklifler: teklifler.filter(Boolean),
+          };
+        })
+      );
 
-    const yolculuklar = await Promise.all(
-      yolculuklarSnap.docs.map(async (docSnap) => {
-        const yolculukId = docSnap.id;
-        let teklifler = [];
-        try {
-const fetchData = async () => {
-  try {
-    const taleplerSnap = await getDocs(q1);
-    const talepler = taleplerSnap.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      tur: "talep",
-    }));
+      const yolculuklar = await Promise.all(
+        yolculuklarSnap.docs.map(async (docSnap) => {
+          const yolculukId = docSnap.id;
+          let teklifler = [];
+          try {
+            const eslesmeSnap = await getDocs(
+              query(collection(db, "eslesmeler"), where("yolculukId", "==", yolculukId))
+            );
+            teklifler = await Promise.all(
+              eslesmeSnap.docs.map(async (esDoc) => {
+                const teklifSnap = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
+                return teklifSnap.exists()
+                  ? { eslesmeId: esDoc.id, id: esDoc.data().teklifId, ...teklifSnap.data() }
+                  : null;
+              })
+            );
+          } catch (e) {
+            console.error("Teklif sorgusu hatası (yolculuk):", e);
+          }
 
-    const yolculuklarSnap = await getDocs(q2);
+          return {
+            id: yolculukId,
+            ...docSnap.data(),
+            tur: "yolculuk",
+            teklifler: teklifler.filter(Boolean),
+          };
+        })
+      );
 
-    const yolculuklar = await Promise.all(
-      yolculuklarSnap.docs.map(async (docSnap) => {
-        const yolculukId = docSnap.id;
-        let teklifler = [];
-
-        const tekliflerRef = collection(firestore, "teklifler");
-        const tekliflerQ = query(
-          tekliflerRef,
-          where("yolculukId", "==", yolculukId)
-        );
-        const tekliflerSnap = await getDocs(tekliflerQ);
-        teklifler = tekliflerSnap.docs.map((doc) => doc.data());
-
-        return {
-          id: yolculukId,
-          ...docSnap.data(),
-          tur: "yolculuk",
-          teklifler,
-        };
-      })
-    );
-
-    setVeriler([...talepler, ...yolculuklar]);
-  } catch (error) {
-    console.error("Veri getirme hatası:", error);
-  } finally {
-    setYukleniyor(false);
-  }
-};
+      setVeriler([...talepler, ...yolculuklar]);
+    } catch (error) {
+      console.error("Veri getirme hatası:", error);
+    } finally {
+      setYukleniyor(false);
+    }
+  };
 
   useEffect(() => {
-    fetchData();
+    if (user) {
+      fetchData();
+    }
   }, [user]);
 
   const handleSil = async (item) => {
