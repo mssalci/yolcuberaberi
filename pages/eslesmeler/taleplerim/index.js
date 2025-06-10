@@ -71,63 +71,35 @@ export default function Taleplerim() {
         const yolculukId = docSnap.id;
         let teklifler = [];
         try {
-          const eslesmeSnap = await getDocs(
-            query(collection(db, "eslesmeler"), where("yolculukId", "==", yolculukId))
-          );
-          teklifler = await Promise.all(
-            eslesmeSnap.docs.map(async (esDoc) => {
-              const teklifSnap = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
-              return teklifSnap.exists()
-                ? { eslesmeId: esDoc.id, id: esDoc.data().teklifId, ...teklifSnap.data() }
-                : null;
-            })
-          );
-        } catch (e) {
-          console.error("Teklif sorgusu hatası (yolculuk):", e);
-        }
+const fetchData = async () => {
+  try {
+    const taleplerSnap = await getDocs(q1);
+    const talepler = taleplerSnap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      tur: "talep",
+    }));
 
-        return {
-          id: yolculukId,
-          ...docSnap.data(),
-          tur: "yolculuk",
-          teklifler: teklifler.filter(Boolean),
-        };
-      })
-    );
-
-    setVeriler([...talepler, ...yolculuklar]);
-  } catch (error) {
-    console.error("Veri getirme hatası:", error);
-  } finally {
-    setYukleniyor(false);
-  }
-};
+    const yolculuklarSnap = await getDocs(q2);
 
     const yolculuklar = await Promise.all(
       yolculuklarSnap.docs.map(async (docSnap) => {
         const yolculukId = docSnap.id;
         let teklifler = [];
-        try {
-          const eslesmeSnap = await getDocs(
-            query(collection(db, "eslesmeler"), where("yolculukId", "==", yolculukId))
-          );
-          teklifler = await Promise.all(
-            eslesmeSnap.docs.map(async (esDoc) => {
-              const teklifSnap = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
-              return teklifSnap.exists()
-                ? { eslesmeId: esDoc.id, id: esDoc.data().teklifId, ...teklifSnap.data() }
-                : null;
-            })
-          );
-        } catch (e) {
-          console.error("Teklif sorgusu hatası (yolculuk):", e);
-        }
+
+        const tekliflerRef = collection(firestore, "teklifler");
+        const tekliflerQ = query(
+          tekliflerRef,
+          where("yolculukId", "==", yolculukId)
+        );
+        const tekliflerSnap = await getDocs(tekliflerQ);
+        teklifler = tekliflerSnap.docs.map((doc) => doc.data());
 
         return {
           id: yolculukId,
           ...docSnap.data(),
           tur: "yolculuk",
-          teklifler: teklifler.filter(Boolean),
+          teklifler,
         };
       })
     );
