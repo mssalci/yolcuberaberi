@@ -27,8 +27,7 @@ export default function Taleplerim() {
     return () => unsubscribe();
   }, []);
 
- 
-      const fetchData = async () => {
+ const fetchData = async () => {
   if (!user?.uid) return;
 
   setYukleniyor(true);
@@ -66,6 +65,43 @@ export default function Taleplerim() {
         };
       })
     );
+
+    const yolculuklar = await Promise.all(
+      yolculuklarSnap.docs.map(async (docSnap) => {
+        const yolculukId = docSnap.id;
+        let teklifler = [];
+        try {
+          const eslesmeSnap = await getDocs(
+            query(collection(db, "eslesmeler"), where("yolculukId", "==", yolculukId))
+          );
+          teklifler = await Promise.all(
+            eslesmeSnap.docs.map(async (esDoc) => {
+              const teklifSnap = await getDoc(doc(db, "teklifler", esDoc.data().teklifId));
+              return teklifSnap.exists()
+                ? { eslesmeId: esDoc.id, id: esDoc.data().teklifId, ...teklifSnap.data() }
+                : null;
+            })
+          );
+        } catch (e) {
+          console.error("Teklif sorgusu hatası (yolculuk):", e);
+        }
+
+        return {
+          id: yolculukId,
+          ...docSnap.data(),
+          tur: "yolculuk",
+          teklifler: teklifler.filter(Boolean),
+        };
+      })
+    );
+
+    setVeriler([...talepler, ...yolculuklar]);
+  } catch (error) {
+    console.error("Veri getirme hatası:", error);
+  } finally {
+    setYukleniyor(false);
+  }
+};
 
     const yolculuklar = await Promise.all(
       yolculuklarSnap.docs.map(async (docSnap) => {
