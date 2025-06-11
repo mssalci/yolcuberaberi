@@ -12,11 +12,14 @@ export default function EslesmeTaleplerim() {
   const [user, setUser] = useState(null);
   const [veriler, setVeriler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (kullanici) => {
       if (kullanici) {
         setUser(kullanici);
+      } else {
+        setUser(null);
       }
     });
     return () => unsubscribe();
@@ -26,73 +29,43 @@ export default function EslesmeTaleplerim() {
     const fetchData = async () => {
       if (!user) return;
 
+      setMessage("Veriler yükleniyor...");
       setYukleniyor(true);
 
-      const [talepSnap, yolculukSnap, teklifSnap] = await Promise.all([
-        getDocs(query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))),
-        getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
-        getDocs(collection(db, "teklifler")),
-      ]);
+      const talepSnap = await getDocs(query(collection(db, "talepler"), where("kullaniciId", "==", user.uid)));
 
-      const teklifler = teklifSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setMessage(`Talep sayısı: ${talepSnap.size}`);
 
       const talepler = talepSnap.docs.map((doc) => {
-        const veri = { id: doc.id, ...doc.data(), tur: "talep" };
-        veri.teklifler = teklifler.filter((t) => t.talepId === veri.id);
-        return veri;
+        return { id: doc.id, ...doc.data(), tur: "talep", teklifler: [] };
       });
 
-      const yolculuklar = yolculukSnap.docs.map((doc) => {
-        const veri = { id: doc.id, ...doc.data(), tur: "yolculuk" };
-        veri.teklifler = teklifler.filter((t) => t.yolculukId === veri.id);
-        return veri;
-      });
-
-      setVeriler([...talepler, ...yolculuklar]);
+      setVeriler(talepler);
       setYukleniyor(false);
     };
 
     fetchData();
   }, [user]);
 
-  if (yukleniyor) return <p>Yükleniyor...</p>;
-
   return (
     <div className="space-y-6">
-      {veriler.length === 0 ? (
-        <p>Henüz talep veya yolculuk oluşturmadınız.</p>
-      ) : (
+      <p>Mesaj: {message}</p>
+      <p>Yükleniyor: {yukleniyor ? "Evet" : "Hayır"}</p>
+      <p>Kullanıcı: {user ? user.uid : "Yok"}</p>
+      <p>Veri sayısı: {veriler.length}</p>
+
+      {yukleniyor && <p>Yükleniyor...</p>}
+
+      {!yukleniyor && veriler.length === 0 && <p>Henüz talep oluşturmadınız.</p>}
+
+      {!yukleniyor && veriler.length > 0 &&
         veriler.map((item) => (
-          <div
-            key={item.id}
-            className="border rounded p-4 bg-white shadow"
-          >
-            <h3 className="font-bold">
-              {item.tur === "talep" ? `Talep: ${item.baslik}` : `Yolculuk: ${item.kalkis} → ${item.varis}`}
-            </h3>
-
-            <p className="text-sm text-gray-600">
-              {item.tur === "talep"
-                ? `Ülke: ${item.ulke} • Bütçe: ₺${item.butce || "-"}`
-                : `Tarih: ${item.tarih || "-"}`}
-            </p>
-
-            {item.teklifler.length > 0 ? (
-              <ul className="mt-2 space-y-1 text-sm">
-                {item.teklifler.map((teklif) => (
-                  <li key={teklif.id} className="border p-2 rounded bg-gray-50">
-                    {teklif.fiyat}₺ — {teklif.tarih}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm italic text-gray-500 mt-2">
-                Henüz teklif yok.
-              </p>
-            )}
+          <div key={item.id} className="border rounded p-4 bg-white shadow">
+            <h3 className="font-bold">Talep: {item.baslik}</h3>
+            <p className="text-sm text-gray-600">Ülke: {item.ulke} • Bütçe: ₺{item.butce || "-"}</p>
           </div>
         ))
-      )}
+      }
     </div>
   );
-}
+      }
