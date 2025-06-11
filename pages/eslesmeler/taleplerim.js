@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "../../firebase/firebaseConfig";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import GirisUyari from "../../components/GirisUyari";
 
 export default function Taleplerim() {
-  const [user, setUser] = useState(null);
   const [talepler, setTalepler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [user, setUser] = useState(null);
   const [kontrolEdildi, setKontrolEdildi] = useState(false);
 
   useEffect(() => {
@@ -18,22 +18,23 @@ export default function Taleplerim() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-
     const fetchTalepler = async () => {
+      if (!user) return;
       setYukleniyor(true);
-      try {
-        const taleplerRef = collection(db, "talepler");
-        const snapshot = await getDocs(taleplerRef);
 
-        const taleplerListesi = snapshot.docs.map((doc) => ({
+      try {
+        const taleplerSnap = await getDocs(
+          query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))
+        );
+
+        const taleplerArr = taleplerSnap.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
 
-        setTalepler(taleplerListesi);
+        setTalepler(taleplerArr);
       } catch (error) {
-        console.error("Talepler alınırken hata oluştu:", error);
+        console.error("Talepler alınırken hata:", error);
       } finally {
         setYukleniyor(false);
       }
@@ -43,25 +44,26 @@ export default function Taleplerim() {
   }, [user]);
 
   if (!kontrolEdildi) return null;
-
   if (!user) return <GirisUyari />;
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Taleplerim</h1>
-      <p>Kullanıcı ID: {user?.uid || "Yükleniyor..."}</p>
 
       {yukleniyor ? (
         <p>Yükleniyor...</p>
       ) : talepler.length === 0 ? (
-        <p>Hiç talep bulunamadı.</p>
+        <p>Henüz talebiniz bulunmamaktadır.</p>
       ) : (
         <ul className="space-y-4">
           {talepler.map((talep) => (
             <li key={talep.id} className="border p-4 rounded bg-white shadow">
-              <h2 className="text-lg font-semibold">{talep.baslik || "Başlık yok"}</h2>
-              <p className="text-gray-600">{talep.aciklama || "Açıklama yok"}</p>
-              <p className="text-sm mt-1">Kategori: {talep.kategori || "Belirtilmemiş"}</p>
+              <h2 className="font-semibold text-lg">{talep.baslik || "Başlıksız Talep"}</h2>
+              <p><strong>Açıklama:</strong> {talep.aciklama || "-"}</p>
+              <p><strong>Bütçe:</strong> ₺{talep.butce || "-"}</p>
+              <p><strong>Kategori:</strong> {talep.kategori || "-"}</p>
+              <p><strong>Ülke:</strong> {talep.ulke || "-"}</p>
+              <p><strong>Tarih:</strong> {talep.tarih?.toDate ? talep.tarih.toDate().toLocaleString() : talep.tarih || "-"}</p>
             </li>
           ))}
         </ul>
