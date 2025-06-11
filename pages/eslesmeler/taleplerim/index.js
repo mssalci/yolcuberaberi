@@ -2,8 +2,6 @@ import { useRouter } from "next/router";
 import {
   collection,
   getDocs,
-  query,
-  where,
   doc,
   deleteDoc,
 } from "firebase/firestore";
@@ -20,7 +18,10 @@ export default function Taleplerim() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (kullanici) => {
-      if (kullanici) setUser(kullanici);
+      if (kullanici) {
+        console.log("Aktif kullanıcı ID:", kullanici.uid);
+        setUser(kullanici);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -31,23 +32,30 @@ export default function Taleplerim() {
     const fetchData = async () => {
       setYukleniyor(true);
       try {
+        // Verileri çek
         const [tSnap, ySnap, teklifSnap] = await Promise.all([
-          getDocs(query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))),
+          getDocs(collection(db, "talepler")), // filtre yok
           getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
           getDocs(collection(db, "teklifler")),
         ]);
 
         const teklifler = teklifSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        const talepler = tSnap.docs.map(docSnap => {
-          const data = docSnap.data();
-          return {
-            id: docSnap.id,
-            tur: "talep",
-            ...data,
-            teklifler: teklifler.filter(t => t.talepId === docSnap.id),
-          };
-        });
+        console.log("Tüm taleplerin sayısı:", tSnap.docs.length);
+
+        const talepler = tSnap.docs
+          .map(docSnap => {
+            const data = docSnap.data();
+            return {
+              id: docSnap.id,
+              tur: "talep",
+              ...data,
+              teklifler: teklifler.filter(t => t.talepId === docSnap.id),
+            };
+          })
+          .filter(t => t.kullaniciId === user.uid); // filtre burada
+
+        console.log("Kullanıcıya ait filtrelenmiş talepler:", talepler);
 
         const yolculuklar = ySnap.docs.map(docSnap => {
           const data = docSnap.data();
@@ -98,7 +106,7 @@ export default function Taleplerim() {
                   <p className="text-sm text-gray-600">
                     {item.tur === "talep"
                       ? `Ülke: ${item.ulke} • Bütçe: ₺${item.butce || "-"}`
-                      : `Tarih: ${item.tarih?.toDate?.().toLocaleString?.() || "-"}`}
+                      : `Tarih: ${item.tarih || "-"}`}
                   </p>
                 </div>
                 <button
@@ -110,15 +118,14 @@ export default function Taleplerim() {
                 </button>
               </div>
 
+              {/* Teklifler varsa göster */}
               {item.teklifler.length > 0 ? (
                 <div className="mt-2">
                   <h4 className="text-sm font-semibold mb-1">Teklifler:</h4>
                   {item.teklifler.map((t, i) => (
                     <div key={i} className="p-2 border rounded bg-gray-50 mb-2">
                       <div className="flex justify-between">
-                        <span className="text-gray-700">
-                          ₺{t.fiyat} — {t.tarih?.toDate?.().toLocaleString?.() || "-"}
-                        </span>
+                        <span className="text-gray-700">₺{t.fiyat} — {t.tarih}</span>
                         {t.eslesmeId && (
                           <button
                             onClick={() => router.push(`/chat/${t.eslesmeId}`)}
@@ -139,4 +146,4 @@ export default function Taleplerim() {
       )}
     </main>
   );
-}
+                    }
