@@ -1,7 +1,7 @@
 // pages/eslesmeler/taleplerim.js
 
 import { useEffect, useState } from "react";
-import { auth, db } from "../../firebase/firebaseConfig";
+import { auth, db } from "../../../firebase/firebaseConfig";
 import {
   collection,
   getDocs,
