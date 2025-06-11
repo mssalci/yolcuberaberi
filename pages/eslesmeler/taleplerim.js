@@ -90,7 +90,7 @@ export default function Taleplerim() {
             {`Kalkış: ${yolculuk.kalkis || "-"} - Varış: ${yolculuk.varis || "-"}`}
           </h3>
           <p><strong>Not:</strong> {yolculuk.not || "-"}</p>
-          <p><strong>Oluşturna Tarihi:</strong> {
+          <p><strong>Yolculuk Tarihi:</strong> {
             yolculuk.tarihOlusturma?.toDate
               ? yolculuk.tarihOlusturma.toDate().toLocaleDateString()
               : yolculuk.tarih || "-"
