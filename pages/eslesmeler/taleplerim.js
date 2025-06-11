@@ -210,12 +210,14 @@ export default function Taleplerim() {
                         <p>Fiyat: ₺{teklif.fiyat}</p>
                         <p>Not: {teklif.not || "-"}</p>
                         </span>
-                              <p><Link href={`/eslesmeler/tekliflerim/${teklif.id}`} className="text-blue-600 underline">
+                        <div className="flex flex-wrap gap-4 pt-2">
+                        <Link href={`/eslesmeler/tekliflerim/${teklif.id}`} className="text-blue-600 underline">
                                 Teklif Detayı
-                              </Link></p>
-                              <p><Link href={`/chat/${teklif.id}`} className="text-green-600 underline">
+                              </Link>
+                        <Link href={`/chat/${teklif.id}`} className="text-green-600 underline">
                                 Mesajlaş
-                              </Link></p>
+                              </Link>
+                        </div>
                             </li>
                           ))}
                         </ul>
