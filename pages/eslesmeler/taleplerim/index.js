@@ -2,6 +2,8 @@ import { useRouter } from "next/router";
 import {
   collection,
   getDocs,
+  query,
+  where,
   doc,
   deleteDoc,
 } from "firebase/firestore";
@@ -14,62 +16,63 @@ export default function Taleplerim() {
   const [user, setUser] = useState(null);
   const [veriler, setVeriler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [hataMesaji, setHataMesaji] = useState("");
   const [isDeleting, setIsDeleting] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (kullanici) => {
       if (kullanici) {
-        console.log("Aktif kullanıcı ID:", kullanici.uid);
         setUser(kullanici);
+      } else {
+        setHataMesaji("Kullanıcı oturum açmamış.");
       }
     });
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!user?.uid) return;
-
     const fetchData = async () => {
+      if (!user?.uid) {
+        setHataMesaji("Kullanıcı bilgisi alınamadı.");
+        return;
+      }
+
       setYukleniyor(true);
       try {
-        // Verileri çek
         const [tSnap, ySnap, teklifSnap] = await Promise.all([
-          getDocs(collection(db, "talepler")), // filtre yok
-          getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
+          getDocs(collection(db, "talepler")),
+          getDocs(collection(db, "yolculuklar")),
           getDocs(collection(db, "teklifler")),
         ]);
 
-        const teklifler = teklifSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        console.log("Tüm taleplerin sayısı:", tSnap.docs.length);
+        const teklifler = teklifSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
         const talepler = tSnap.docs
-          .map(docSnap => {
-            const data = docSnap.data();
-            return {
-              id: docSnap.id,
-              tur: "talep",
-              ...data,
-              teklifler: teklifler.filter(t => t.talepId === docSnap.id),
-            };
-          })
-          .filter(t => t.kullaniciId === user.uid); // filtre burada
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter((talep) => talep.kullaniciId === user.uid)
+          .map((talep) => ({
+            ...talep,
+            tur: "talep",
+            teklifler: teklifler.filter((t) => t.talepId === talep.id),
+          }));
 
-        console.log("Kullanıcıya ait filtrelenmiş talepler:", talepler);
-
-        const yolculuklar = ySnap.docs.map(docSnap => {
-          const data = docSnap.data();
-          return {
-            id: docSnap.id,
+        const yolculuklar = ySnap.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter((yolculuk) => yolculuk.kullaniciId === user.uid)
+          .map((yolculuk) => ({
+            ...yolculuk,
             tur: "yolculuk",
-            ...data,
-            teklifler: teklifler.filter(t => t.yolculukId === docSnap.id),
-          };
-        });
+            teklifler: teklifler.filter((t) => t.yolculukId === yolculuk.id),
+          }));
 
         setVeriler([...talepler, ...yolculuklar]);
+        setHataMesaji(`Talepler bulundu: ${talepler.length}`);
       } catch (e) {
         console.error("Veri çekme hatası:", e);
+        setHataMesaji("Veriler alınırken hata oluştu.");
       } finally {
         setYukleniyor(false);
       }
@@ -82,7 +85,7 @@ export default function Taleplerim() {
     if (!confirm("Silmek istediğine emin misin?")) return;
     setIsDeleting(item.id);
     await deleteDoc(doc(db, `${item.tur}ler`, item.id));
-    setVeriler(prev => prev.filter(v => v.id !== item.id));
+    setVeriler((prev) => prev.filter((v) => v.id !== item.id));
     setIsDeleting(null);
   };
 
@@ -92,16 +95,22 @@ export default function Taleplerim() {
     <main className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Taleplerim ve Yolculuklarım</h1>
 
+      {hataMesaji && (
+        <p className="text-red-600 text-sm mb-4 font-semibold">{hataMesaji}</p>
+      )}
+
       {veriler.length === 0 ? (
         <p>Henüz talep veya yolculuk oluşturmadınız.</p>
       ) : (
         <ul className="space-y-6">
-          {veriler.map(item => (
+          {veriler.map((item) => (
             <li key={item.id} className="border p-4 rounded bg-white shadow-sm">
               <div className="flex justify-between items-center mb-3">
                 <div>
                   <h3 className="font-bold">
-                    {item.tur === "talep" ? `Talep: ${item.baslik}` : `Yolculuk: ${item.kalkis} → ${item.varis}`}
+                    {item.tur === "talep"
+                      ? `Talep: ${item.baslik}`
+                      : `Yolculuk: ${item.kalkis} → ${item.varis}`}
                   </h3>
                   <p className="text-sm text-gray-600">
                     {item.tur === "talep"
@@ -118,19 +127,22 @@ export default function Taleplerim() {
                 </button>
               </div>
 
-              {/* Teklifler varsa göster */}
               {item.teklifler.length > 0 ? (
                 <div className="mt-2">
                   <h4 className="text-sm font-semibold mb-1">Teklifler:</h4>
                   {item.teklifler.map((t, i) => (
                     <div key={i} className="p-2 border rounded bg-gray-50 mb-2">
                       <div className="flex justify-between">
-                        <span className="text-gray-700">₺{t.fiyat} — {t.tarih}</span>
+                        <span className="text-gray-700">
+                          ₺{t.fiyat} — {t.tarih}
+                        </span>
                         {t.eslesmeId && (
                           <button
                             onClick={() => router.push(`/chat/${t.eslesmeId}`)}
                             className="text-blue-600 hover:underline text-sm"
-                          >Mesajlaş</button>
+                          >
+                            Mesajlaş
+                          </button>
                         )}
                       </div>
                       {t.not && <p className="mt-1 text-gray-600">{t.not}</p>}
@@ -146,4 +158,4 @@ export default function Taleplerim() {
       )}
     </main>
   );
-                    }
+}
