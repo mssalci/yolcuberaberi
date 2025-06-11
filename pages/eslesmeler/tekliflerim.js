@@ -92,12 +92,12 @@ export default function Tekliflerim() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Verdiğim Tekliflerden Eşleşenler</h1>
+      <h1 className="text-2xl font-bold mb-6">Tekliflerim</h1>
 
       {yukleniyor ? (
         <p>Yükleniyor...</p>
       ) : eslesmeler.length === 0 ? (
-        <p>Henüz eşleşmiş teklifin yok.</p>
+        <p>Henüz teklifin yok.</p>
       ) : (
         <ul className="space-y-4">
           {eslesmeler.map((e) => (
@@ -105,7 +105,6 @@ export default function Tekliflerim() {
               {e.tip === "talep" && e.talep ? (
                 <>
                   <p className="font-semibold">Talep: {e.talep.baslik || "-"}</p>
-                  <p className="text-sm text-gray-600">Kategori: {e.talep.kategori || "-"}</p>
                   <p className="text-sm text-gray-600">Açıklama: {e.talep.aciklama || "-"}</p>
                 </>
               ) : (
