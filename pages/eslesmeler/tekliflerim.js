@@ -104,8 +104,8 @@ export default function Tekliflerim() {
             <li key={e.id} className="border p-4 rounded bg-white shadow space-y-2">
               {e.tip === "talep" && e.talep ? (
                 <>
-                  <p className="font-semibold">Talep: {e.talep.baslik || "-"}</p>
-                  <p className="text-sm text-gray-600">Açıklama: {e.talep.aciklama || "-"}</p>
+                  <p className="font-semibold">Talep Başlık: {e.talep.baslik || "-"}</p>
+                  <p className="text-sm text-gray-600">Talep Açıklama: {e.talep.aciklama || "-"}</p>
                 </>
               ) : (
                 <p>Bilinmeyen eşleşme türü</p>
@@ -113,8 +113,8 @@ export default function Tekliflerim() {
 
               {e.teklif && (
                 <>
-                  <p className="text-sm text-gray-600">Fiyat: ₺{e.teklif.fiyat}</p>
-                  <p className="text-sm text-gray-600">Not: {e.teklif.not || "-"}</p>
+                  <p className="text-sm text-gray-600">Teklif Fiyatı: ₺{e.teklif.fiyat}</p>
+                  <p className="text-sm text-gray-600">Teklif Notu: {e.teklif.not || "-"}</p>
 
                   <div className="flex flex-wrap gap-4 pt-2">
                     <Link href={`/eslesmeler/tekliflerim/${e.teklif.id}`} className="text-blue-600 underline">
