@@ -136,8 +136,7 @@ export default function Taleplerim() {
               <ul className="space-y-4">
                 {talepler.map((talep) => (
                   <li key={talep.id} className="border p-4 rounded bg-white shadow space-y-2">
-                    <p className="font-semibold">Başlık: {talep.baslik || "-"}</p>
-                    <p>Kategori: {talep.kategori || "-"}</p>
+                    <p className="font-semibold">Talep: {talep.baslik || "-"}</p>
                     <p>Açıklama: {talep.aciklama || "-"}</p>
                     <p>Bütçe: ₺{talep.butce || "-"}</p>
 
@@ -189,7 +188,7 @@ export default function Taleplerim() {
                     </p>
                     <p><strong>Not:</strong> {yolculuk.not || "-"}</p>
                     <p>
-                      <strong>Tarih:</strong>{" "}
+                      <strong>Yolculuk Tarihi:</strong>{" "}
                       {yolculuk.tarihOlusturma?.toDate
                         ? yolculuk.tarihOlusturma.toDate().toLocaleDateString()
                         : yolculuk.tarih || "-"}
@@ -204,7 +203,10 @@ export default function Taleplerim() {
                         <ul className="space-y-1">
                           {yolculuk.teklifler.map((teklif) => (
                             <li key={teklif.id} className="flex gap-3 items-center text-sm">
-                              <span>Fiyat: ₺{teklif.fiyat} - Not: {teklif.not || "-"}</span>
+                              <span>
+                              Fiyat: ₺{teklif.fiyat}
+                              Not: {teklif.not || "-"}
+                              </span>
                               <Link href={`/eslesmeler/tekliflerim/${teklif.id}`} className="text-blue-600 underline">
                                 Teklif Detayı
                               </Link>
