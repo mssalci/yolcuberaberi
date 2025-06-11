@@ -1,22 +1,20 @@
+// /pages/eslesmeler/Taleplerim.js
 import { useEffect, useState } from "react";
-import { auth, db } from "../../firebase/firebaseConfig";
+import { auth, db } from "@/firebase/firebaseConfig";
 import {
   collection,
   getDocs,
   query,
   where,
-  doc,
-  getDoc,
-  deleteDoc,
 } from "firebase/firestore";
+import GirisUyari from "@/components/GirisUyari";
 import Link from "next/link";
-import GirisUyari from "../../components/GirisUyari";
 
 export default function Taleplerim() {
-  const [eslesmeler, setEslesmeler] = useState([]);
-  const [yukleniyor, setYukleniyor] = useState(true);
   const [user, setUser] = useState(null);
   const [kontrolEdildi, setKontrolEdildi] = useState(false);
+  const [talepler, setTalepler] = useState([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((usr) => {
@@ -27,117 +25,84 @@ export default function Taleplerim() {
   }, []);
 
   useEffect(() => {
-    const fetchEslesmeler = async () => {
+    const fetchTalepler = async () => {
       if (!user) return;
+
       setYukleniyor(true);
 
       try {
-        const taleplerSnap = await getDocs(
-          query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))
-        );
+        const taleplerRef = collection(db, "talepler");
+        const q = query(taleplerRef, where("talepEdenId", "==", user.uid));
+        const querySnapshot = await getDocs(q);
 
-        const eslesmelerArr = [];
+        const taleplerData = [];
 
-        for (const talepDoc of taleplerSnap.docs) {
-          const esSnap = await getDocs(
-            query(collection(db, "eslesmeler"), where("talepId", "==", talepDoc.id))
+        for (const docu of querySnapshot.docs) {
+          const talep = { id: docu.id, ...docu.data() };
+
+          // Bu talebe teklif gelmiş mi kontrol et
+          const teklifQuery = query(
+            collection(db, "teklifler"),
+            where("talepId", "==", docu.id)
           );
-          for (const esDoc of esSnap.docs) {
-            const esData = esDoc.data();
-            const teklifDoc = await getDoc(doc(db, "teklifler", esData.teklifId));
-            let teklifVerenAdi = "-";
-            if (teklifDoc.exists()) {
-              const teklifData = teklifDoc.data();
-              if (teklifData.teklifVerenId) {
-                const kullaniciDoc = await getDoc(doc(db, "kullanicilar", teklifData.teklifVerenId));
-                teklifVerenAdi = kullaniciDoc.exists() ? kullaniciDoc.data().adSoyad || "-" : "-";
-              }
-            }
+          const teklifSnap = await getDocs(teklifQuery);
 
-            eslesmelerArr.push({
-              id: esDoc.id,
-              tip: "talep",
-              talep: { id: talepDoc.id, ...talepDoc.data() },
-              teklif: teklifDoc.exists() ? teklifDoc.data() : null,
-              teklifId: esData.teklifId,
-              teklifVerenId: esData.teklifVerenId,
-              teklifVerenAdi,
-            });
-          }
+          talep.teklifSayisi = teklifSnap.size;
+          talep.teklifler = teklifSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+          taleplerData.push(talep);
         }
 
-        setEslesmeler(eslesmelerArr);
-      } catch (error) {
-        console.error("Eşleşmeler alınırken hata:", error);
+        setTalepler(taleplerData);
+      } catch (err) {
+        console.error("Talepler alınırken hata:", err);
       } finally {
         setYukleniyor(false);
       }
     };
 
-    fetchEslesmeler();
+    fetchTalepler();
   }, [user]);
-
-  const eslesmeSil = async (eslesmeId, teklifId, talepId) => {
-    if (!confirm("Bu eşleşmeyi ve ilişkili verileri silmek istediğinize emin misiniz?")) return;
-    try {
-      await deleteDoc(doc(db, "eslesmeler", eslesmeId));
-      if (teklifId) await deleteDoc(doc(db, "teklifler", teklifId));
-      if (talepId) await deleteDoc(doc(db, "talepler", talepId));
-      setEslesmeler((prev) => prev.filter((e) => e.id !== eslesmeId));
-      alert("Eşleşme ve ilişkili veriler silindi.");
-    } catch (err) {
-      console.error("Silme hatası:", err);
-      alert("Silme işlemi sırasında hata oluştu.");
-    }
-  };
 
   if (!kontrolEdildi) return null;
   if (!user) return <GirisUyari />;
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Taleplerim Eşleşmeleri</h1>
+    <div>
+      <h2 className="text-xl font-bold mb-4">Taleplerim</h2>
 
       {yukleniyor ? (
         <p>Yükleniyor...</p>
-      ) : eslesmeler.length === 0 ? (
-        <p>Hiç eşleşme bulunamadı.</p>
+      ) : talepler.length === 0 ? (
+        <p>Henüz hiç talep oluşturmadınız.</p>
       ) : (
         <ul className="space-y-4">
-          {eslesmeler.map((e) => (
-            <li key={e.id} className="border p-4 rounded bg-white shadow space-y-2">
-              <p className="font-semibold">Talep: {e.talep.baslik || "-"}</p>
-              <p className="text-sm text-gray-600">Kategori: {e.talep.kategori || "-"}</p>
-              <p className="text-sm text-gray-600">Açıklama: {e.talep.aciklama || "-"}</p>
+          {talepler.map((talep) => (
+            <li key={talep.id} className="border p-4 rounded bg-white shadow">
+              <p className="font-semibold">{talep.baslik}</p>
+              <p className="text-sm text-gray-600">{talep.aciklama}</p>
+              <p className="text-sm text-gray-600">Kategori: {talep.kategori}</p>
+              <p className="text-sm">
+                Teklif Sayısı: {talep.teklifSayisi}
+              </p>
 
-              {e.teklif && (
-                <>
-                  <p className="text-sm text-gray-600">Fiyat: ₺{e.teklif.fiyat}</p>
-                  <p className="text-sm text-gray-600">Not: {e.teklif.not || "-"}</p>
-                  <p className="text-sm text-gray-600">Teklif Veren: {e.teklifVerenAdi || "-"}</p>
-
-                  <div className="flex gap-3 pt-2">
-                    <Link href={`/eslesmeler/tekliflerim/${e.teklifId}`} className="text-blue-600 underline">
-                      Teklif Detayı
-                    </Link>
-                    <Link href={`/chat/${e.id}`} className="text-green-600 underline">
-                      Mesajlaş
-                    </Link>
-                    {e.teklifVerenId === user.uid && (
-                      <button
-                        onClick={() => eslesmeSil(e.id, e.teklifId, e.talep.id)}
-                        className="text-red-600 underline"
-                      >
-                        Eşleşmeyi ve Teklifi Sil
-                      </button>
-                    )}
-                  </div>
-                </>
+              {talep.teklifSayisi > 0 && (
+                <ul className="ml-4 mt-2 space-y-1 text-sm">
+                  {talep.teklifler.map((t) => (
+                    <li key={t.id} className="text-gray-700">
+                      ₺{t.fiyat} - {t.not || "Not yok"}
+                      {" - "}
+                      <Link href={`/chat/${t.id}`} className="text-blue-600 underline ml-1">
+                        Mesajlaş
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               )}
             </li>
           ))}
         </ul>
       )}
-    </main>
+    </div>
   );
-                }
+        }
