@@ -65,27 +65,28 @@ export default function Profil() {
   };
 
   const handleSave = async () => {
-    try {
-      if (!user) return;
+  try {
+    if (!user) return;
 
-      await setDoc(doc(db, "kullanicilar", user.uid), {
-        adSoyad,
-        iban,
-        email: user.email,
-      });
+    await setDoc(doc(db, "kullanicilar", user.uid), {
+      uid: user.uid, // 🔹 EKLENDİ
+      adSoyad,
+      iban,
+      email: user.email,
+    });
 
-      await updateProfile(user, { displayName: adSoyad });
+    await updateProfile(user, { displayName: adSoyad });
 
-      await auth.currentUser.reload();
-      setUser(auth.currentUser);
+    await auth.currentUser.reload();
+    setUser(auth.currentUser);
 
-      alert("Profil başarıyla güncellendi.");
-      router.reload();
-    } catch (error) {
-      console.error("Güncelleme hatası:", error);
-      alert("Profil güncellenemedi.");
-    }
-  };
+    alert("Profil başarıyla güncellendi.");
+    router.reload();
+  } catch (error) {
+    console.error("Güncelleme hatası:", error);
+    alert("Profil güncellenemedi.");
+  }
+};
 
   const handleHesapSil = async () => {
     const onay = confirm("Hesabınızı silmek istediğinizden emin misiniz?");
