@@ -1,7 +1,14 @@
 import { useState, useEffect } from "react";
-import { getAuth } from "firebase/auth";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { auth, db } from "../../firebase/firebaseConfig";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  doc,
+  getDoc,
+  deleteDoc,
+} from "firebase/firestore";
 
 export default function Eslesmeler() {
   const [aktifSekme, setAktifSekme] = useState("tekliflerim");
