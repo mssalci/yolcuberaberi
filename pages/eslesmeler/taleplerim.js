@@ -67,10 +67,9 @@ export default function Taleplerim() {
               <ul className="space-y-4">
                 {talepler.map((talep) => (
                   <li key={talep.id} className="border p-4 rounded bg-white shadow">
-                    <h3 className="font-semibold text-lg">{talep.baslik || "Başlıksız Talep"}</h3>
+                    <h3 className="font-semibold text-lg">{talep.baslik || "-"}</h3>
                     <p><strong>Açıklama:</strong> {talep.aciklama || "-"}</p>
                     <p><strong>Bütçe:</strong> ₺{talep.butce || "-"}</p>
-                    <p><strong>Kategori:</strong> {talep.kategori || "-"}</p>
                     <p><strong>Ülke:</strong> {talep.ulke || "-"}</p>
                     <p><strong>Tarih:</strong> {talep.tarih?.toDate ? talep.tarih.toDate().toLocaleString() : talep.tarih || "-"}</p>
                   </li>
@@ -91,7 +90,7 @@ export default function Taleplerim() {
             {`Kalkış: ${yolculuk.kalkis || "-"} - Varış: ${yolculuk.varis || "-"}`}
           </h3>
           <p><strong>Not:</strong> {yolculuk.not || "-"}</p>
-          <p><strong>Tarih:</strong> {
+          <p><strong>Oluşturna Tarihi:</strong> {
             yolculuk.tarihOlusturma?.toDate
               ? yolculuk.tarihOlusturma.toDate().toLocaleDateString()
               : yolculuk.tarih || "-"
