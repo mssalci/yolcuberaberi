@@ -1,14 +1,10 @@
-// pages/eslesmeler/taleplerim/index.js
-
 import { useRouter } from "next/router";
-import Link from "next/link";
 import {
   collection,
   getDocs,
   query,
   where,
   doc,
-  getDoc,
   deleteDoc,
 } from "firebase/firestore";
 import { db, auth } from "../../../firebase/firebaseConfig";
@@ -16,17 +12,16 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function Taleplerim() {
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [veriler, setVeriler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [isDeleting, setIsDeleting] = useState(null);
-  const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, (kullanici) => {
+      if (kullanici) setUser(kullanici);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -36,46 +31,37 @@ export default function Taleplerim() {
     const fetchData = async () => {
       setYukleniyor(true);
       try {
-        const [tSnap, ySnap] = await Promise.all([
+        const [tSnap, ySnap, teklifsSnap] = await Promise.all([
           getDocs(query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))),
           getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
+          getDocs(collection(db, "teklifler")),
         ]);
 
-        const talepler = await Promise.all(
-          tSnap.docs.map(async (docSnap) => {
-            const data = docSnap.data();
-            const tekliflerSnap = await getDocs(
-              query(collection(db, "teklifler"), where("talepId", "==", docSnap.id))
-            );
-            const teklifler = tekliflerSnap.docs.map((d) => d.data());
-            return {
-              id: docSnap.id,
-              tur: "talep",
-              ...data,
-              teklifler,
-            };
-          })
-        );
+        const teklifler = teklifsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        const yolculuklar = await Promise.all(
-          ySnap.docs.map(async (docSnap) => {
-            const data = docSnap.data();
-            const tekliflerSnap = await getDocs(
-              query(collection(db, "teklifler"), where("yolculukId", "==", docSnap.id))
-            );
-            const teklifler = tekliflerSnap.docs.map((d) => d.data());
-            return {
-              id: docSnap.id,
-              tur: "yolculuk",
-              ...data,
-              teklifler,
-            };
-          })
-        );
+        const talepler = tSnap.docs.map(docSnap => {
+          const data = docSnap.data();
+          return {
+            id: docSnap.id,
+            tur: "talep",
+            ...data,
+            teklifler: teklifler.filter(t => t.talepId === docSnap.id),
+          };
+        });
+
+        const yolculuklar = ySnap.docs.map(docSnap => {
+          const data = docSnap.data();
+          return {
+            id: docSnap.id,
+            tur: "yolculuk",
+            ...data,
+            teklifler: teklifler.filter(t => t.yolculukId === docSnap.id),
+          };
+        });
 
         setVeriler([...talepler, ...yolculuklar]);
       } catch (e) {
-        console.error(e);
+        console.error("Veri çekilirken hata:", e);
       } finally {
         setYukleniyor(false);
       }
@@ -88,7 +74,7 @@ export default function Taleplerim() {
     if (!confirm(`${item.tur === "talep" ? "Talebi" : "Yolculuğu"} silmek istediğinize emin misiniz?`)) return;
     setIsDeleting(item.id);
     await deleteDoc(doc(db, `${item.tur}ler`, item.id));
-    setVeriler((prev) => prev.filter((v) => v.id !== item.id));
+    setVeriler(prev => prev.filter(v => v.id !== item.id));
     setIsDeleting(null);
   };
 
@@ -102,7 +88,7 @@ export default function Taleplerim() {
         <p>Henüz talep veya yolculuk oluşturmadınız.</p>
       ) : (
         <ul className="space-y-6">
-          {veriler.map((item) => (
+          {veriler.map(item => (
             <li key={item.id} className="border p-4 rounded bg-white shadow-sm">
               <div className="flex justify-between items-center mb-3">
                 <div>
@@ -113,7 +99,8 @@ export default function Taleplerim() {
                   <p className="text-sm text-gray-600">
                     {item.tur === "talep"
                       ? `Ülke: ${item.ulke} • Bütçe: ₺${item.butce || "-"}`
-                      : `Tarih: ${item.tarih || "-"}`}
+                      : `Tarih: ${item.tarih || "-"}`
+                    }
                   </p>
                 </div>
                 <button
@@ -124,23 +111,19 @@ export default function Taleplerim() {
                   {isDeleting === item.id ? "Siliniyor..." : "Sil"}
                 </button>
               </div>
-
+              {/* Teklifler varsa alt kısımda göster */}
               {item.teklifler?.length > 0 && (
                 <div className="mt-2">
                   <h4 className="text-sm font-semibold mb-1">Teklifler:</h4>
                   {item.teklifler.map((t, i) => (
                     <div key={i} className="p-2 border rounded bg-gray-50 mb-2">
                       <div className="flex justify-between">
-                        <span className="text-gray-700">
-                          ₺{t.fiyat} — {t.tarih}
-                        </span>
+                        <span className="text-gray-700">₺{t.fiyat} — {t.tarih}</span>
                         {t.eslesmeId && (
                           <button
                             onClick={() => router.push(`/chat/${t.eslesmeId}`)}
                             className="text-blue-600 hover:underline text-sm"
-                          >
-                            Mesajlaş
-                          </button>
+                          >Mesajlaş</button>
                         )}
                       </div>
                       {t.not && <p className="mt-1 text-gray-600">{t.not}</p>}
@@ -154,4 +137,4 @@ export default function Taleplerim() {
       )}
     </main>
   );
-}
+                    }
