@@ -153,9 +153,9 @@ export default function Taleplerim() {
                         <p>Fiyat: ₺{teklif.fiyat}</p>
                         <p>Not: {teklif.not || "-"}</p>
                         </span>
-                              <Link href={`/eslesmeler/tekliflerim/${teklif.id}`} className="text-blue-600 underline">
+                              <p><Link href={`/eslesmeler/tekliflerim/${teklif.id}`} className="text-blue-600 underline">
                                 Teklif Detayı
-                              </Link>
+                              </Link></p>
                               <Link href={`/chat/${teklif.id}`} className="text-green-600 underline">
                                 Mesajlaş
                               </Link>
@@ -169,7 +169,7 @@ export default function Taleplerim() {
                       onClick={() => silItem("talep", talep.id)}
                       className="mt-3 text-red-600 underline"
                     >
-                      Talebi ve Teklifleri Sil
+                      Talebi Sil
                     </button>
                   </li>
                 ))}
@@ -210,9 +210,9 @@ export default function Taleplerim() {
                         <p>Fiyat: ₺{teklif.fiyat}</p>
                         <p>Not: {teklif.not || "-"}</p>
                         </span>
-                              <Link href={`/eslesmeler/tekliflerim/${teklif.id}`} className="text-blue-600 underline">
+                              <p><Link href={`/eslesmeler/tekliflerim/${teklif.id}`} className="text-blue-600 underline">
                                 Teklif Detayı
-                              </Link>
+                              </Link></p>
                               <Link href={`/chat/${teklif.id}`} className="text-green-600 underline">
                                 Mesajlaş
                               </Link>
@@ -226,7 +226,7 @@ export default function Taleplerim() {
                       onClick={() => silItem("yolculuk", yolculuk.id)}
                       className="mt-3 text-red-600 underline"
                     >
-                      Yolculuğu ve Teklifleri Sil
+                      Yolculuğu Sil
                     </button>
                   </li>
                 ))}
