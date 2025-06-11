@@ -149,7 +149,10 @@ export default function Taleplerim() {
                         <ul className="space-y-1">
                           {talep.teklifler.map((teklif) => (
                             <li key={teklif.id} className="flex gap-3 items-center text-sm">
-                              <span>Fiyat: ₺{teklif.fiyat} - Not: {teklif.not || "-"}</span>
+                              <span>
+                        <p>Fiyat: ₺{teklif.fiyat}</p>
+                        <p>Not: {teklif.not || "-"}</p>
+                        </span>
                               <Link href={`/eslesmeler/tekliflerim/${teklif.id}`} className="text-blue-600 underline">
                                 Teklif Detayı
                               </Link>
@@ -204,9 +207,9 @@ export default function Taleplerim() {
                           {yolculuk.teklifler.map((teklif) => (
                             <li key={teklif.id} className="flex gap-3 items-center text-sm">
                               <span>
-                              Fiyat: ₺{teklif.fiyat}
-                              Not: {teklif.not || "-"}
-                              </span>
+                        <p>Fiyat: ₺{teklif.fiyat}</p>
+                        <p>Not: {teklif.not || "-"}</p>
+                        </span>
                               <Link href={`/eslesmeler/tekliflerim/${teklif.id}`} className="text-blue-600 underline">
                                 Teklif Detayı
                               </Link>
