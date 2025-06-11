@@ -1,5 +1,3 @@
-// pages/eslesmeler/taleplerim/index.js
-
 import { useRouter } from "next/router";
 import Link from "next/link";
 import {
@@ -8,14 +6,33 @@ import {
   query,
   where,
   doc,
-  getDoc,
   deleteDoc,
 } from "firebase/firestore";
 import { db, auth } from "../../../firebase/firebaseConfig";
 import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 
-export default function Taleplerim()
-{
+export default function Taleplerim() {
+  const router = useRouter();
+
+  const [user, setUser] = useState(null);
+  const [veriler, setVeriler] = useState([]);
+  const [yukleniyor, setYukleniyor] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
+      } else {
+        setUser(null);
+        router.push("/giris"); // kullanıcı yoksa giriş sayfasına yönlendir
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   useEffect(() => {
     if (!user?.uid) return;
 
@@ -31,7 +48,7 @@ export default function Taleplerim()
           id: docSnap.id,
           tur: "talep",
           ...docSnap.data(),
-          teklifler: [], // teklifler sonradan
+          teklifler: [],
         }));
 
         const yolculuklar = ySnap.docs.map(docSnap => ({
@@ -41,7 +58,6 @@ export default function Taleplerim()
           teklifler: [],
         }));
 
-        // Şimdilik teklifleri eklemeden veriler set et. Render testi yapıldıktan sonra eklenecek.
         setVeriler([...talepler, ...yolculuklar]);
       } catch (e) {
         console.error(e);
@@ -56,9 +72,14 @@ export default function Taleplerim()
   const handleSil = async (item) => {
     if (!confirm(`${item.tur === "talep" ? "Talebi" : "Yolculuğu"} silmek istediğinize emin misiniz?`)) return;
     setIsDeleting(item.id);
-    await deleteDoc(doc(db, `${item.tur}ler`, item.id));
-    setVeriler(prev => prev.filter(v => v.id !== item.id));
-    setIsDeleting(null);
+    try {
+      await deleteDoc(doc(db, `${item.tur}ler`, item.id));
+      setVeriler(prev => prev.filter(v => v.id !== item.id));
+    } catch (err) {
+      console.error("Silme hatası:", err);
+    } finally {
+      setIsDeleting(null);
+    }
   };
 
   if (yukleniyor) return <p className="p-4 text-center">Yükleniyor...</p>;
@@ -94,7 +115,7 @@ export default function Taleplerim()
                   {isDeleting === item.id ? "Siliniyor..." : "Sil"}
                 </button>
               </div>
-              {/* Teklifler varsa alt kısımda göster */}
+
               {item.teklifler?.length > 0 && (
                 <div className="mt-2">
                   <h4 className="text-sm font-semibold mb-1">Teklifler:</h4>
@@ -118,5 +139,4 @@ export default function Taleplerim()
       )}
     </main>
   );
-                        }
-      
+                      }
