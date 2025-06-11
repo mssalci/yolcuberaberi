@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "../../firebase/firebaseConfig";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import GirisUyari from "../../components/GirisUyari";
 
 export default function Taleplerim() {
@@ -24,8 +24,7 @@ export default function Taleplerim() {
       setYukleniyor(true);
       try {
         const taleplerRef = collection(db, "talepler");
-        const q = query(taleplerRef, where("talepEdenId", "==", user.uid));
-        const snapshot = await getDocs(q);
+        const snapshot = await getDocs(taleplerRef);
 
         const taleplerListesi = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -50,11 +49,12 @@ export default function Taleplerim() {
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Taleplerim</h1>
+      <p>Kullanıcı ID: {user?.uid || "Yükleniyor..."}</p>
 
       {yukleniyor ? (
         <p>Yükleniyor...</p>
       ) : talepler.length === 0 ? (
-        <p>Hiç talep oluşturulmamış.</p>
+        <p>Hiç talep bulunamadı.</p>
       ) : (
         <ul className="space-y-4">
           {talepler.map((talep) => (
