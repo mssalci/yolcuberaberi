@@ -155,8 +155,8 @@ export default function Taleplerim() {
                         </span>
                               <p><Link href={`/eslesmeler/tekliflerim/${teklif.id}`} className="text-blue-600 underline">
                                 Teklif Detayı
-                              </Link>
-                              <Link href={`/chat/${teklif.id}`} className="text-green-600 underline">
+                              </Link></p>
+                              <p><Link href={`/chat/${teklif.id}`} className="text-green-600 underline">
                                 Mesajlaş
                               </Link></p>
                             </li>
@@ -212,8 +212,8 @@ export default function Taleplerim() {
                         </span>
                               <p><Link href={`/eslesmeler/tekliflerim/${teklif.id}`} className="text-blue-600 underline">
                                 Teklif Detayı
-                              </Link>
-                              <Link href={`/chat/${teklif.id}`} className="text-green-600 underline">
+                              </Link></p>
+                              <p><Link href={`/chat/${teklif.id}`} className="text-green-600 underline">
                                 Mesajlaş
                               </Link></p>
                             </li>
