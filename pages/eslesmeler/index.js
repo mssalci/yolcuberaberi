@@ -16,7 +16,6 @@ export default function Eslesmeler() {
   useEffect(() => {
     if (!user) return;
 
-    // Tekliflerimi çek
     const fetchTeklifler = async () => {
       setLoadingTeklifler(true);
       const teklifRef = collection(db, "teklifler");
@@ -30,7 +29,6 @@ export default function Eslesmeler() {
       setLoadingTeklifler(false);
     };
 
-    // Taleplerimi çek
     const fetchTalepler = async () => {
       setLoadingTalepler(true);
       const talepRef = collection(db, "talepler");
@@ -55,9 +53,7 @@ export default function Eslesmeler() {
         <button
           onClick={() => setAktifSekme("tekliflerim")}
           className={`px-4 py-2 rounded ${
-            aktifSekme === "tekliflerim"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200"
+            aktifSekme === "tekliflerim" ? "bg-blue-600 text-white" : "bg-gray-200"
           }`}
         >
           Tekliflerim
@@ -65,9 +61,7 @@ export default function Eslesmeler() {
         <button
           onClick={() => setAktifSekme("taleplerim")}
           className={`px-4 py-2 rounded ${
-            aktifSekme === "taleplerim"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200"
+            aktifSekme === "taleplerim" ? "bg-blue-600 text-white" : "bg-gray-200"
           }`}
         >
           Taleplerim
@@ -87,19 +81,10 @@ export default function Eslesmeler() {
                 key={teklif.id}
                 className="border p-4 rounded shadow-sm bg-white"
               >
-                <p>
-                  <strong>Teklif ID:</strong> {teklif.id}
-                </p>
-                <p>
-                  <strong>Talep Başlığı:</strong> {teklif.talepBasligi || "—"}
-                </p>
-                <p>
-                  <strong>Açıklama:</strong> {teklif.aciklama || "—"}
-                </p>
-                <p>
-                  <strong>Durum:</strong> {teklif.durum || "—"}
-                </p>
-                {/* İstersen detay modal veya başka detaylar buraya eklenebilir */}
+                <p><strong>Teklif ID:</strong> {teklif.id}</p>
+                <p><strong>Talep Başlığı:</strong> {teklif.talepBasligi || "—"}</p>
+                <p><strong>Açıklama:</strong> {teklif.aciklama || "—"}</p>
+                <p><strong>Durum:</strong> {teklif.durum || "—"}</p>
               </li>
             ))}
           </ul>
@@ -119,18 +104,10 @@ export default function Eslesmeler() {
                 key={talep.id}
                 className="border p-4 rounded shadow-sm bg-white"
               >
-                <p>
-                  <strong>Talep ID:</strong> {talep.id}
-                </p>
-                <p>
-                  <strong>Başlık:</strong> {talep.baslik || "—"}
-                </p>
-                <p>
-                  <strong>Açıklama:</strong> {talep.aciklama || "—"}
-                </p>
-                <p>
-                  <strong>Durum:</strong> {talep.durum || "—"}
-                </p>
+                <p><strong>Talep ID:</strong> {talep.id}</p>
+                <p><strong>Başlık:</strong> {talep.baslik || "—"}</p>
+                <p><strong>Açıklama:</strong> {talep.aciklama || "—"}</p>
+                <p><strong>Durum:</strong> {talep.durum || "—"}</p>
               </li>
             ))}
           </ul>
@@ -138,4 +115,4 @@ export default function Eslesmeler() {
       )}
     </div>
   );
-}
+                  }
