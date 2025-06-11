@@ -1,20 +1,13 @@
-// /pages/eslesmeler/Taleplerim.js
 import { useEffect, useState } from "react";
-import { auth, db } from "@/firebase/firebaseConfig";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
-import GirisUyari from "@/components/GirisUyari";
-import Link from "next/link";
+import { auth, db } from "../../firebase/firebaseConfig";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import GirisUyari from "../../components/GirisUyari";
 
 export default function Taleplerim() {
   const [user, setUser] = useState(null);
-  const [kontrolEdildi, setKontrolEdildi] = useState(false);
   const [talepler, setTalepler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [kontrolEdildi, setKontrolEdildi] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((usr) => {
@@ -25,37 +18,23 @@ export default function Taleplerim() {
   }, []);
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchTalepler = async () => {
-      if (!user) return;
-
       setYukleniyor(true);
-
       try {
         const taleplerRef = collection(db, "talepler");
         const q = query(taleplerRef, where("talepEdenId", "==", user.uid));
-        const querySnapshot = await getDocs(q);
+        const snapshot = await getDocs(q);
 
-        const taleplerData = [];
+        const taleplerListesi = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
-        for (const docu of querySnapshot.docs) {
-          const talep = { id: docu.id, ...docu.data() };
-
-          // Bu talebe teklif gelmiş mi kontrol et
-          const teklifQuery = query(
-            collection(db, "teklifler"),
-            where("talepId", "==", docu.id)
-          );
-          const teklifSnap = await getDocs(teklifQuery);
-
-          talep.teklifSayisi = teklifSnap.size;
-          talep.teklifler = teklifSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-          taleplerData.push(talep);
-        }
-
-        setTalepler(taleplerData);
-      } catch (err) {
-        console.error("Talepler alınırken hata:", err);
+        setTalepler(taleplerListesi);
+      } catch (error) {
+        console.error("Talepler alınırken hata oluştu:", error);
       } finally {
         setYukleniyor(false);
       }
@@ -65,44 +44,28 @@ export default function Taleplerim() {
   }, [user]);
 
   if (!kontrolEdildi) return null;
+
   if (!user) return <GirisUyari />;
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-4">Taleplerim</h2>
+    <main className="max-w-4xl mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">Taleplerim</h1>
 
       {yukleniyor ? (
         <p>Yükleniyor...</p>
       ) : talepler.length === 0 ? (
-        <p>Henüz hiç talep oluşturmadınız.</p>
+        <p>Hiç talep oluşturulmamış.</p>
       ) : (
         <ul className="space-y-4">
           {talepler.map((talep) => (
             <li key={talep.id} className="border p-4 rounded bg-white shadow">
-              <p className="font-semibold">{talep.baslik}</p>
-              <p className="text-sm text-gray-600">{talep.aciklama}</p>
-              <p className="text-sm text-gray-600">Kategori: {talep.kategori}</p>
-              <p className="text-sm">
-                Teklif Sayısı: {talep.teklifSayisi}
-              </p>
-
-              {talep.teklifSayisi > 0 && (
-                <ul className="ml-4 mt-2 space-y-1 text-sm">
-                  {talep.teklifler.map((t) => (
-                    <li key={t.id} className="text-gray-700">
-                      ₺{t.fiyat} - {t.not || "Not yok"}
-                      {" - "}
-                      <Link href={`/chat/${t.id}`} className="text-blue-600 underline ml-1">
-                        Mesajlaş
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <h2 className="text-lg font-semibold">{talep.baslik || "Başlık yok"}</h2>
+              <p className="text-gray-600">{talep.aciklama || "Açıklama yok"}</p>
+              <p className="text-sm mt-1">Kategori: {talep.kategori || "Belirtilmemiş"}</p>
             </li>
           ))}
         </ul>
       )}
-    </div>
+    </main>
   );
-        }
+}
