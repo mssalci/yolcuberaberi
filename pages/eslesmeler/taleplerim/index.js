@@ -59,7 +59,7 @@ export default function Taleplerim() {
           };
         });
 
-        setVeriler([...talepler, ...yolculuklar]); // TEKLİF OLSUN OLMASIN LİSTELE
+        setVeriler([...talepler, ...yolculuklar]);
       } catch (e) {
         console.error("Veri çekme hatası:", e);
       } finally {
@@ -98,7 +98,7 @@ export default function Taleplerim() {
                   <p className="text-sm text-gray-600">
                     {item.tur === "talep"
                       ? `Ülke: ${item.ulke} • Bütçe: ₺${item.butce || "-"}`
-                      : `Tarih: ${item.tarih || "-"}`}
+                      : `Tarih: ${item.tarih?.toDate?.().toLocaleString?.() || "-"}`}
                   </p>
                 </div>
                 <button
@@ -110,14 +110,15 @@ export default function Taleplerim() {
                 </button>
               </div>
 
-              {/* Teklifler varsa göster */}
               {item.teklifler.length > 0 ? (
                 <div className="mt-2">
                   <h4 className="text-sm font-semibold mb-1">Teklifler:</h4>
                   {item.teklifler.map((t, i) => (
                     <div key={i} className="p-2 border rounded bg-gray-50 mb-2">
                       <div className="flex justify-between">
-                        <span className="text-gray-700">₺{t.fiyat} — {t.tarih}</span>
+                        <span className="text-gray-700">
+                          ₺{t.fiyat} — {t.tarih?.toDate?.().toLocaleString?.() || "-"}
+                        </span>
                         {t.eslesmeId && (
                           <button
                             onClick={() => router.push(`/chat/${t.eslesmeId}`)}
@@ -138,4 +139,4 @@ export default function Taleplerim() {
       )}
     </main>
   );
-                    }
+}
