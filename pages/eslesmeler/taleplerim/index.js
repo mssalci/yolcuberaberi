@@ -31,13 +31,13 @@ export default function Taleplerim() {
     const fetchData = async () => {
       setYukleniyor(true);
       try {
-        const [tSnap, ySnap, teklifsSnap] = await Promise.all([
+        const [tSnap, ySnap, teklifSnap] = await Promise.all([
           getDocs(query(collection(db, "talepler"), where("kullaniciId", "==", user.uid))),
           getDocs(query(collection(db, "yolculuklar"), where("kullaniciId", "==", user.uid))),
           getDocs(collection(db, "teklifler")),
         ]);
 
-        const teklifler = teklifsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const teklifler = teklifSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
         const talepler = tSnap.docs.map(docSnap => {
           const data = docSnap.data();
@@ -59,9 +59,9 @@ export default function Taleplerim() {
           };
         });
 
-        setVeriler([...talepler, ...yolculuklar]);
+        setVeriler([...talepler, ...yolculuklar]); // TEKLİF OLSUN OLMASIN LİSTELE
       } catch (e) {
-        console.error("Veri çekilirken hata:", e);
+        console.error("Veri çekme hatası:", e);
       } finally {
         setYukleniyor(false);
       }
@@ -71,7 +71,7 @@ export default function Taleplerim() {
   }, [user]);
 
   const handleSil = async (item) => {
-    if (!confirm(`${item.tur === "talep" ? "Talebi" : "Yolculuğu"} silmek istediğinize emin misiniz?`)) return;
+    if (!confirm("Silmek istediğine emin misin?")) return;
     setIsDeleting(item.id);
     await deleteDoc(doc(db, `${item.tur}ler`, item.id));
     setVeriler(prev => prev.filter(v => v.id !== item.id));
@@ -82,7 +82,7 @@ export default function Taleplerim() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Taleplerim & Yolculuklarım</h1>
+      <h1 className="text-2xl font-bold mb-6">Taleplerim ve Yolculuklarım</h1>
 
       {veriler.length === 0 ? (
         <p>Henüz talep veya yolculuk oluşturmadınız.</p>
@@ -93,14 +93,12 @@ export default function Taleplerim() {
               <div className="flex justify-between items-center mb-3">
                 <div>
                   <h3 className="font-bold">
-                    {item.tur === "talep" ? "Talep: " : "Yolculuk: "}
-                    {item.tur === "talep" ? item.baslik : `${item.kalkis} → ${item.varis}`}
+                    {item.tur === "talep" ? `Talep: ${item.baslik}` : `Yolculuk: ${item.kalkis} → ${item.varis}`}
                   </h3>
                   <p className="text-sm text-gray-600">
                     {item.tur === "talep"
                       ? `Ülke: ${item.ulke} • Bütçe: ₺${item.butce || "-"}`
-                      : `Tarih: ${item.tarih || "-"}`
-                    }
+                      : `Tarih: ${item.tarih || "-"}`}
                   </p>
                 </div>
                 <button
@@ -111,8 +109,9 @@ export default function Taleplerim() {
                   {isDeleting === item.id ? "Siliniyor..." : "Sil"}
                 </button>
               </div>
-              {/* Teklifler varsa alt kısımda göster */}
-              {item.teklifler?.length > 0 && (
+
+              {/* Teklifler varsa göster */}
+              {item.teklifler.length > 0 ? (
                 <div className="mt-2">
                   <h4 className="text-sm font-semibold mb-1">Teklifler:</h4>
                   {item.teklifler.map((t, i) => (
@@ -130,6 +129,8 @@ export default function Taleplerim() {
                     </div>
                   ))}
                 </div>
+              ) : (
+                <p className="text-sm text-gray-500 italic">Henüz teklif yok.</p>
               )}
             </li>
           ))}
