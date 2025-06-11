@@ -81,7 +81,7 @@ export default function TeklifDetay() {
 
   if (!teklif) return <p className="p-4">Yükleniyor...</p>;
 
-  const teklifTipi = teklif?.talepId ? "Talep Teklifi" : "Yolculuk Teklifi";
+  const teklifTipi = teklif?.talepId ? "Talep" : "Yolculuk";
 
   return (
     <div className="p-4 max-w-xl mx-auto">
@@ -102,10 +102,10 @@ export default function TeklifDetay() {
           <p><strong>Tahmini Geliş Tarihi:</strong> {teklif.tahminiTarih}</p>
         )}
         {teklif.fiyat !== undefined && (
-          <p><strong>Fiyat:</strong> ₺{teklif.fiyat}</p>
+          <p><strong>Teklif Fiyatı:</strong> ₺{teklif.fiyat}</p>
         )}
         {teklif.not && (
-          <p><strong>Not:</strong> {teklif.not}</p>
+          <p><strong>Teklif Notu:</strong> {teklif.not}</p>
         )}
         {typeof teklif.mesajSayisi === "number" && (
           <p><strong>Mesaj Sayısı:</strong> {teklif.mesajSayisi}</p>
