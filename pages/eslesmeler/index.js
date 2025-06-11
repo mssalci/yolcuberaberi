@@ -1,14 +1,10 @@
 import { useState, useEffect } from "react";
-import { getAuth } from "firebase/auth";
 import { auth, db } from "../../firebase/firebaseConfig";
 import {
   collection,
   getDocs,
   query,
   where,
-  doc,
-  getDoc,
-  deleteDoc,
 } from "firebase/firestore";
 
 export default function Eslesmeler() {
@@ -17,9 +13,14 @@ export default function Eslesmeler() {
   const [talepler, setTalepler] = useState([]);
   const [loadingTeklifler, setLoadingTeklifler] = useState(false);
   const [loadingTalepler, setLoadingTalepler] = useState(false);
+  const [user, setUser] = useState(null);
 
-  const auth = getAuth();
-  const user = auth.currentUser;
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((kullanici) => {
+      setUser(kullanici);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -53,6 +54,10 @@ export default function Eslesmeler() {
     fetchTeklifler();
     fetchTalepler();
   }, [user]);
+
+  if (!user) {
+    return <div>Lütfen giriş yapınız...</div>;
+  }
 
   return (
     <div className="container mx-auto p-4">
@@ -123,4 +128,4 @@ export default function Eslesmeler() {
       )}
     </div>
   );
-                  }
+            }
