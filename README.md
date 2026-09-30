@@ -1,2 +1,2 @@
-# Yolcu Beraberi
-Yurt dışı eşya taşıma platformu.
+# Yolcu Beraberi * ALONGO
+Eşya taşıma platformu.
