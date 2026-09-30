@@ -43,7 +43,7 @@ export default function Iletisim() {
         <h1 className="text-3xl font-bold mb-6">İletişim</h1>
 
         <p className="mb-4">
-          Yolcu Beraberi hakkında sorularınız, önerileriniz ya da iş birliği
+          Yolcu Beraberi - ALONGO hakkında sorularınız, önerileriniz ya da iş birliği
           talepleriniz için bize aşağıdaki kanallar üzerinden ulaşabilirsiniz.
         </p>
 
