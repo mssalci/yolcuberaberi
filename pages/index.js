@@ -8,10 +8,10 @@ export default function HomePage() {
         <title>Yolcu Beraberi | Yurt Dışından Eşya Getir, Kazan</title>
         <meta
           name="description"
-          content="Yurt dışından eşya getirmek isteyenlerle seyahat eden yolcuları buluşturan İLK ve TEK platform. Hemen talep oluştur ve gelir elde et."
+          content="Eşya getirmek isteyenlerle seyahat eden yolcuları buluşturan İLK ve TEK platform. Hemen talep oluştur ve gelir elde et."
         />
         <meta property="og:title" content="Yolcu Beraberi" />
-        <meta property="og:description" content="Yurt dışından eşya getir, yolculuğunu kazanca dönüştür." />
+        <meta property="og:description" content="Eşya getir, yolculuğunu kazanca dönüştür." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://www.yolcuberaberi.com.tr/" />
         <meta property="og:image" content="/og-image.png" />
@@ -23,7 +23,7 @@ export default function HomePage() {
         {/* Giriş Bölümü */}
         <section>
           <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800">
-            Yurtdışından uygun fiyata parça mı getirmek istiyorsun? Yolcunu bul!
+            Yurtdışından uygun fiyata eşya mı getirmek istiyorsun? Yolcunu bul!
           </h1>
           <p className="text-gray-700 mb-6">
             Yukarıdaki menüden talepleri görüntüleyebilir, yeni talepler oluşturabilir veya eşleşmeleri yönetebilirsiniz.
