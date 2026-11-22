@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { auth, db } from "../firebase/firebaseConfig";
 import {
-  auth,
-  db
-} from "../firebase/firebaseConfig";
-import {
-  getAuth,
   onAuthStateChanged,
   updateProfile,
   deleteUser,
@@ -15,36 +11,48 @@ import {
   doc,
   getDoc,
   setDoc,
-  deleteDoc
+  deleteDoc,
+  deleteField
 } from "firebase/firestore";
 
 export default function Profil() {
   const router = useRouter();
+
   const [user, setUser] = useState(null);
   const [adSoyad, setAdSoyad] = useState("");
-  const [iban, setIban] = useState("");
+  const [telefon, setTelefon] = useState("");
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [emailVerified, setEmailVerified] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
         router.push("/giris");
-      } else {
-        await currentUser.reload(); // doğrulama durumu güncel olsun
+        return;
+      }
+
+      try {
+        await currentUser.reload();
+
         setUser(currentUser);
         setEmailVerified(currentUser.emailVerified);
 
         const ref = doc(db, "kullanicilar", currentUser.uid);
         const docSnap = await getDoc(ref);
+
         if (docSnap.exists()) {
           const data = docSnap.data();
+
           setAdSoyad(data.adSoyad || currentUser.displayName || "");
-          setIban(data.iban || "");
+          setTelefon(data.telefon || "");
         } else {
           setAdSoyad(currentUser.displayName || "");
         }
-
+      } catch (error) {
+        console.error("Profil bilgileri alınamadı:", error);
+        alert("Profil bilgileri yüklenemedi.");
+      } finally {
         setLoading(false);
       }
     });
@@ -65,28 +73,53 @@ export default function Profil() {
   };
 
   const handleSave = async () => {
-  try {
-    if (!user) return;
+    if (!user || saving) return;
 
-    await setDoc(doc(db, "kullanicilar", user.uid), {
-      uid: user.uid, // 🔹 EKLENDİ
-      adSoyad,
-      iban,
-      email: user.email,
-    });
+    const temizAdSoyad = adSoyad.trim();
+    const temizTelefon = telefon.trim();
 
-    await updateProfile(user, { displayName: adSoyad });
+    if (!temizAdSoyad) {
+      alert("Lütfen adınızı ve soyadınızı girin.");
+      return;
+    }
 
-    await auth.currentUser.reload();
-    setUser(auth.currentUser);
+    if (!temizTelefon) {
+      alert("Lütfen telefon numaranızı girin.");
+      return;
+    }
 
-    alert("Profil başarıyla güncellendi.");
-    router.reload();
-  } catch (error) {
-    console.error("Güncelleme hatası:", error);
-    alert("Profil güncellenemedi.");
-  }
-};
+    setSaving(true);
+
+    try {
+      const ref = doc(db, "kullanicilar", user.uid);
+
+      await setDoc(
+        ref,
+        {
+          uid: user.uid,
+          adSoyad: temizAdSoyad,
+          email: user.email,
+          telefon: temizTelefon,
+          iban: deleteField()
+        },
+        { merge: true }
+      );
+
+      await updateProfile(user, {
+        displayName: temizAdSoyad
+      });
+
+      await auth.currentUser.reload();
+      setUser(auth.currentUser);
+
+      alert("Profil başarıyla güncellendi.");
+    } catch (error) {
+      console.error("Güncelleme hatası:", error);
+      alert("Profil güncellenemedi. Lütfen tekrar deneyin.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleHesapSil = async () => {
     const onay = confirm("Hesabınızı silmek istediğinizden emin misiniz?");
@@ -95,6 +128,7 @@ export default function Profil() {
     try {
       await deleteDoc(doc(db, "kullanicilar", user.uid));
       await deleteUser(user);
+
       alert("Hesabınız silindi.");
       router.push("/");
     } catch (err) {
@@ -103,11 +137,15 @@ export default function Profil() {
     }
   };
 
-  if (loading) return <p className="text-center mt-10">Yükleniyor...</p>;
+  if (loading) {
+    return <p className="text-center mt-10">Yükleniyor...</p>;
+  }
 
   return (
     <main className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Profil Bilgilerim</h1>
+      <h1 className="text-2xl font-bold mb-6">
+        Profil Bilgilerim
+      </h1>
 
       {!emailVerified && (
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-6">
@@ -125,17 +163,22 @@ export default function Profil() {
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium">Ad Soyad</label>
+          <label className="block text-sm font-medium">
+            Ad Soyad
+          </label>
           <input
             type="text"
             value={adSoyad}
             onChange={(e) => setAdSoyad(e.target.value)}
             className="w-full border rounded px-3 py-2"
+            placeholder="Adınız ve soyadınız"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium">E-posta (değiştirilemez)</label>
+          <label className="block text-sm font-medium">
+            E-posta (değiştirilemez)
+          </label>
           <input
             type="email"
             value={user?.email || ""}
@@ -145,21 +188,26 @@ export default function Profil() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">IBAN</label>
+          <label className="block text-sm font-medium">
+            Telefon
+          </label>
           <input
-            type="text"
-            value={iban}
-            onChange={(e) => setIban(e.target.value)}
+            type="tel"
+            value={telefon}
+            onChange={(e) => setTelefon(e.target.value)}
             className="w-full border rounded px-3 py-2"
+            placeholder="05XX XXX XX XX"
+            autoComplete="tel"
           />
         </div>
 
         <div className="flex gap-4 pt-4">
           <button
             onClick={handleSave}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            disabled={saving}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            Kaydet
+            {saving ? "Kaydediliyor..." : "Kaydet"}
           </button>
 
           <button
