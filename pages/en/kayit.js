@@ -1,4 +1,3 @@
-
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
@@ -16,50 +15,67 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState(null);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
+      if (user && !isRegistering) {
         router.push("/en");
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [isRegistering, router]);
 
   const handleRegister = async (e) => {
     e.preventDefault();
 
+    setError(null);
+    setIsRegistering(true);
+    setIsSubmitting(true);
+
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        email,
+        email.trim(),
         password
       );
 
       const user = userCredential.user;
 
-      await updateProfile(user, { displayName: fullName });
+      await updateProfile(user, {
+        displayName: fullName.trim(),
+      });
 
-      // Save user information to Firestore
       await setDoc(doc(db, "kullanicilar", user.uid), {
         uid: user.uid,
         email: user.email,
-        adSoyad: fullName,
+        adSoyad: fullName.trim(),
         iban: "",
       });
 
-      // Send email verification link
+      auth.languageCode = "en";
+
       await sendEmailVerification(user);
 
       alert(
-        "Registration successful! Please check your inbox to verify your email address."
+        "Registration successful! A verification email has been sent. Please check your inbox and spam folder."
       );
 
       router.push("/en/profil");
-    } catch (error) {
-      setError("Registration failed: " + error.message);
+
+    } catch (err) {
+      console.error("Registration error:", err.code, err.message);
+
+      setError(
+        `Registration failed (${err.code || "unknown"}): ${err.message}`
+      );
+
+      setIsRegistering(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -117,14 +133,17 @@ export default function Register() {
           />
 
           {error && (
-            <p className="text-red-500 text-sm">{error}</p>
+            <p className="text-red-500 text-sm break-words">
+              {error}
+            </p>
           )}
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            disabled={isSubmitting}
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            Register
+            {isSubmitting ? "Registering..." : "Register"}
           </button>
         </form>
       </div>
