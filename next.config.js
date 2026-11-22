@@ -1,12 +1,8 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-};
 
-module.exports = nextConfig;
-// next.config.js
-
-module.exports = {
   async rewrites() {
     return [
       {
@@ -16,3 +12,5 @@ module.exports = {
     ];
   },
 };
+
+module.exports = nextConfig;
