@@ -1,0 +1,15 @@
+{
+  "siteName": "Travel Together",
+  "home": "Home",
+  "trips": "Trips",
+  "requests": "Travel Requests",
+  "about": "About Us",
+  "contact": "Contact",
+  "login": "Log In",
+  "register": "Sign Up",
+  "profile": "My Profile",
+  "logout": "Log Out",
+  "language": "Language",
+  "turkish": "Turkish",
+  "english": "English"
+}
