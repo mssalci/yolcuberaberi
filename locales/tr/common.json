@@ -1,0 +1,15 @@
+{
+  "siteName": "Yolcu Beraberi",
+  "home": "Ana Sayfa",
+  "trips": "Yolculuklar",
+  "requests": "Yolcu Talepleri",
+  "about": "Hakkımızda",
+  "contact": "İletişim",
+  "login": "Giriş Yap",
+  "register": "Kayıt Ol",
+  "profile": "Profilim",
+  "logout": "Çıkış Yap",
+  "language": "Dil",
+  "turkish": "Türkçe",
+  "english": "İngilizce"
+}
