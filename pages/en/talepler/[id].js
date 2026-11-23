@@ -1,17 +1,16 @@
-
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../../firebase/firebaseConfig";
 import {
   doc,
   getDoc,
-  addDoc,
   collection,
   query,
   where,
   getDocs,
   serverTimestamp,
   deleteDoc,
+  writeBatch,
 } from "firebase/firestore";
 
 export default function RequestDetail() {
@@ -19,35 +18,62 @@ export default function RequestDetail() {
   const { id } = router.query;
 
   const [request, setRequest] = useState(null);
+  const [requestNotFound, setRequestNotFound] = useState(false);
   const [price, setPrice] = useState("");
   const [note, setNote] = useState("");
   const [date, setDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState([]);
   const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [requestOwnerName, setRequestOwnerName] = useState("");
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = (() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  })();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((u) => {
-      setUser(u);
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+      setEmailVerified(currentUser?.emailVerified || false);
+      setAuthLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
+    if (!id) return;
+
     const fetchRequest = async () => {
       try {
-        const docRef = doc(db, "talepler", id);
-        const docSnap = await getDoc(docRef);
+        const requestRef = doc(db, "talepler", id);
+        const requestSnap = await getDoc(requestRef);
 
-        if (docSnap.exists()) {
-          const requestData = { id: docSnap.id, ...docSnap.data() };
-          setRequest(requestData);
+        if (!requestSnap.exists()) {
+          setRequestNotFound(true);
+          return;
+        }
 
-          const userRef = doc(db, "kullanicilar", requestData.kullaniciId);
+        const requestData = {
+          id: requestSnap.id,
+          ...requestSnap.data(),
+        };
+
+        setRequest(requestData);
+
+        if (requestData.kullaniciId) {
+          const userRef = doc(
+            db,
+            "kullanicilar",
+            requestData.kullaniciId
+          );
+
           const userSnap = await getDoc(userRef);
 
           if (userSnap.exists()) {
@@ -62,26 +88,34 @@ export default function RequestDetail() {
     };
 
     const fetchMatches = async () => {
-      if (!id) return;
-
       try {
-        const q = query(
+        const matchesQuery = query(
           collection(db, "eslesmeler"),
           where("talepId", "==", id)
         );
 
-        const querySnapshot = await getDocs(q);
+        const snapshot = await getDocs(matchesQuery);
         const data = [];
 
-        for (let docSnap of querySnapshot.docs) {
-          const offerDoc = await getDoc(
-            doc(db, "teklifler", docSnap.data().teklifId)
-          );
+        for (const matchDoc of snapshot.docs) {
+          const matchData = matchDoc.data();
+
+          let offer = null;
+
+          if (matchData.teklifId) {
+            const offerSnap = await getDoc(
+              doc(db, "teklifler", matchData.teklifId)
+            );
+
+            if (offerSnap.exists()) {
+              offer = offerSnap.data();
+            }
+          }
 
           data.push({
-            id: docSnap.id,
-            ...docSnap.data(),
-            offer: offerDoc.exists() ? offerDoc.data() : null,
+            id: matchDoc.id,
+            ...matchData,
+            offer,
           });
         }
 
@@ -91,79 +125,101 @@ export default function RequestDetail() {
       }
     };
 
-    if (id) {
-      fetchRequest();
-      fetchMatches();
-    }
+    fetchRequest();
+    fetchMatches();
   }, [id]);
 
   const handleSubmitOffer = async (e) => {
     e.preventDefault();
 
-    if (!user) {
+    const currentUser = auth.currentUser;
+
+    if (!currentUser) {
       alert("You must log in to submit an offer.");
       return;
     }
 
-    if (!user.emailVerified) {
-      alert("You must verify your email address before submitting an offer.");
-      return;
-    }
-
-    if (!price || !request) return;
-
-    if (new Date(date) < new Date(todayStr)) {
-      alert("The delivery date cannot be earlier than today.");
-      return;
-    }
-
     try {
+      await currentUser.reload();
+      await currentUser.getIdToken(true);
+
+      if (!currentUser.emailVerified) {
+        setEmailVerified(false);
+        alert(
+          "You must verify your email address before submitting an offer."
+        );
+        return;
+      }
+
+      setEmailVerified(true);
+
+      if (!request || request.kullaniciId === currentUser.uid) {
+        alert("You cannot submit an offer for your own request.");
+        return;
+      }
+
+      const parsedPrice = Number(price);
+
+      if (!price || !Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+        alert("Please enter a valid price.");
+        return;
+      }
+
+      if (!date || date < todayStr) {
+        alert("The delivery date cannot be earlier than today.");
+        return;
+      }
+
       setLoading(true);
 
-      // Check whether the user has already submitted an offer
-      const q = query(
+      const existingOffersQuery = query(
         collection(db, "teklifler"),
-        where("teklifVerenId", "==", user.uid)
+        where("teklifVerenId", "==", currentUser.uid)
       );
 
-      const snapshot = await getDocs(q);
+      const existingOffersSnapshot = await getDocs(
+        existingOffersQuery
+      );
 
-      if (!snapshot.empty) {
+      if (!existingOffersSnapshot.empty) {
         alert(
           "You have already submitted an offer for another request or trip. You cannot submit another offer."
         );
-        setLoading(false);
         return;
       }
 
-      // Check whether the user has already submitted an offer for this request
-      const existingOffer = matches.some(
-        (match) => match.teklifVerenId === user.uid
+      const existingMatch = matches.some(
+        (match) => match.teklifVerenId === currentUser.uid
       );
 
-      if (existingOffer) {
+      if (existingMatch) {
         alert("You have already submitted an offer for this request.");
-        setLoading(false);
         return;
       }
 
-      // Create the offer
-      const offerRef = await addDoc(collection(db, "teklifler"), {
+      const batch = writeBatch(db);
+
+      const offerRef = doc(collection(db, "teklifler"));
+      const matchRef = doc(collection(db, "eslesmeler"));
+
+      batch.set(offerRef, {
         talepId: request.id,
-        teklifVerenId: user.uid,
-        fiyat: parseFloat(price),
+        teklifVerenId: currentUser.uid,
+        fiyat: parsedPrice,
         not: note,
         tarih: date,
         olusturmaZamani: serverTimestamp(),
       });
 
-      await addDoc(collection(db, "eslesmeler"), {
+      batch.set(matchRef, {
         talepId: request.id,
         teklifId: offerRef.id,
-        teklifVerenId: user.uid,
+        teklifVerenId: currentUser.uid,
         talepSahibiId: request.kullaniciId || null,
         olusturmaZamani: serverTimestamp(),
       });
+
+      await batch.commit();
 
       alert("Your offer and match have been created successfully.");
 
@@ -180,24 +236,84 @@ export default function RequestDetail() {
   };
 
   const handleDeleteRequest = async () => {
+    const currentUser = auth.currentUser;
+
+    if (!currentUser || !request) return;
+
+    if (request.kullaniciId !== currentUser.uid) {
+      alert("You are not authorized to delete this request.");
+      return;
+    }
+
     const confirmed = confirm(
-      "Are you sure you want to delete this request?"
+      "Are you sure you want to delete this request and all related offers and messages?"
     );
 
     if (!confirmed) return;
 
     try {
+      setLoading(true);
+
+      const matchesQuery = query(
+        collection(db, "eslesmeler"),
+        where("talepId", "==", request.id)
+      );
+
+      const matchesSnapshot = await getDocs(matchesQuery);
+
+      for (const matchDoc of matchesSnapshot.docs) {
+        const messageQuery = query(
+          collection(db, "mesajlar"),
+          where("eslesmeId", "==", matchDoc.id)
+        );
+
+        const messageSnapshot = await getDocs(messageQuery);
+
+        for (const messageDoc of messageSnapshot.docs) {
+          await deleteDoc(messageDoc.ref);
+        }
+
+        await deleteDoc(matchDoc.ref);
+      }
+
+      const offersQuery = query(
+        collection(db, "teklifler"),
+        where("talepId", "==", request.id)
+      );
+
+      const offersSnapshot = await getDocs(offersQuery);
+
+      for (const offerDoc of offersSnapshot.docs) {
+        await deleteDoc(offerDoc.ref);
+      }
+
       await deleteDoc(doc(db, "talepler", request.id));
-      alert("Request deleted successfully.");
+
+      alert("The request, its offers, matches, and messages have been deleted.");
+
       router.push("/en/talepler");
     } catch (error) {
       console.error("Error deleting request:", error);
       alert("The request could not be deleted.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const isRequestOwner =
     user && request?.kullaniciId === user.uid;
+
+  if (!id || authLoading) {
+    return <p className="text-center mt-10">Loading...</p>;
+  }
+
+  if (requestNotFound) {
+    return (
+      <p className="text-center mt-10">
+        This request could not be found.
+      </p>
+    );
+  }
 
   if (!request) {
     return <p className="text-center mt-10">Loading...</p>;
@@ -233,13 +349,26 @@ export default function RequestDetail() {
       {isRequestOwner && (
         <button
           onClick={handleDeleteRequest}
-          className="mb-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          disabled={loading}
+          className="mb-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
         >
-          Delete Request
+          {loading ? "Deleting..." : "Delete Request"}
         </button>
       )}
 
-      {user && !isRequestOwner && (
+      {user && !isRequestOwner && !emailVerified && (
+        <div className="bg-yellow-100 text-yellow-800 p-4 rounded mb-8">
+          You must verify your email address before submitting an offer.
+        </div>
+      )}
+
+      {!user && (
+        <div className="bg-gray-100 p-4 rounded mb-8">
+          You must log in to submit an offer.
+        </div>
+      )}
+
+      {user && !isRequestOwner && emailVerified && (
         <form
           onSubmit={handleSubmitOffer}
           className="space-y-4 bg-gray-100 p-4 rounded mb-8"
@@ -250,6 +379,8 @@ export default function RequestDetail() {
             </label>
             <input
               type="number"
+              min="0.01"
+              step="0.01"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               className="w-full border rounded px-3 py-2"
@@ -286,7 +417,7 @@ export default function RequestDetail() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? "Submitting..." : "Submit Offer"}
           </button>
@@ -307,7 +438,7 @@ export default function RequestDetail() {
               >
                 <div>
                   <p className="font-medium">
-                    Price: ₺{match.offer?.fiyat}
+                    Price: ₺{match.offer?.fiyat ?? "-"}
                   </p>
 
                   <p className="text-sm text-gray-600">
