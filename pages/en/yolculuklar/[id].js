@@ -1,17 +1,16 @@
-
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../../firebase/firebaseConfig";
 import {
   doc,
   getDoc,
-  addDoc,
   collection,
   query,
   where,
   getDocs,
   serverTimestamp,
   deleteDoc,
+  writeBatch,
 } from "firebase/firestore";
 
 export default function TripDetail() {
@@ -19,35 +18,56 @@ export default function TripDetail() {
   const { id } = router.query;
 
   const [trip, setTrip] = useState(null);
+  const [tripNotFound, setTripNotFound] = useState(false);
   const [price, setPrice] = useState("");
   const [note, setNote] = useState("");
   const [date, setDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState([]);
   const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [tripOwnerName, setTripOwnerName] = useState("");
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = (() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  })();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((u) => {
-      setUser(u);
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+      setEmailVerified(currentUser?.emailVerified || false);
+      setAuthLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
+    if (!id) return;
+
     const fetchTrip = async () => {
       try {
-        const ref = doc(db, "yolculuklar", id);
-        const snap = await getDoc(ref);
+        const tripRef = doc(db, "yolculuklar", id);
+        const tripSnap = await getDoc(tripRef);
 
-        if (snap.exists()) {
-          const tripData = { id: snap.id, ...snap.data() };
-          setTrip(tripData);
+        if (!tripSnap.exists()) {
+          setTripNotFound(true);
+          return;
+        }
 
-          // Fetch the trip owner's name
+        const tripData = {
+          id: tripSnap.id,
+          ...tripSnap.data(),
+        };
+
+        setTrip(tripData);
+
+        if (tripData.kullaniciId) {
           const userRef = doc(
             db,
             "kullanicilar",
@@ -69,35 +89,50 @@ export default function TripDetail() {
 
     const fetchMatches = async () => {
       try {
-        const q = query(
+        const matchesQuery = query(
           collection(db, "eslesmeler"),
           where("yolculukId", "==", id)
         );
 
-        const snapshot = await getDocs(q);
+        const snapshot = await getDocs(matchesQuery);
         const data = [];
 
-        for (let docSnap of snapshot.docs) {
-          const offerDoc = await getDoc(
-            doc(db, "teklifler", docSnap.data().teklifId)
-          );
+        for (const matchDoc of snapshot.docs) {
+          const matchData = matchDoc.data();
 
-          // Fetch the offer sender's name
-          const offerSenderRef = doc(
-            db,
-            "kullanicilar",
-            docSnap.data().teklifVerenId
-          );
+          let offer = null;
+          let offerSenderName = "Unknown";
 
-          const offerSenderSnap = await getDoc(offerSenderRef);
+          if (matchData.teklifId) {
+            const offerSnap = await getDoc(
+              doc(db, "teklifler", matchData.teklifId)
+            );
+
+            if (offerSnap.exists()) {
+              offer = offerSnap.data();
+            }
+          }
+
+          if (matchData.teklifVerenId) {
+            const offerSenderRef = doc(
+              db,
+              "kullanicilar",
+              matchData.teklifVerenId
+            );
+
+            const offerSenderSnap = await getDoc(offerSenderRef);
+
+            if (offerSenderSnap.exists()) {
+              offerSenderName =
+                offerSenderSnap.data().adSoyad || "Unknown";
+            }
+          }
 
           data.push({
-            id: docSnap.id,
-            ...docSnap.data(),
-            offer: offerDoc.exists() ? offerDoc.data() : null,
-            offerSenderName: offerSenderSnap.exists()
-              ? offerSenderSnap.data().adSoyad
-              : "Unknown",
+            id: matchDoc.id,
+            ...matchData,
+            offer,
+            offerSenderName,
           });
         }
 
@@ -107,75 +142,101 @@ export default function TripDetail() {
       }
     };
 
-    if (id) {
-      fetchTrip();
-      fetchMatches();
-    }
+    fetchTrip();
+    fetchMatches();
   }, [id]);
 
   const handleSubmitOffer = async (e) => {
     e.preventDefault();
 
-    if (!user) return;
+    const currentUser = auth.currentUser;
 
-    if (!user.emailVerified) {
-      alert("You must verify your email address before submitting an offer.");
-      return;
-    }
-
-    if (!price || !trip) return;
-
-    if (new Date(date) < new Date(todayStr)) {
-      alert("The delivery date cannot be earlier than today.");
+    if (!currentUser) {
+      alert("You must log in to submit an offer.");
       return;
     }
 
     try {
-      const offerQuery = query(
-        collection(db, "teklifler"),
-        where("teklifVerenId", "==", user.uid)
-      );
+      await currentUser.reload();
+      await currentUser.getIdToken(true);
 
-      const offerSnapshot = await getDocs(offerQuery);
-
-      if (!offerSnapshot.empty) {
-        alert("You have already submitted an offer. You cannot submit another one.");
+      if (!currentUser.emailVerified) {
+        setEmailVerified(false);
+        alert(
+          "You must verify your email address before submitting an offer."
+        );
         return;
       }
-    } catch (error) {
-      console.error("Error checking existing offers:", error);
-      alert("An error occurred while checking your offers.");
-      return;
-    }
 
-    const existingOffer = matches.some(
-      (match) => match.teklifVerenId === user.uid
-    );
+      setEmailVerified(true);
 
-    if (existingOffer) {
-      alert("You have already submitted an offer for this trip.");
-      return;
-    }
+      if (!trip || trip.kullaniciId === currentUser.uid) {
+        alert("You cannot submit an offer for your own trip.");
+        return;
+      }
 
-    try {
+      const parsedPrice = Number(price);
+
+      if (!price || !Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+        alert("Please enter a valid price.");
+        return;
+      }
+
+      if (!date || date < todayStr) {
+        alert("The delivery date cannot be earlier than today.");
+        return;
+      }
+
       setLoading(true);
 
-      const offerRef = await addDoc(collection(db, "teklifler"), {
+      const existingOffersQuery = query(
+        collection(db, "teklifler"),
+        where("teklifVerenId", "==", currentUser.uid)
+      );
+
+      const existingOffersSnapshot = await getDocs(
+        existingOffersQuery
+      );
+
+      if (!existingOffersSnapshot.empty) {
+        alert(
+          "You have already submitted an offer. You cannot submit another one."
+        );
+        return;
+      }
+
+      const existingMatch = matches.some(
+        (match) => match.teklifVerenId === currentUser.uid
+      );
+
+      if (existingMatch) {
+        alert("You have already submitted an offer for this trip.");
+        return;
+      }
+
+      const batch = writeBatch(db);
+
+      const offerRef = doc(collection(db, "teklifler"));
+      const matchRef = doc(collection(db, "eslesmeler"));
+
+      batch.set(offerRef, {
         yolculukId: trip.id,
-        teklifVerenId: user.uid,
-        fiyat: parseFloat(price),
+        teklifVerenId: currentUser.uid,
+        fiyat: parsedPrice,
         not: note,
         tarih: date,
         olusturmaZamani: serverTimestamp(),
       });
 
-      await addDoc(collection(db, "eslesmeler"), {
+      batch.set(matchRef, {
         yolculukId: trip.id,
         teklifId: offerRef.id,
-        teklifVerenId: user.uid,
+        teklifVerenId: currentUser.uid,
         yolculukSahibiId: trip.kullaniciId,
         olusturmaZamani: serverTimestamp(),
       });
+
+      await batch.commit();
 
       alert("Your offer and match have been created successfully.");
 
@@ -192,26 +253,32 @@ export default function TripDetail() {
   };
 
   const handleDeleteTrip = async () => {
+    const currentUser = auth.currentUser;
+
+    if (!currentUser || !trip) return;
+
+    if (trip.kullaniciId !== currentUser.uid) {
+      alert("You are not authorized to delete this trip.");
+      return;
+    }
+
     const confirmed = confirm(
-      "Are you sure you want to delete this trip?"
+      "Are you sure you want to delete this trip and all related offers and messages?"
     );
 
     if (!confirmed) return;
 
     try {
-      const matchQuery = query(
+      setLoading(true);
+
+      const matchesQuery = query(
         collection(db, "eslesmeler"),
         where("yolculukId", "==", trip.id)
       );
 
-      const matchSnapshot = await getDocs(matchQuery);
+      const matchesSnapshot = await getDocs(matchesQuery);
 
-      for (const matchDoc of matchSnapshot.docs) {
-        const match = matchDoc.data();
-        const offerId = match.teklifId;
-
-        await deleteDoc(doc(db, "teklifler", offerId));
-
+      for (const matchDoc of matchesSnapshot.docs) {
         const messageQuery = query(
           collection(db, "mesajlar"),
           where("eslesmeId", "==", matchDoc.id)
@@ -219,26 +286,51 @@ export default function TripDetail() {
 
         const messageSnapshot = await getDocs(messageQuery);
 
-        for (const message of messageSnapshot.docs) {
-          await deleteDoc(message.ref);
+        for (const messageDoc of messageSnapshot.docs) {
+          await deleteDoc(messageDoc.ref);
         }
 
         await deleteDoc(matchDoc.ref);
       }
 
+      const offersQuery = query(
+        collection(db, "teklifler"),
+        where("yolculukId", "==", trip.id)
+      );
+
+      const offersSnapshot = await getDocs(offersQuery);
+
+      for (const offerDoc of offersSnapshot.docs) {
+        await deleteDoc(offerDoc.ref);
+      }
+
       await deleteDoc(doc(db, "yolculuklar", trip.id));
 
-      alert("The trip, its offers, and messages have been deleted.");
+      alert("The trip, its offers, matches, and messages have been deleted.");
 
       router.push("/en/talepler?sekme=yolculuklar");
     } catch (error) {
       console.error("Error deleting trip:", error);
       alert("An error occurred while deleting the trip.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const isTripOwner =
     user && trip?.kullaniciId === user.uid;
+
+  if (!id || authLoading) {
+    return <p className="p-4 text-center">Loading...</p>;
+  }
+
+  if (tripNotFound) {
+    return (
+      <p className="p-4 text-center">
+        This trip could not be found.
+      </p>
+    );
+  }
 
   if (!trip) {
     return <p className="p-4 text-center">Loading...</p>;
@@ -275,13 +367,26 @@ export default function TripDetail() {
       {isTripOwner && (
         <button
           onClick={handleDeleteTrip}
-          className="mb-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          disabled={loading}
+          className="mb-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
         >
-          Delete Trip
+          {loading ? "Deleting..." : "Delete Trip"}
         </button>
       )}
 
-      {user && !isTripOwner && (
+      {user && !isTripOwner && !emailVerified && (
+        <div className="bg-yellow-100 text-yellow-800 p-4 rounded mb-8">
+          You must verify your email address before submitting an offer.
+        </div>
+      )}
+
+      {!user && (
+        <div className="bg-gray-100 p-4 rounded mb-8">
+          You must log in to submit an offer.
+        </div>
+      )}
+
+      {user && !isTripOwner && emailVerified && (
         <form
           onSubmit={handleSubmitOffer}
           className="space-y-4 bg-gray-100 p-4 rounded mb-8"
@@ -293,6 +398,8 @@ export default function TripDetail() {
 
             <input
               type="number"
+              min="0.01"
+              step="0.01"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               className="w-full border rounded px-3 py-2"
@@ -331,7 +438,7 @@ export default function TripDetail() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? "Submitting..." : "Submit Offer"}
           </button>
@@ -352,7 +459,7 @@ export default function TripDetail() {
               >
                 <div>
                   <p className="font-medium">
-                    Price: ₺{match.offer?.fiyat}
+                    Price: ₺{match.offer?.fiyat ?? "-"}
                   </p>
 
                   <p className="text-sm text-gray-600">
