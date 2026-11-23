@@ -11,6 +11,7 @@ import {
   getDocs,
   serverTimestamp,
   deleteDoc,
+  writeBatch,
 } from "firebase/firestore";
 
 export default function TalepDetay() {
@@ -22,63 +23,78 @@ export default function TalepDetay() {
   const [not, setNot] = useState("");
   const [tarih, setTarih] = useState("");
   const [loading, setLoading] = useState(false);
+  const [talepLoading, setTalepLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const [eslesmeler, setEslesmeler] = useState([]);
   const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [talepSahibiadSoyad, setTalepSahibiAdSoyad] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [talepSahibiAdSoyad, setTalepSahibiAdSoyad] = useState("");
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const todayStr = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0"),
+  ].join("-");
 
-  // Kullanıcı oturumunu takip et
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((u) => {
-      setUser(u);
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+      setEmailVerified(currentUser?.emailVerified === true);
       setAuthLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Talep ve talep sahibi bilgilerini getir
+  // Talep ve talep sahibi bilgilerini getir.
   useEffect(() => {
     if (!router.isReady || !id) return;
 
     let cancelled = false;
 
     const fetchTalep = async () => {
-      try {
-        const docRef = doc(db, "talepler", id);
-        const docSnap = await getDoc(docRef);
+      setTalepLoading(true);
 
-        if (!docSnap.exists()) {
-          if (!cancelled) setTalep(null);
+      try {
+        const talepRef = doc(db, "talepler", id);
+        const talepSnap = await getDoc(talepRef);
+
+        if (!talepSnap.exists()) {
+          if (!cancelled) {
+            setTalep(null);
+            setTalepLoading(false);
+          }
           return;
         }
 
         const talepData = {
-          id: docSnap.id,
-          ...docSnap.data(),
+          id: talepSnap.id,
+          ...talepSnap.data(),
         };
 
-        if (!cancelled) setTalep(talepData);
+        if (cancelled) return;
+
+        setTalep(talepData);
 
         if (talepData.kullaniciId) {
-          const kullaniciRef = doc(
-            db,
-            "kullanicilar",
-            talepData.kullaniciId
+          const kullaniciSnap = await getDoc(
+            doc(db, "kullanicilar", talepData.kullaniciId)
           );
 
-          const kullaniciSnap = await getDoc(kullaniciRef);
-
-          if (!cancelled && kullaniciSnap.exists()) {
+          if (!cancelled) {
             setTalepSahibiAdSoyad(
-              kullaniciSnap.data().adSoyad || "Bilinmiyor"
+              kullaniciSnap.exists()
+                ? kullaniciSnap.data().adSoyad || "Bilinmiyor"
+                : "Bilinmiyor"
             );
           }
         }
       } catch (error) {
-        console.error("Talep çekilirken hata:", error);
+        console.error("Talep alınamadı:", error);
+        if (!cancelled) setTalep(null);
+      } finally {
+        if (!cancelled) setTalepLoading(false);
       }
     };
 
@@ -89,7 +105,7 @@ export default function TalepDetay() {
     };
   }, [router.isReady, id]);
 
-  // Talebe ait eşleşmeleri getir
+  // Talebe ait eşleşmeleri ve teklifleri getir.
   useEffect(() => {
     if (!router.isReady || !id) return;
 
@@ -102,34 +118,31 @@ export default function TalepDetay() {
           where("talepId", "==", id)
         );
 
-        const querySnapshot = await getDocs(q);
+        const snapshot = await getDocs(q);
         const data = [];
 
-        for (const docSnap of querySnapshot.docs) {
-          const eslesmeData = docSnap.data();
-
+        for (const docSnap of snapshot.docs) {
+          const eslesme = docSnap.data();
           let teklifData = null;
 
-          if (eslesmeData.teklifId) {
-            const teklifDoc = await getDoc(
-              doc(db, "teklifler", eslesmeData.teklifId)
+          if (eslesme.teklifId) {
+            const teklifSnap = await getDoc(
+              doc(db, "teklifler", eslesme.teklifId)
             );
 
-            if (teklifDoc.exists()) {
-              teklifData = teklifDoc.data();
+            if (teklifSnap.exists()) {
+              teklifData = teklifSnap.data();
             }
           }
 
           data.push({
             id: docSnap.id,
-            ...eslesmeData,
+            ...eslesme,
             teklif: teklifData,
           });
         }
 
-        if (!cancelled) {
-          setEslesmeler(data);
-        }
+        if (!cancelled) setEslesmeler(data);
       } catch (error) {
         console.error("Eşleşmeler alınamadı:", error);
       }
@@ -142,7 +155,7 @@ export default function TalepDetay() {
     };
   }, [router.isReady, id]);
 
-  // Teklif oluştur
+  // Teklif oluştur.
   const handleTeklifVer = async (e) => {
     e.preventDefault();
 
@@ -158,13 +171,13 @@ export default function TalepDetay() {
     try {
       setLoading(true);
 
-      // Firebase kullanıcı bilgisini güncelle
       await currentUser.reload();
 
       const refreshedUser = auth.currentUser;
 
       if (!refreshedUser || !refreshedUser.emailVerified) {
         setUser(refreshedUser || null);
+        setEmailVerified(false);
 
         alert(
           "Teklif verebilmek için önce e-posta adresinizi doğrulamanız gerekiyor."
@@ -172,10 +185,10 @@ export default function TalepDetay() {
         return;
       }
 
-      // Güncel doğrulama bilgisini token'a yansıt
       await refreshedUser.getIdToken(true);
 
       setUser(refreshedUser);
+      setEmailVerified(true);
 
       if (!talep) {
         alert("Talep bilgisi henüz yüklenmedi.");
@@ -204,7 +217,7 @@ export default function TalepDetay() {
         return;
       }
 
-      // Kullanıcının daha önce herhangi bir teklifi var mı?
+      // Kullanıcının daha önce herhangi bir teklif verip vermediğini kontrol et.
       const teklifQuery = query(
         collection(db, "teklifler"),
         where("teklifVerenId", "==", refreshedUser.uid)
@@ -219,10 +232,9 @@ export default function TalepDetay() {
         return;
       }
 
-      // Bu talebe özel mevcut teklif kontrolü
+      // Bu talebe ait mevcut teklif kontrolü.
       const mevcutTeklifVarMi = eslesmeler.some(
-        (eslesme) =>
-          eslesme.teklifVerenId === refreshedUser.uid
+        (eslesme) => eslesme.teklifVerenId === refreshedUser.uid
       );
 
       if (mevcutTeklifVarMi) {
@@ -230,40 +242,30 @@ export default function TalepDetay() {
         return;
       }
 
-      // Teklif oluştur
-      const teklifRef = await addDoc(
-        collection(db, "teklifler"),
-        {
-          talepId: talep.id,
-          teklifVerenId: refreshedUser.uid,
-          fiyat: teklifFiyati,
-          not: not.trim(),
-          tarih,
-          olusturmaZamani: serverTimestamp(),
-        }
-      );
+      // Teklif ve eşleşmeyi tek işlemde kaydet.
+      const batch = writeBatch(db);
 
-      try {
-        // Eşleşme oluştur
-        await addDoc(collection(db, "eslesmeler"), {
-          talepId: talep.id,
-          teklifId: teklifRef.id,
-          teklifVerenId: refreshedUser.uid,
-          talepSahibiId: talep.kullaniciId || null,
-          olusturmaZamani: serverTimestamp(),
-        });
-      } catch (eslesmeError) {
-        console.error(
-          "Eşleşme oluşturulamadı:",
-          eslesmeError
-        );
+      const teklifRef = doc(collection(db, "teklifler"));
+      const eslesmeRef = doc(collection(db, "eslesmeler"));
 
-        alert(
-          "Teklif kaydedildi ancak eşleşme oluşturulamadı. Lütfen tekrar tekrar teklif göndermeyin; destek için iletişime geçin."
-        );
+      batch.set(teklifRef, {
+        talepId: talep.id,
+        teklifVerenId: refreshedUser.uid,
+        fiyat: teklifFiyati,
+        not: not.trim(),
+        tarih,
+        olusturmaZamani: serverTimestamp(),
+      });
 
-        return;
-      }
+      batch.set(eslesmeRef, {
+        talepId: talep.id,
+        teklifId: teklifRef.id,
+        teklifVerenId: refreshedUser.uid,
+        talepSahibiId: talep.kullaniciId,
+        olusturmaZamani: serverTimestamp(),
+      });
+
+      await batch.commit();
 
       alert("Teklif ve eşleşme başarıyla oluşturuldu.");
 
@@ -273,7 +275,7 @@ export default function TalepDetay() {
 
       router.reload();
     } catch (error) {
-      console.error("Teklif/Eşleşme hatası:", error);
+      console.error("Teklif oluşturma hatası:", error);
 
       if (error.code === "permission-denied") {
         alert(
@@ -287,57 +289,104 @@ export default function TalepDetay() {
     }
   };
 
-  // Talebi sil
+  // Talebi ve ilişkili kayıtları sil.
   const handleTalepSil = async () => {
     const currentUser = auth.currentUser;
 
-    if (!currentUser || !talep || talep.kullaniciId !== currentUser.uid) {
+    if (
+      !currentUser ||
+      !talep ||
+      talep.kullaniciId !== currentUser.uid
+    ) {
       alert("Bu talebi silme yetkiniz bulunmuyor.");
       return;
     }
 
     const onay = confirm(
-      "Talebi silmek istediğinize emin misiniz?"
+      "Talebi, teklifleri, eşleşmeleri ve mesajları silmek istediğinize emin misiniz?"
     );
 
     if (!onay) return;
 
     try {
+      setLoading(true);
+
+      const eslesmeQuery = query(
+        collection(db, "eslesmeler"),
+        where("talepId", "==", talep.id)
+      );
+
+      const eslesmeSnap = await getDocs(eslesmeQuery);
+
+      // Eşleşmeler ve ilişkili mesajlar.
+      for (const eslesmeDoc of eslesmeSnap.docs) {
+        const mesajQuery = query(
+          collection(db, "mesajlar"),
+          where("eslesmeId", "==", eslesmeDoc.id)
+        );
+
+        const mesajSnap = await getDocs(mesajQuery);
+
+        for (const mesajDoc of mesajSnap.docs) {
+          await deleteDoc(mesajDoc.ref);
+        }
+
+        await deleteDoc(eslesmeDoc.ref);
+      }
+
+      // Eşleşmesi olmayan eski teklif kayıtlarını da sil.
+      const tekliflerQuery = query(
+        collection(db, "teklifler"),
+        where("talepId", "==", talep.id)
+      );
+
+      const tekliflerSnap = await getDocs(tekliflerQuery);
+
+      for (const teklifDoc of tekliflerSnap.docs) {
+        await deleteDoc(teklifDoc.ref);
+      }
+
       await deleteDoc(doc(db, "talepler", talep.id));
 
-      alert("Talep silindi.");
+      alert("Talep, teklifleri, eşleşmeleri ve mesajları silindi.");
       router.push("/talepler");
-    } catch (err) {
-      console.error("Talep silme hatası:", err);
-      alert("Talep silinemedi.");
+    } catch (error) {
+      console.error("Talep silme hatası:", error);
+
+      if (error.code === "permission-denied") {
+        alert("Silme işlemi için yetkiniz bulunmuyor.");
+      } else {
+        alert(
+          "Silme işlemi sırasında hata oluştu. Bazı kayıtlar silinmiş olabilir."
+        );
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const kullaniciTalepSahibiMi =
-    user && talep
-      ? talep.kullaniciId === user.uid
-      : false;
+    !!user && !!talep && talep.kullaniciId === user.uid;
 
-  const dogrulanmisKullaniciMi =
-    user?.emailVerified === true;
+  const dogrulanmisKullaniciMi = emailVerified === true;
 
-  if (!router.isReady || authLoading || !talep) {
+  if (!router.isReady || authLoading || talepLoading) {
+    return <p className="text-center mt-10">Yükleniyor...</p>;
+  }
+
+  if (!talep) {
     return (
-      <p className="text-center mt-10">
-        Yükleniyor...
-      </p>
+      <main className="max-w-3xl mx-auto px-4 py-10">
+        <p className="text-center">Talep bulunamadı.</p>
+      </main>
     );
   }
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold mb-4">
-        {talep.baslik}
-      </h1>
+      <h1 className="text-2xl font-bold mb-4">{talep.baslik}</h1>
 
-      <p className="text-gray-700 mb-2">
-        {talep.aciklama}
-      </p>
+      <p className="text-gray-700 mb-2">{talep.aciklama}</p>
 
       <p className="text-gray-600 text-sm mb-1">
         Ülke/Şehir: {talep.ulke || "-"}
@@ -352,131 +401,118 @@ export default function TalepDetay() {
       </p>
 
       <p className="text-gray-600 text-sm mb-6">
-        Talep Sahibi: {talepSahibiadSoyad || "-"}
+        Talep Sahibi: {talepSahibiAdSoyad || "-"}
       </p>
 
       {kullaniciTalepSahibiMi && (
         <button
           onClick={handleTalepSil}
-          className="mb-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          disabled={loading}
+          className="mb-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
         >
           Talebi Sil
         </button>
       )}
 
-      {/* E-posta doğrulanmış kullanıcıya teklif formu */}
-      {user &&
-        dogrulanmisKullaniciMi &&
-        !kullaniciTalepSahibiMi && (
-          <form
-            onSubmit={handleTeklifVer}
-            className="space-y-4 bg-gray-100 p-4 rounded mb-8"
-          >
-            <div>
-              <label className="block text-sm font-medium">
-                Fiyat (₺)
-              </label>
-
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={fiyat}
-                onChange={(e) => setFiyat(e.target.value)}
-                className="w-full border rounded px-3 py-2"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">
-                Teslim Tarihi
-              </label>
-
-              <input
-                type="date"
-                value={tarih}
-                onChange={(e) => setTarih(e.target.value)}
-                min={todayStr}
-                className="w-full border rounded px-3 py-2"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">
-                Not
-              </label>
-
-              <textarea
-                value={not}
-                onChange={(e) => setNot(e.target.value)}
-                className="w-full border rounded px-3 py-2"
-                rows={3}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? "Gönderiliyor..." : "Teklif Ver"}
-            </button>
-          </form>
-        )}
-
-      {/* E-posta doğrulanmamış kullanıcıya bilgi */}
-      {user &&
-        !dogrulanmisKullaniciMi &&
-        !kullaniciTalepSahibiMi && (
-          <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 p-4 rounded mb-8">
-            Teklif verebilmek için önce e-posta adresinizi
-            doğrulamanız gerekiyor.
+      {user && dogrulanmisKullaniciMi && !kullaniciTalepSahibiMi && (
+        <form
+          onSubmit={handleTeklifVer}
+          className="space-y-4 bg-gray-100 p-4 rounded mb-8"
+        >
+          <div>
+            <label className="block text-sm font-medium">Fiyat (₺)</label>
+            <input
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={fiyat}
+              onChange={(e) => setFiyat(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              required
+            />
           </div>
-        )}
 
-      {/* Talep sahibinin teklifleri */}
-      {eslesmeler.length > 0 &&
-        kullaniciTalepSahibiMi && (
-          <section>
-            <h2 className="text-xl font-semibold mb-4">
-              Teklif Verenler
-            </h2>
+          <div>
+            <label className="block text-sm font-medium">
+              Teslim Tarihi
+            </label>
+            <input
+              type="date"
+              value={tarih}
+              onChange={(e) => setTarih(e.target.value)}
+              min={todayStr}
+              className="w-full border rounded px-3 py-2"
+              required
+            />
+          </div>
 
-            <ul className="space-y-3">
-              {eslesmeler.map((eslesme) => (
-                <li
-                  key={eslesme.id}
-                  className="p-3 bg-white rounded shadow flex justify-between items-center"
+          <div>
+            <label className="block text-sm font-medium">Not</label>
+            <textarea
+              value={not}
+              onChange={(e) => setNot(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              rows={3}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading ? "Gönderiliyor..." : "Teklif Ver"}
+          </button>
+        </form>
+      )}
+
+      {user && !dogrulanmisKullaniciMi && !kullaniciTalepSahibiMi && (
+        <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 p-4 rounded mb-8">
+          Teklif verebilmek için önce e-posta adresinizi doğrulamanız gerekiyor.
+        </div>
+      )}
+
+      {!user && (
+        <div className="bg-gray-100 p-4 rounded mb-8">
+          Teklif verebilmek için giriş yapmalısınız.
+        </div>
+      )}
+
+      {eslesmeler.length > 0 && kullaniciTalepSahibiMi && (
+        <section>
+          <h2 className="text-xl font-semibold mb-4">Teklif Verenler</h2>
+
+          <ul className="space-y-3">
+            {eslesmeler.map((eslesme) => (
+              <li
+                key={eslesme.id}
+                className="p-3 bg-white rounded shadow flex justify-between items-center"
+              >
+                <div>
+                  <p className="font-medium">
+                    Fiyat: ₺{eslesme.teklif?.fiyat ?? "-"}
+                  </p>
+
+                  <p className="text-sm text-gray-600">
+                    Teslim Tarihi: {eslesme.teklif?.tarih || "-"}
+                  </p>
+
+                  <p className="text-sm text-gray-600">
+                    Not: {eslesme.teklif?.not || "-"}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => router.push(`/chat/${eslesme.id}`)}
+                  className="bg-blue-500 text-white px-3 py-1 rounded"
                 >
-                  <div>
-                    <p className="font-medium">
-                      Fiyat: ₺{eslesme.teklif?.fiyat}
-                    </p>
-
-                    <p className="text-sm text-gray-600">
-                      Teslim Tarihi: {eslesme.teklif?.tarih || "-"}
-                    </p>
-
-                    <p className="text-sm text-gray-600">
-                      Not: {eslesme.teklif?.not || "-"}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() =>
-                      router.push(`/chat/${eslesme.id}`)
-                    }
-                    className="bg-blue-500 text-white px-3 py-1 rounded"
-                  >
-                    Sohbete Git
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+                  Sohbete Git
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
 }
