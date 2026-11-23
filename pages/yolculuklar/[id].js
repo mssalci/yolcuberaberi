@@ -29,7 +29,6 @@ export default function YolculukDetay() {
   const [emailVerified, setEmailVerified] = useState(false);
   const [yolculukSahibiAdSoyad, setYolculukSahibiAdSoyad] = useState("");
 
-  // Yerel tarih: UTC kaynaklı gün kaymasını önler.
   const now = new Date();
   const todayStr = [
     now.getFullYear(),
@@ -47,6 +46,7 @@ export default function YolculukDetay() {
     return () => unsubscribe();
   }, []);
 
+  // Yolculuk ve yolculuk sahibinin bilgilerini getir.
   useEffect(() => {
     if (!router.isReady || !id) return;
 
@@ -56,14 +56,12 @@ export default function YolculukDetay() {
       setJourneyLoading(true);
 
       try {
-        const yolculukRef = doc(db, "yolculuklar", id);
-        const yolculukSnap = await getDoc(yolculukRef);
+        const yolculukSnap = await getDoc(
+          doc(db, "yolculuklar", id)
+        );
 
         if (!yolculukSnap.exists()) {
-          if (!cancelled) {
-            setYolculuk(null);
-            setJourneyLoading(false);
-          }
+          if (!cancelled) setYolculuk(null);
           return;
         }
 
@@ -76,15 +74,10 @@ export default function YolculukDetay() {
 
         setYolculuk(yolculukData);
 
-        // Yolculuk sahibinin adını ve soyadını getir.
         if (yolculukData.kullaniciId) {
-          const kullaniciRef = doc(
-            db,
-            "kullanicilar",
-            yolculukData.kullaniciId
+          const kullaniciSnap = await getDoc(
+            doc(db, "kullanicilar", yolculukData.kullaniciId)
           );
-
-          const kullaniciSnap = await getDoc(kullaniciRef);
 
           if (!cancelled) {
             setYolculukSahibiAdSoyad(
@@ -94,18 +87,39 @@ export default function YolculukDetay() {
             );
           }
         }
+      } catch (error) {
+        console.error("Yolculuk alınamadı:", error);
+        if (!cancelled) setYolculuk(null);
+      } finally {
+        if (!cancelled) setJourneyLoading(false);
+      }
+    };
 
-        // Yolculuğa ait eşleşmeleri getir.
-        const eslesmeQuery = query(
+    fetchYolculuk();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router.isReady, id]);
+
+  // Yolculuğa ait eşleşmeleri, teklifleri ve teklif verenleri getir.
+  useEffect(() => {
+    if (!router.isReady || !id) return;
+
+    let cancelled = false;
+
+    const fetchEslesmeler = async () => {
+      try {
+        const q = query(
           collection(db, "eslesmeler"),
           where("yolculukId", "==", id)
         );
 
-        const eslesmeSnapshot = await getDocs(eslesmeQuery);
-        const eslesmeData = [];
+        const snapshot = await getDocs(q);
+        const data = [];
 
-        for (const eslesmeDoc of eslesmeSnapshot.docs) {
-          const eslesme = eslesmeDoc.data();
+        for (const docSnap of snapshot.docs) {
+          const eslesme = docSnap.data();
 
           let teklifData = null;
           let teklifVerenAd = "Bilinmiyor";
@@ -131,39 +145,32 @@ export default function YolculukDetay() {
             }
           }
 
-          eslesmeData.push({
-            id: eslesmeDoc.id,
+          data.push({
+            id: docSnap.id,
             ...eslesme,
             teklif: teklifData,
             teklifVerenAd,
           });
         }
 
-        if (!cancelled) {
-          setEslesmeler(eslesmeData);
-        }
-      } catch (err) {
-        console.error("Yolculuk veya eşleşmeler alınamadı:", err);
-
-        if (!cancelled) {
-          alert("Yolculuk bilgileri alınırken bir hata oluştu.");
-        }
-      } finally {
-        if (!cancelled) {
-          setJourneyLoading(false);
-        }
+        if (!cancelled) setEslesmeler(data);
+      } catch (error) {
+        console.error("Eşleşmeler alınamadı:", error);
       }
     };
 
-    fetchYolculuk();
+    fetchEslesmeler();
 
     return () => {
       cancelled = true;
     };
   }, [router.isReady, id]);
 
+  // Teklif oluştur.
   const handleTeklifVer = async (e) => {
     e.preventDefault();
+
+    if (loading) return;
 
     const currentUser = auth.currentUser;
 
@@ -172,51 +179,46 @@ export default function YolculukDetay() {
       return;
     }
 
-    if (!yolculuk) {
-      alert("Yolculuk bilgisi bulunamadı.");
-      return;
-    }
-
-    if (yolculuk.kullaniciId === currentUser.uid) {
-      alert("Kendi yolculuğunuza teklif veremezsiniz.");
-      return;
-    }
-
     try {
       setLoading(true);
 
-      // Firebase kullanıcı bilgisini güncelle.
+      // Firebase'den güncel e-posta doğrulama bilgisini al.
       await currentUser.reload();
 
       const refreshedUser = auth.currentUser;
 
-      if (!refreshedUser) {
-        alert("Oturum bilgisi alınamadı. Lütfen tekrar giriş yapın.");
-        return;
-      }
+      if (!refreshedUser || !refreshedUser.emailVerified) {
+        setUser(refreshedUser || null);
+        setEmailVerified(false);
 
-      setUser(refreshedUser);
-      setEmailVerified(refreshedUser.emailVerified === true);
-
-      // Token bilgisini de yenile.
-      await refreshedUser.getIdToken(true);
-
-      if (!refreshedUser.emailVerified) {
         alert(
-          "Teklif verebilmek için e-posta adresinizi doğrulamanız gerekir."
+          "Teklif verebilmek için önce e-posta adresinizi doğrulamanız gerekiyor."
         );
         return;
       }
 
-      // Fiyat kontrolü.
-      const teklifFiyati = Number(fiyat);
+      await refreshedUser.getIdToken(true);
 
-      if (!Number.isFinite(teklifFiyati) || teklifFiyati <= 0) {
-        alert("Lütfen geçerli ve sıfırdan büyük bir fiyat girin.");
+      setUser(refreshedUser);
+      setEmailVerified(true);
+
+      if (!yolculuk) {
+        alert("Yolculuk bilgisi henüz yüklenmedi.");
         return;
       }
 
-      // Teslim tarihi kontrolü.
+      if (yolculuk.kullaniciId === refreshedUser.uid) {
+        alert("Kendi yolculuğunuza teklif veremezsiniz.");
+        return;
+      }
+
+      const teklifFiyati = Number(fiyat);
+
+      if (!Number.isFinite(teklifFiyati) || teklifFiyati <= 0) {
+        alert("Lütfen geçerli ve sıfırdan büyük bir teklif fiyatı girin.");
+        return;
+      }
+
       if (!tarih) {
         alert("Lütfen teslim tarihi seçin.");
         return;
@@ -227,7 +229,7 @@ export default function YolculukDetay() {
         return;
       }
 
-      // Kullanıcının daha önce teklif verip vermediğini kontrol et.
+      // Kullanıcının daha önce herhangi bir teklif verip vermediğini kontrol et.
       const teklifQuery = query(
         collection(db, "teklifler"),
         where("teklifVerenId", "==", refreshedUser.uid)
@@ -236,11 +238,13 @@ export default function YolculukDetay() {
       const teklifSnapshot = await getDocs(teklifQuery);
 
       if (!teklifSnapshot.empty) {
-        alert("Zaten bir teklif verdiniz. Yeni teklif veremezsiniz.");
+        alert(
+          "Zaten başka bir talep veya yolculuğa teklif verdiniz. Yeni teklif veremezsiniz."
+        );
         return;
       }
 
-      // Bu yolculuk için mevcut eşleşme kontrolü.
+      // Bu yolculuğa ait mevcut teklif kontrolü.
       const mevcutTeklifVarMi = eslesmeler.some(
         (eslesme) => eslesme.teklifVerenId === refreshedUser.uid
       );
@@ -250,8 +254,7 @@ export default function YolculukDetay() {
         return;
       }
 
-      // Teklif ve eşleşmeyi tek batch içerisinde oluştur.
-      // Böylece işlemlerden biri başarısız olursa diğeri tek başına kaydedilmez.
+      // Teklif ve eşleşmeyi tek işlemde kaydet.
       const batch = writeBatch(db);
 
       const teklifRef = doc(collection(db, "teklifler"));
@@ -283,25 +286,30 @@ export default function YolculukDetay() {
       setTarih("");
 
       router.reload();
-    } catch (err) {
-      console.error("Teklif oluşturulamadı:", err);
+    } catch (error) {
+      console.error("Teklif oluşturma hatası:", error);
 
-      if (err.code === "permission-denied") {
+      if (error.code === "permission-denied") {
         alert(
-          "Bu işlem için yetkiniz bulunmuyor. E-posta doğrulamanızı ve giriş durumunuzu kontrol edin."
+          "İşlem için yetkiniz bulunmuyor. E-posta doğrulamanızı ve hesabınızı kontrol edin."
         );
       } else {
-        alert("Teklif oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.");
+        alert("Bir hata oluştu. Lütfen tekrar deneyin.");
       }
     } finally {
       setLoading(false);
     }
   };
 
+  // Yolculuğu ve ilişkili kayıtları sil.
   const handleYolculukSil = async () => {
-    if (!yolculuk || !user) return;
+    const currentUser = auth.currentUser;
 
-    if (yolculuk.kullaniciId !== user.uid) {
+    if (
+      !currentUser ||
+      !yolculuk ||
+      yolculuk.kullaniciId !== currentUser.uid
+    ) {
       alert("Bu yolculuğu silme yetkiniz bulunmuyor.");
       return;
     }
@@ -322,15 +330,8 @@ export default function YolculukDetay() {
 
       const eslesmeSnap = await getDocs(eslesmeQuery);
 
+      // Eşleşmelere bağlı mesajları ve eşleşmeleri sil.
       for (const eslesmeDoc of eslesmeSnap.docs) {
-        const eslesme = eslesmeDoc.data();
-
-        // Eşleşmeye bağlı teklifi sil.
-        if (eslesme.teklifId) {
-          await deleteDoc(doc(db, "teklifler", eslesme.teklifId));
-        }
-
-        // Eşleşmeye bağlı mesajları sil.
         const mesajQuery = query(
           collection(db, "mesajlar"),
           where("eslesmeId", "==", eslesmeDoc.id)
@@ -342,24 +343,34 @@ export default function YolculukDetay() {
           await deleteDoc(mesajDoc.ref);
         }
 
-        // Eşleşmeyi sil.
         await deleteDoc(eslesmeDoc.ref);
       }
 
-      // Son olarak yolculuğu sil.
+      // Eşleşmesi olmayan eski teklif kayıtlarını da sil.
+      const tekliflerQuery = query(
+        collection(db, "teklifler"),
+        where("yolculukId", "==", yolculuk.id)
+      );
+
+      const tekliflerSnap = await getDocs(tekliflerQuery);
+
+      for (const teklifDoc of tekliflerSnap.docs) {
+        await deleteDoc(teklifDoc.ref);
+      }
+
       await deleteDoc(doc(db, "yolculuklar", yolculuk.id));
 
       alert("Yolculuk, teklifleri, eşleşmeleri ve mesajları silindi.");
 
       router.push("/talepler?sekme=yolculuklar");
-    } catch (err) {
-      console.error("Yolculuk silme hatası:", err);
+    } catch (error) {
+      console.error("Yolculuk silme hatası:", error);
 
-      if (err.code === "permission-denied") {
+      if (error.code === "permission-denied") {
         alert("Silme işlemi için yetkiniz bulunmuyor.");
       } else {
         alert(
-          "Silme işlemi sırasında bir hata oluştu. Bazı kayıtlar silinmiş olabilir."
+          "Silme işlemi sırasında hata oluştu. Bazı kayıtlar silinmiş olabilir."
         );
       }
     } finally {
@@ -370,7 +381,9 @@ export default function YolculukDetay() {
   const kullaniciYolculukSahibiMi =
     !!user && !!yolculuk && yolculuk.kullaniciId === user.uid;
 
-  if (authLoading || journeyLoading) {
+  const dogrulanmisKullaniciMi = emailVerified === true;
+
+  if (!router.isReady || authLoading || journeyLoading) {
     return <p className="p-4 text-center">Yükleniyor...</p>;
   }
 
@@ -408,7 +421,7 @@ export default function YolculukDetay() {
         </button>
       )}
 
-      {user && !kullaniciYolculukSahibiMi && emailVerified && (
+      {user && dogrulanmisKullaniciMi && !kullaniciYolculukSahibiMi && (
         <form
           onSubmit={handleTeklifVer}
           className="space-y-4 bg-gray-100 p-4 rounded mb-8"
@@ -427,7 +440,9 @@ export default function YolculukDetay() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Teslim Tarihi</label>
+            <label className="block text-sm font-medium">
+              Teslim Tarihi
+            </label>
             <input
               type="date"
               value={tarih}
@@ -458,13 +473,9 @@ export default function YolculukDetay() {
         </form>
       )}
 
-      {user && !kullaniciYolculukSahibiMi && !emailVerified && (
-        <div className="bg-yellow-100 border border-yellow-300 text-yellow-800 p-4 rounded mb-8">
-          <p className="font-medium">E-posta doğrulaması gerekli</p>
-          <p className="text-sm mt-1">
-            Yolculukları görüntüleyebilirsiniz. Ancak teklif verebilmek için
-            önce e-posta adresinizi doğrulamanız gerekir.
-          </p>
+      {user && !dogrulanmisKullaniciMi && !kullaniciYolculukSahibiMi && (
+        <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 p-4 rounded mb-8">
+          Teklif verebilmek için önce e-posta adresinizi doğrulamanız gerekiyor.
         </div>
       )}
 
