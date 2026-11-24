@@ -289,6 +289,7 @@ export default function TalepDetay() {
     }
   };
 
+
   // Talebi ve ilişkili kayıtları sil.
   const handleTalepSil = async () => {
     const currentUser = auth.currentUser;
@@ -318,21 +319,25 @@ export default function TalepDetay() {
 
       const eslesmeSnap = await getDocs(eslesmeQuery);
 
-      // Eşleşmeler ve ilişkili mesajlar.
+      // Eşleşmelere bağlı mesajları ve eşleşmeleri sil.
       for (const eslesmeDoc of eslesmeSnap.docs) {
-        // Eşleşmenin sohbetindeki mesajları sil.
-const mesajQuery = collection(
-  db,
-  "chat",
-  eslesmeDoc.id,
-  "messages"
-);
+        // Önce eşleşmenin sohbetindeki mesajları sil.
+        const mesajQuery = collection(
+          db,
+          "chat",
+          eslesmeDoc.id,
+          "messages"
+        );
 
-const mesajSnap = await getDocs(mesajQuery);
+        const mesajSnap = await getDocs(mesajQuery);
 
-for (const mesajDoc of mesajSnap.docs) {
-  await deleteDoc(mesajDoc.ref);
-}
+        for (const mesajDoc of mesajSnap.docs) {
+          await deleteDoc(mesajDoc.ref);
+        }
+
+        // Ardından eşleşmeyi sil.
+        await deleteDoc(eslesmeDoc.ref);
+      }
 
       // Eşleşmesi olmayan eski teklif kayıtlarını da sil.
       const tekliflerQuery = query(
@@ -346,6 +351,7 @@ for (const mesajDoc of mesajSnap.docs) {
         await deleteDoc(teklifDoc.ref);
       }
 
+      // Son olarak talebi sil.
       await deleteDoc(doc(db, "talepler", talep.id));
 
       alert("Talep, teklifleri, eşleşmeleri ve mesajları silindi.");
@@ -364,6 +370,7 @@ for (const mesajDoc of mesajSnap.docs) {
       setLoading(false);
     }
   };
+
 
   const kullaniciTalepSahibiMi =
     !!user && !!talep && talep.kullaniciId === user.uid;
