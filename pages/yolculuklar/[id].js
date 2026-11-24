@@ -333,6 +333,7 @@ export default function YolculukDetay() {
       // Eşleşmelere bağlı mesajları ve eşleşmeleri sil.
       for (const eslesmeDoc of eslesmeSnap.docs) {
         // Eşleşmenin sohbetindeki mesajları sil.
+// Eşleşmenin sohbetindeki mesajları sil.
 const mesajQuery = collection(
   db,
   "chat",
