@@ -1,12 +1,10 @@
-
 // pages/en/chat/[chatId].js
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import {
   collection,
   query,
-  orderBy,
+  where,
   onSnapshot,
   addDoc,
   serverTimestamp,
@@ -16,42 +14,73 @@ import { auth, db } from "../../../firebase/firebaseConfig";
 export default function ChatPage() {
   const router = useRouter();
   const { chatId } = router.query;
+
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
   const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => {
       setUser(u);
+      setAuthLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!chatId) return;
+    if (!router.isReady || !chatId || authLoading) return;
+
+    if (!user) {
+      setMessages([]);
+      return;
+    }
 
     const q = query(
-      collection(db, "chat", chatId, "messages"),
-      orderBy("zaman", "asc")
+      collection(db, "mesajlar"),
+      where("eslesmeId", "==", chatId)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setMessages(
-        snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      );
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        list.sort((a, b) => {
+          const timeA = a.zaman?.toMillis?.() || 0;
+          const timeB = b.zaman?.toMillis?.() || 0;
+          return timeA - timeB;
+        });
+
+        setMessages(list);
+        setError("");
+      },
+      (err) => {
+        console.error("Failed to load messages:", err);
+        setError("Could not load message history. Please try again.");
+      }
+    );
 
     return () => unsubscribe();
-  }, [chatId]);
+  }, [router.isReady, chatId, user, authLoading]);
 
   const handleSend = async (e) => {
     e.preventDefault();
 
-    if (!user || !message.trim()) return;
+    if (!user || !chatId || !message.trim() || sending) return;
 
     try {
-      await addDoc(collection(db, "chat", chatId, "messages"), {
+      setSending(true);
+      setError("");
+
+      await addDoc(collection(db, "mesajlar"), {
+        eslesmeId: chatId,
         mesaj: message.trim(),
         gonderenId: user.uid,
         zaman: serverTimestamp(),
@@ -59,9 +88,24 @@ export default function ChatPage() {
 
       setMessage("");
     } catch (err) {
-      console.error("Failed to send message:", err.message);
+      console.error("Failed to send message:", err);
+      setError("Message could not be sent. Please try again.");
+    } finally {
+      setSending(false);
     }
   };
+
+  if (authLoading) {
+    return <div className="max-w-2xl mx-auto py-6 px-4">Loading...</div>;
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-2xl mx-auto py-6 px-4">
+        You must sign in to use chat.
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto py-6 px-4">
@@ -77,7 +121,7 @@ export default function ChatPage() {
             <div
               key={m.id}
               className={`mb-3 p-2 rounded ${
-                m.gonderenId === auth.currentUser?.uid
+                m.gonderenId === user.uid
                   ? "bg-blue-100 text-right ml-auto max-w-xs"
                   : "bg-gray-200 text-left mr-auto max-w-xs"
               }`}
@@ -91,6 +135,10 @@ export default function ChatPage() {
         )}
       </div>
 
+      {error && (
+        <p className="text-red-600 text-sm mb-3">{error}</p>
+      )}
+
       <form onSubmit={handleSend} className="flex gap-2">
         <input
           type="text"
@@ -102,9 +150,10 @@ export default function ChatPage() {
 
         <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          disabled={!message.trim() || sending}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
         >
-          Send
+          {sending ? "Sending..." : "Send"}
         </button>
       </form>
     </div>
