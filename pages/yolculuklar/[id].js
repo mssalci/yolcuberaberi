@@ -301,6 +301,7 @@ export default function YolculukDetay() {
     }
   };
 
+ 
   // Yolculuğu ve ilişkili kayıtları sil.
   const handleYolculukSil = async () => {
     const currentUser = auth.currentUser;
@@ -332,20 +333,23 @@ export default function YolculukDetay() {
 
       // Eşleşmelere bağlı mesajları ve eşleşmeleri sil.
       for (const eslesmeDoc of eslesmeSnap.docs) {
-        // Eşleşmenin sohbetindeki mesajları sil.
-// Eşleşmenin sohbetindeki mesajları sil.
-const mesajQuery = collection(
-  db,
-  "chat",
-  eslesmeDoc.id,
-  "messages"
-);
+        // Önce eşleşmenin sohbetindeki mesajları sil.
+        const mesajQuery = collection(
+          db,
+          "chat",
+          eslesmeDoc.id,
+          "messages"
+        );
 
-const mesajSnap = await getDocs(mesajQuery);
+        const mesajSnap = await getDocs(mesajQuery);
 
-for (const mesajDoc of mesajSnap.docs) {
-  await deleteDoc(mesajDoc.ref);
-}
+        for (const mesajDoc of mesajSnap.docs) {
+          await deleteDoc(mesajDoc.ref);
+        }
+
+        // Ardından eşleşmeyi sil.
+        await deleteDoc(eslesmeDoc.ref);
+      }
 
       // Eşleşmesi olmayan eski teklif kayıtlarını da sil.
       const tekliflerQuery = query(
@@ -359,6 +363,7 @@ for (const mesajDoc of mesajSnap.docs) {
         await deleteDoc(teklifDoc.ref);
       }
 
+      // Son olarak yolculuğu sil.
       await deleteDoc(doc(db, "yolculuklar", yolculuk.id));
 
       alert("Yolculuk, teklifleri, eşleşmeleri ve mesajları silindi.");
@@ -378,6 +383,7 @@ for (const mesajDoc of mesajSnap.docs) {
       setLoading(false);
     }
   };
+
 
   const kullaniciYolculukSahibiMi =
     !!user && !!yolculuk && yolculuk.kullaniciId === user.uid;
