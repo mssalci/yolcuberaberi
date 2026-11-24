@@ -320,19 +320,19 @@ export default function TalepDetay() {
 
       // Eşleşmeler ve ilişkili mesajlar.
       for (const eslesmeDoc of eslesmeSnap.docs) {
-        const mesajQuery = query(
-          collection(db, "mesajlar"),
-          where("eslesmeId", "==", eslesmeDoc.id)
-        );
+        // Eşleşmenin sohbetindeki mesajları sil.
+const mesajQuery = collection(
+  db,
+  "chat",
+  eslesmeDoc.id,
+  "messages"
+);
 
-        const mesajSnap = await getDocs(mesajQuery);
+const mesajSnap = await getDocs(mesajQuery);
 
-        for (const mesajDoc of mesajSnap.docs) {
-          await deleteDoc(mesajDoc.ref);
-        }
-
-        await deleteDoc(eslesmeDoc.ref);
-      }
+for (const mesajDoc of mesajSnap.docs) {
+  await deleteDoc(mesajDoc.ref);
+}
 
       // Eşleşmesi olmayan eski teklif kayıtlarını da sil.
       const tekliflerQuery = query(
