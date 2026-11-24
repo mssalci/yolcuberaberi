@@ -253,69 +253,76 @@ export default function TripDetail() {
   };
 
   const handleDeleteTrip = async () => {
-    const currentUser = auth.currentUser;
+  const currentUser = auth.currentUser;
 
-    if (!currentUser || !trip) return;
+  if (!currentUser || !trip) return;
 
-    if (trip.kullaniciId !== currentUser.uid) {
-      alert("You are not authorized to delete this trip.");
-      return;
-    }
+  if (trip.kullaniciId !== currentUser.uid) {
+    alert("You are not authorized to delete this trip.");
+    return;
+  }
 
-    const confirmed = confirm(
-      "Are you sure you want to delete this trip and all related offers and messages?"
+  const confirmed = confirm(
+    "Are you sure you want to delete this trip and all related offers and messages?"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    setLoading(true);
+
+    const matchesQuery = query(
+      collection(db, "eslesmeler"),
+      where("yolculukId", "==", trip.id)
     );
 
-    if (!confirmed) return;
+    const matchesSnapshot = await getDocs(matchesQuery);
 
-    try {
-      setLoading(true);
-
-      const matchesQuery = query(
-        collection(db, "eslesmeler"),
-        where("yolculukId", "==", trip.id)
+    // Delete messages and their associated matches.
+    for (const matchDoc of matchesSnapshot.docs) {
+      // Delete messages in the match's chat.
+      const messagesQuery = collection(
+        db,
+        "chat",
+        matchDoc.id,
+        "messages"
       );
 
-      const matchesSnapshot = await getDocs(matchesQuery);
+      const messagesSnapshot = await getDocs(messagesQuery);
 
-      for (const matchDoc of matchesSnapshot.docs) {
-        // Eşleşmenin sohbetindeki mesajları sil.
-const mesajQuery = collection(
-  db,
-  "chat",
-  eslesmeDoc.id,
-  "messages"
-);
-
-const mesajSnap = await getDocs(mesajQuery);
-
-for (const mesajDoc of mesajSnap.docs) {
-  await deleteDoc(mesajDoc.ref);
-}
-
-      const offersQuery = query(
-        collection(db, "teklifler"),
-        where("yolculukId", "==", trip.id)
-      );
-
-      const offersSnapshot = await getDocs(offersQuery);
-
-      for (const offerDoc of offersSnapshot.docs) {
-        await deleteDoc(offerDoc.ref);
+      for (const messageDoc of messagesSnapshot.docs) {
+        await deleteDoc(messageDoc.ref);
       }
 
-      await deleteDoc(doc(db, "yolculuklar", trip.id));
-
-      alert("The trip, its offers, matches, and messages have been deleted.");
-
-      router.push("/en/talepler?sekme=yolculuklar");
-    } catch (error) {
-      console.error("Error deleting trip:", error);
-      alert("An error occurred while deleting the trip.");
-    } finally {
-      setLoading(false);
+      // Delete the match.
+      await deleteDoc(matchDoc.ref);
     }
-  };
+
+    // Delete related offers.
+    const offersQuery = query(
+      collection(db, "teklifler"),
+      where("yolculukId", "==", trip.id)
+    );
+
+    const offersSnapshot = await getDocs(offersQuery);
+
+    for (const offerDoc of offersSnapshot.docs) {
+      await deleteDoc(offerDoc.ref);
+    }
+
+    // Finally, delete the trip.
+    await deleteDoc(doc(db, "yolculuklar", trip.id));
+
+    alert("The trip, its offers, matches, and messages have been deleted.");
+
+    router.push("/en/talepler?sekme=yolculuklar");
+  } catch (error) {
+    console.error("Error deleting trip:", error);
+    alert("An error occurred while deleting the trip.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const isTripOwner =
     user && trip?.kullaniciId === user.uid;
