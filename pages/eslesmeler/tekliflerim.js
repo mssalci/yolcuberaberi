@@ -1,4 +1,4 @@
-// pages/eslesmeler/tekliflerim.js
+
 import { useEffect, useState } from "react";
 import { auth, db } from "../../firebase/firebaseConfig";
 import {
@@ -24,18 +24,25 @@ export default function Tekliflerim() {
       setUser(usr);
       setKontrolEdildi(true);
     });
+
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
     const fetchEslesmeler = async () => {
-      if (!user) return;
+      if (!user) {
+        setYukleniyor(false);
+        return;
+      }
+
       setYukleniyor(true);
 
       try {
-        // Kullanıcının verdiği teklifler
         const tekliflerSnap = await getDocs(
-          query(collection(db, "teklifler"), where("teklifVerenId", "==", user.uid))
+          query(
+            collection(db, "teklifler"),
+            where("teklifVerenId", "==", user.uid)
+          )
         );
 
         const eslesmelerArr = [];
@@ -44,7 +51,10 @@ export default function Tekliflerim() {
           const teklifData = teklifDoc.data();
 
           const esSnap = await getDocs(
-            query(collection(db, "eslesmeler"), where("teklifId", "==", teklifDoc.id))
+            query(
+              collection(db, "eslesmeler"),
+              where("teklifId", "==", teklifDoc.id)
+            )
           );
 
           for (const esDoc of esSnap.docs) {
@@ -57,7 +67,9 @@ export default function Tekliflerim() {
             eslesmelerArr.push({
               id: esDoc.id,
               tip: esData.talepId ? "talep" : "bilinmiyor",
-              talep: talepDoc?.exists() ? { id: talepDoc.id, ...talepDoc.data() } : null,
+              talep: talepDoc?.exists()
+                ? { id: talepDoc.id, ...talepDoc.data() }
+                : null,
               teklif: { id: teklifDoc.id, ...teklifData },
             });
           }
@@ -75,45 +87,116 @@ export default function Tekliflerim() {
   }, [user]);
 
   const eslesmeSil = async (eslesmeId, teklifId) => {
-  if (
-    !confirm(
-      "Bu eşleşmeyi, mesajlarını ve ilişkili teklif verisini silmek istediğinize emin misiniz?"
-    )
-  ) {
-    return;
-  }
-
-  try {
-    // Önce eşleşmenin sohbet mesajlarını bul.
-    const mesajlarQuery = collection(
-      db,
-      "chat",
-      eslesmeId,
-      "messages"
-    );
-
-    const mesajlarSnap = await getDocs(mesajlarQuery);
-
-    // Mesajları sil.
-    for (const mesajDoc of mesajlarSnap.docs) {
-      await deleteDoc(mesajDoc.ref);
+    if (
+      !confirm(
+        "Bu eşleşmeyi, mesajlarını ve ilişkili teklif verisini silmek istediğinize emin misiniz?"
+      )
+    ) {
+      return;
     }
 
-    // Ardından eşleşmeyi sil.
-    await deleteDoc(doc(db, "eslesmeler", eslesmeId));
+    try {
+      // Önce sohbet mesajlarını sil.
+      const mesajlarQuery = collection(
+        db,
+        "chat",
+        eslesmeId,
+        "messages"
+      );
 
-    // Son olarak teklifi sil.
-    if (teklifId) {
-      await deleteDoc(doc(db, "teklifler", teklifId));
+      const mesajlarSnap = await getDocs(mesajlarQuery);
+
+      for (const mesajDoc of mesajlarSnap.docs) {
+        await deleteDoc(mesajDoc.ref);
+      }
+
+      // Ardından eşleşmeyi sil.
+      await deleteDoc(doc(db, "eslesmeler", eslesmeId));
+
+      // Son olarak teklifi sil.
+      if (teklifId) {
+        await deleteDoc(doc(db, "teklifler", teklifId));
+      }
+
+      setEslesmeler((prev) =>
+        prev.filter((e) => e.id !== eslesmeId)
+      );
+
+      alert("Eşleşme, mesajları ve teklif silindi.");
+    } catch (err) {
+      console.error("Silme hatası:", err);
+      alert("Silme işlemi sırasında hata oluştu.");
     }
+  };
 
-    setEslesmeler((prev) =>
-      prev.filter((e) => e.id !== eslesmeId)
-    );
+  if (!kontrolEdildi) return null;
+  if (!user) return <GirisUyari />;
 
-    alert("Eşleşme, mesajları ve teklif silindi.");
-  } catch (err) {
-    console.error("Silme hatası:", err);
-    alert("Silme işlemi sırasında hata oluştu.");
-  }
-};
+  return (
+    <main className="max-w-4xl mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">Tekliflerim</h1>
+
+      {yukleniyor ? (
+        <p>Yükleniyor...</p>
+      ) : eslesmeler.length === 0 ? (
+        <p>Henüz teklifin yok.</p>
+      ) : (
+        <ul className="space-y-4">
+          {eslesmeler.map((e) => (
+            <li
+              key={e.id}
+              className="border p-4 rounded bg-white shadow space-y-2"
+            >
+              {e.tip === "talep" && e.talep ? (
+                <>
+                  <p className="font-semibold">
+                    Talep Başlık: {e.talep.baslik || "-"}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Talep Açıklama: {e.talep.aciklama || "-"}
+                  </p>
+                </>
+              ) : (
+                <p>Bilinmeyen eşleşme türü</p>
+              )}
+
+              {e.teklif && (
+                <>
+                  <p className="text-sm text-gray-600">
+                    Teklif Fiyatı: ₺{e.teklif.fiyat}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Teklif Notu: {e.teklif.not || "-"}
+                  </p>
+
+                  <div className="flex flex-wrap gap-4 pt-2">
+                    <Link
+                      href={`/eslesmeler/tekliflerim/${e.teklif.id}`}
+                      className="text-blue-600 underline"
+                    >
+                      Teklif Detayı
+                    </Link>
+
+                    <Link
+                      href={`/chat/${e.id}`}
+                      className="text-green-600 underline"
+                    >
+                      Mesajlaş
+                    </Link>
+
+                    <button
+                      onClick={() => eslesmeSil(e.id, e.teklif.id)}
+                      className="text-red-600 underline"
+                    >
+                      Eşleşmeyi ve Teklifi Sil
+                    </button>
+                  </div>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </main>
+  );
+}
