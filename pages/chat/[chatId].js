@@ -1,10 +1,10 @@
-// pages/chat/[chatId].js
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import {
   collection,
   query,
-  where,
+  orderBy,
   onSnapshot,
   addDoc,
   serverTimestamp,
@@ -40,30 +40,24 @@ export default function ChatPage() {
     }
 
     const q = query(
-      collection(db, "mesajlar"),
-      where("eslesmeId", "==", chatId)
+      collection(db, "chat", chatId, "messages"),
+      orderBy("zaman", "asc")
     );
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const liste = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        liste.sort((a, b) => {
-          const zamanA = a.zaman?.toMillis?.() || 0;
-          const zamanB = b.zaman?.toMillis?.() || 0;
-          return zamanA - zamanB;
-        });
-
-        setMesajlar(liste);
+        setMesajlar(
+          snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+        );
         setHata("");
       },
       (err) => {
         console.error("Mesajlar yüklenemedi:", err);
-        setHata("Mesaj geçmişi yüklenemedi. Lütfen tekrar deneyin.");
+        setHata("Mesaj geçmişi yüklenemedi.");
       }
     );
 
@@ -79,17 +73,19 @@ export default function ChatPage() {
       setGonderiliyor(true);
       setHata("");
 
-      await addDoc(collection(db, "mesajlar"), {
-        eslesmeId: chatId,
-        mesaj: mesaj.trim(),
-        gonderenId: user.uid,
-        zaman: serverTimestamp(),
-      });
+      await addDoc(
+        collection(db, "chat", chatId, "messages"),
+        {
+          mesaj: mesaj.trim(),
+          gonderenId: user.uid,
+          zaman: serverTimestamp(),
+        }
+      );
 
       setMesaj("");
     } catch (err) {
       console.error("Mesaj gönderilemedi:", err);
-      setHata("Mesaj gönderilemedi. Lütfen tekrar deneyin.");
+      setHata("Mesaj gönderilemedi.");
     } finally {
       setGonderiliyor(false);
     }
