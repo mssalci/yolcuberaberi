@@ -75,67 +75,45 @@ export default function Tekliflerim() {
   }, [user]);
 
   const eslesmeSil = async (eslesmeId, teklifId) => {
-    if (!confirm("Bu eşleşmeyi ve ilişkili teklif verisini silmek istediğinize emin misiniz?")) return;
-    try {
-      await deleteDoc(doc(db, "eslesmeler", eslesmeId));
-      if (teklifId) await deleteDoc(doc(db, "teklifler", teklifId));
-      setEslesmeler((prev) => prev.filter((e) => e.id !== eslesmeId));
-      alert("Eşleşme ve teklif silindi.");
-    } catch (err) {
-      console.error("Silme hatası:", err);
-      alert("Silme işlemi sırasında hata oluştu.");
+  if (
+    !confirm(
+      "Bu eşleşmeyi, mesajlarını ve ilişkili teklif verisini silmek istediğinize emin misiniz?"
+    )
+  ) {
+    return;
+  }
+
+  try {
+    // Önce eşleşmenin sohbet mesajlarını bul.
+    const mesajlarQuery = collection(
+      db,
+      "chat",
+      eslesmeId,
+      "messages"
+    );
+
+    const mesajlarSnap = await getDocs(mesajlarQuery);
+
+    // Mesajları sil.
+    for (const mesajDoc of mesajlarSnap.docs) {
+      await deleteDoc(mesajDoc.ref);
     }
-  };
 
-  if (!kontrolEdildi) return null;
-  if (!user) return <GirisUyari />;
+    // Ardından eşleşmeyi sil.
+    await deleteDoc(doc(db, "eslesmeler", eslesmeId));
 
-  return (
-    <main className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Tekliflerim</h1>
+    // Son olarak teklifi sil.
+    if (teklifId) {
+      await deleteDoc(doc(db, "teklifler", teklifId));
+    }
 
-      {yukleniyor ? (
-        <p>Yükleniyor...</p>
-      ) : eslesmeler.length === 0 ? (
-        <p>Henüz teklifin yok.</p>
-      ) : (
-        <ul className="space-y-4">
-          {eslesmeler.map((e) => (
-            <li key={e.id} className="border p-4 rounded bg-white shadow space-y-2">
-              {e.tip === "talep" && e.talep ? (
-                <>
-                  <p className="font-semibold">Talep Başlık: {e.talep.baslik || "-"}</p>
-                  <p className="text-sm text-gray-600">Talep Açıklama: {e.talep.aciklama || "-"}</p>
-                </>
-              ) : (
-                <p>Bilinmeyen eşleşme türü</p>
-              )}
+    setEslesmeler((prev) =>
+      prev.filter((e) => e.id !== eslesmeId)
+    );
 
-              {e.teklif && (
-                <>
-                  <p className="text-sm text-gray-600">Teklif Fiyatı: ₺{e.teklif.fiyat}</p>
-                  <p className="text-sm text-gray-600">Teklif Notu: {e.teklif.not || "-"}</p>
-
-                  <div className="flex flex-wrap gap-4 pt-2">
-                    <Link href={`/eslesmeler/tekliflerim/${e.teklif.id}`} className="text-blue-600 underline">
-                      Teklif Detayı
-                    </Link>
-                    <Link href={`/chat/${e.id}`} className="text-green-600 underline">
-                      Mesajlaş
-                    </Link>
-                    <button
-                      onClick={() => eslesmeSil(e.id, e.teklif.id)}
-                      className="text-red-600 underline"
-                    >
-                      Eşleşmeyi ve Teklifi Sil
-                    </button>
-                  </div>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
-  );
-        }
+    alert("Eşleşme, mesajları ve teklif silindi.");
+  } catch (err) {
+    console.error("Silme hatası:", err);
+    alert("Silme işlemi sırasında hata oluştu.");
+  }
+};
