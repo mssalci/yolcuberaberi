@@ -235,6 +235,7 @@ export default function RequestDetail() {
     }
   };
 
+  
   const handleDeleteRequest = async () => {
     const currentUser = auth.currentUser;
 
@@ -261,21 +262,27 @@ export default function RequestDetail() {
 
       const matchesSnapshot = await getDocs(matchesQuery);
 
+      // Delete messages and their associated matches.
       for (const matchDoc of matchesSnapshot.docs) {
-        // Eşleşmenin sohbetindeki mesajları sil.
-const mesajQuery = collection(
-  db,
-  "chat",
-  eslesmeDoc.id,
-  "messages"
-);
+        // Delete messages in the match's chat.
+        const messagesQuery = collection(
+          db,
+          "chat",
+          matchDoc.id,
+          "messages"
+        );
 
-const mesajSnap = await getDocs(mesajQuery);
+        const messagesSnapshot = await getDocs(messagesQuery);
 
-for (const mesajDoc of mesajSnap.docs) {
-  await deleteDoc(mesajDoc.ref);
-}
+        for (const messageDoc of messagesSnapshot.docs) {
+          await deleteDoc(messageDoc.ref);
+        }
 
+        // Delete the match.
+        await deleteDoc(matchDoc.ref);
+      }
+
+      // Delete related offers.
       const offersQuery = query(
         collection(db, "teklifler"),
         where("talepId", "==", request.id)
@@ -287,6 +294,7 @@ for (const mesajDoc of mesajSnap.docs) {
         await deleteDoc(offerDoc.ref);
       }
 
+      // Finally, delete the request.
       await deleteDoc(doc(db, "talepler", request.id));
 
       alert("The request, its offers, matches, and messages have been deleted.");
@@ -299,6 +307,7 @@ for (const mesajDoc of mesajSnap.docs) {
       setLoading(false);
     }
   };
+
 
   const isRequestOwner =
     user && request?.kullaniciId === user.uid;
