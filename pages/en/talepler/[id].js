@@ -262,19 +262,19 @@ export default function RequestDetail() {
       const matchesSnapshot = await getDocs(matchesQuery);
 
       for (const matchDoc of matchesSnapshot.docs) {
-        const messageQuery = query(
-          collection(db, "mesajlar"),
-          where("eslesmeId", "==", matchDoc.id)
-        );
+        // Eşleşmenin sohbetindeki mesajları sil.
+const mesajQuery = collection(
+  db,
+  "chat",
+  eslesmeDoc.id,
+  "messages"
+);
 
-        const messageSnapshot = await getDocs(messageQuery);
+const mesajSnap = await getDocs(mesajQuery);
 
-        for (const messageDoc of messageSnapshot.docs) {
-          await deleteDoc(messageDoc.ref);
-        }
-
-        await deleteDoc(matchDoc.ref);
-      }
+for (const mesajDoc of mesajSnap.docs) {
+  await deleteDoc(mesajDoc.ref);
+}
 
       const offersQuery = query(
         collection(db, "teklifler"),
