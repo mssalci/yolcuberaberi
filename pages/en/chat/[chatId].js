@@ -1,10 +1,10 @@
-// pages/en/chat/[chatId].js
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import {
   collection,
   query,
-  where,
+  orderBy,
   onSnapshot,
   addDoc,
   serverTimestamp,
@@ -40,30 +40,24 @@ export default function ChatPage() {
     }
 
     const q = query(
-      collection(db, "mesajlar"),
-      where("eslesmeId", "==", chatId)
+      collection(db, "chat", chatId, "messages"),
+      orderBy("zaman", "asc")
     );
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const list = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        list.sort((a, b) => {
-          const timeA = a.zaman?.toMillis?.() || 0;
-          const timeB = b.zaman?.toMillis?.() || 0;
-          return timeA - timeB;
-        });
-
-        setMessages(list);
+        setMessages(
+          snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+        );
         setError("");
       },
       (err) => {
         console.error("Failed to load messages:", err);
-        setError("Could not load message history. Please try again.");
+        setError("Could not load message history.");
       }
     );
 
@@ -79,17 +73,19 @@ export default function ChatPage() {
       setSending(true);
       setError("");
 
-      await addDoc(collection(db, "mesajlar"), {
-        eslesmeId: chatId,
-        mesaj: message.trim(),
-        gonderenId: user.uid,
-        zaman: serverTimestamp(),
-      });
+      await addDoc(
+        collection(db, "chat", chatId, "messages"),
+        {
+          mesaj: message.trim(),
+          gonderenId: user.uid,
+          zaman: serverTimestamp(),
+        }
+      );
 
       setMessage("");
     } catch (err) {
       console.error("Failed to send message:", err);
-      setError("Message could not be sent. Please try again.");
+      setError("Message could not be sent.");
     } finally {
       setSending(false);
     }
