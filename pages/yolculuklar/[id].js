@@ -277,15 +277,40 @@ export default function YolculukDetay() {
         olusturmaZamani: serverTimestamp(),
       });
 
-      await batch.commit();
+await batch.commit();
 
-      alert("Teklif ve eşleşme başarıyla oluşturuldu.");
+// Talep sahibine e-posta bildirimi gönder.
+try {
+  const idToken = await refreshedUser.getIdToken();
 
-      setFiyat("");
-      setNot("");
-      setTarih("");
+  const response = await fetch("/api/teklif-bildir", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({
+      offerId: teklifRef.id,
+    }),
+  });
 
-      router.reload();
+  if (!response.ok) {
+    console.error(
+      "Teklif e-posta bildirimi gönderilemedi:",
+      await response.text()
+    );
+  }
+} catch (notificationError) {
+  console.error("E-posta bildirim hatası:", notificationError);
+}
+
+alert("Teklif ve eşleşme başarıyla oluşturuldu.");
+
+setFiyat("");
+setNot("");
+setTarih("");
+
+router.reload();
     } catch (error) {
       console.error("Teklif oluşturma hatası:", error);
 
