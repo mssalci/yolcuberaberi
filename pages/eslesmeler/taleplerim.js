@@ -47,7 +47,22 @@ export default function Taleplerim() {
           const teklifSnap = await getDocs(
             query(collection(db, "teklifler"), where("talepId", "==", talepDoc.id))
           );
-          const teklifler = teklifSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          const teklifler = await Promise.all(
+  teklifSnap.docs.map(async (teklifDoc) => {
+    const esSnap = await getDocs(
+      query(
+        collection(db, "eslesmeler"),
+        where("teklifId", "==", teklifDoc.id)
+      )
+    );
+
+    return {
+      id: teklifDoc.id,
+      ...teklifDoc.data(),
+      eslesmeId: esSnap.docs[0]?.id || null,
+    };
+  })
+);
 
           taleplerArr.push({ id: talepDoc.id, ...talepData, teklifler });
         }
@@ -65,7 +80,22 @@ export default function Taleplerim() {
           const teklifSnap = await getDocs(
             query(collection(db, "teklifler"), where("yolculukId", "==", yolculukDoc.id))
           );
-          const teklifler = teklifSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+const teklifler = await Promise.all(
+  teklifSnap.docs.map(async (teklifDoc) => {
+    const esSnap = await getDocs(
+      query(
+        collection(db, "eslesmeler"),
+        where("teklifId", "==", teklifDoc.id)
+      )
+    );
+
+    return {
+      id: teklifDoc.id,
+      ...teklifDoc.data(),
+      eslesmeId: esSnap.docs[0]?.id || null,
+    };
+  })
+);
 
           yolculuklarArr.push({ id: yolculukDoc.id, ...yolculukData, teklifler });
         }
@@ -156,9 +186,18 @@ export default function Taleplerim() {
                               <p><Link href={`/eslesmeler/tekliflerim/${teklif.id}`} className="text-blue-600 underline">
                                 Teklif Detayı
                               </Link></p>
-                              <p><Link href={`/chat/${teklif.id}`} className="text-green-600 underline">
-                                Mesajlaş
-                              </Link></p>
+{teklif.eslesmeId ? (
+  <p>
+    <Link
+      href={`/chat/${teklif.eslesmeId}`}
+      className="text-green-600 underline"
+    >
+      Mesajlaş
+    </Link>
+  </p>
+) : (
+  <p className="text-gray-500">Henüz eşleşme oluşturulmamış.</p>
+)}
                             </li>
                           ))}
                         </ul>
@@ -213,9 +252,18 @@ export default function Taleplerim() {
                         <Link href={`/eslesmeler/tekliflerim/${teklif.id}`} className="text-blue-600 underline">
                                 Teklif Detayı
                               </Link>
-                        <Link href={`/chat/${teklif.id}`} className="text-green-600 underline">
-                                Mesajlaş
-                              </Link>
+{teklif.eslesmeId ? (
+  <Link
+    href={`/chat/${teklif.eslesmeId}`}
+    className="text-green-600 underline"
+  >
+    Mesajlaş
+  </Link>
+) : (
+  <span className="text-gray-500">
+    Henüz eşleşme oluşturulmamış.
+  </span>
+)}
                             </li>
                           ))}
                         </ul>
