@@ -50,10 +50,22 @@ export default function MyRequests() {
             query(collection(db, "teklifler"), where("talepId", "==", requestDoc.id))
           );
 
-          const offers = offerSnap.docs.map((offerDoc) => ({
-            id: offerDoc.id,
-            ...offerDoc.data(),
-          }));
+const offers = await Promise.all(
+  offerSnap.docs.map(async (offerDoc) => {
+    const matchSnap = await getDocs(
+      query(
+        collection(db, "eslesmeler"),
+        where("teklifId", "==", offerDoc.id)
+      )
+    );
+
+    return {
+      id: offerDoc.id,
+      ...offerDoc.data(),
+      matchId: matchSnap.docs[0]?.id || null,
+    };
+  })
+);
 
           requestsArr.push({
             id: requestDoc.id,
@@ -76,10 +88,22 @@ export default function MyRequests() {
             query(collection(db, "teklifler"), where("yolculukId", "==", tripDoc.id))
           );
 
-          const offers = offerSnap.docs.map((offerDoc) => ({
-            id: offerDoc.id,
-            ...offerDoc.data(),
-          }));
+const offers = await Promise.all(
+  offerSnap.docs.map(async (offerDoc) => {
+    const matchSnap = await getDocs(
+      query(
+        collection(db, "eslesmeler"),
+        where("teklifId", "==", offerDoc.id)
+      )
+    );
+
+    return {
+      id: offerDoc.id,
+      ...offerDoc.data(),
+      matchId: matchSnap.docs[0]?.id || null,
+    };
+  })
+);
 
           tripsArr.push({
             id: tripDoc.id,
@@ -207,12 +231,14 @@ export default function MyRequests() {
                                 Offer Details
                               </Link>
 
-                              <Link
-                                href={`/en/chat/${offer.id}`}
-                                className="text-green-600 underline"
-                              >
-                                Message
-                              </Link>
+{offer.matchId && (
+  <Link
+    href={`/en/chat/${offer.matchId}`}
+    className="text-green-600 underline"
+  >
+    Message
+  </Link>
+)}
                             </li>
                           ))}
                         </ul>
@@ -284,12 +310,14 @@ export default function MyRequests() {
                                 Offer Details
                               </Link>
 
-                              <Link
-                                href={`/en/chat/${offer.id}`}
-                                className="text-green-600 underline"
-                              >
-                                Message
-                              </Link>
+{offer.matchId && (
+  <Link
+    href={`/en/chat/${offer.matchId}`}
+    className="text-green-600 underline"
+  >
+    Message
+  </Link>
+)}
                             </li>
                           ))}
                         </ul>
