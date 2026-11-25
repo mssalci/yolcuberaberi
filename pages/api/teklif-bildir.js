@@ -1,170 +1,138 @@
 
-import nodemailer from "nodemailer";
-import { getApps, initializeApp, cert } from "firebase-admin/app";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import nodemailer from "nodemailer";
 
-// Firebase Admin bağlantısı
-function getAdminApp() {
-  if (getApps().length > 0) {
-    return getApps()[0];
+function getAdminServices() {
+  const serviceAccountText = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+  if (!serviceAccountText) {
+    throw new Error("FIREBASE_SERVICE_ACCOUNT tanımlı değil.");
   }
 
-  const serviceAccount = JSON.parse(
-    process.env.FIREBASE_SERVICE_ACCOUNT
-  );
+  const serviceAccount = JSON.parse(serviceAccountText);
 
-  return initializeApp({
-    credential: cert(serviceAccount),
-  });
-}
+  const app = getApps().length
+    ? getApps()[0]
+    : initializeApp({
+        credential: cert(serviceAccount),
+      });
 
-const adminApp = getAdminApp();
-const adminAuth = getAuth(adminApp);
-const db = getFirestore(adminApp);
-
-// Gmail transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
-
-// HTML içeriğinde güvenli metin kullanımı
-function escapeHtml(value = "") {
-  return String(value).replace(/[&<>"']/g, (char) => {
-    const entities = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    };
-
-    return entities[char];
-  });
+  return {
+    auth: getAuth(app),
+    db: getFirestore(app),
+  };
 }
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({
-      message: "Sadece POST isteği destekleniyor.",
-    });
+    return res.status(405).json({ message: "Sadece POST isteği destekleniyor." });
   }
 
   try {
-    // Firebase oturumunu doğrula
     const authorization = req.headers.authorization || "";
 
     if (!authorization.startsWith("Bearer ")) {
-      return res.status(401).json({
-        message: "Oturum doğrulanamadı.",
-      });
+      return res.status(401).json({ message: "Yetkilendirme gerekli." });
     }
 
-    const idToken = authorization.split("Bearer ")[1];
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    const idToken = authorization.substring(7);
+    const { auth, db } = getAdminServices();
 
-    const kullaniciId = decodedToken.uid;
+    const decodedToken = await auth.verifyIdToken(idToken);
+    const senderId = decodedToken.uid;
+
     const { offerId } = req.body || {};
 
-    if (!offerId || typeof offerId !== "string") {
-      return res.status(400).json({
-        message: "Teklif ID bilgisi eksik.",
-      });
+    if (!offerId || typeof offerId !== "string" || offerId.length > 200) {
+      return res.status(400).json({ message: "Geçerli bir offerId gerekli." });
     }
 
-    // Teklifi bul
-    const teklifRef = db.collection("teklifler").doc(offerId);
-    const teklifDoc = await teklifRef.get();
+    const offerRef = db.collection("teklifler").doc(offerId);
+    const offerSnapshot = await offerRef.get();
 
-    if (!teklifDoc.exists) {
-      return res.status(404).json({
-        message: "Teklif bulunamadı.",
-      });
+    if (!offerSnapshot.exists) {
+      return res.status(404).json({ message: "Teklif bulunamadı." });
     }
 
-    const teklif = teklifDoc.data();
+    const offer = offerSnapshot.data();
 
-    // Yalnızca teklifi oluşturan kullanıcı bildirim isteyebilir
-    if (teklif.teklifVerenId !== kullaniciId) {
-      return res.status(403).json({
-        message: "Bu işlem için yetkiniz yok.",
-      });
+    if (offer.teklifVerenId !== senderId) {
+      return res.status(403).json({ message: "Bu işlem için yetkiniz yok." });
     }
 
-    // Talep veya yolculuk sahibini belirle
-    let hedefKoleksiyon;
-    let hedefId;
-    let hedefTuru;
+    let ownerId;
+    let itemType;
 
-    if (teklif.talepId) {
-      hedefKoleksiyon = "talepler";
-      hedefId = teklif.talepId;
-      hedefTuru = "talep";
-    } else if (teklif.yolculukId) {
-      hedefKoleksiyon = "yolculuklar";
-      hedefId = teklif.yolculukId;
-      hedefTuru = "yolculuk";
+    if (offer.talepId) {
+      const itemSnapshot = await db.collection("talepler").doc(offer.talepId).get();
+
+      if (!itemSnapshot.exists) {
+        return res.status(404).json({ message: "Talep bulunamadı." });
+      }
+
+      ownerId = itemSnapshot.data().kullaniciId;
+      itemType = "talep";
+    } else if (offer.yolculukId) {
+      const itemSnapshot = await db.collection("yolculuklar").doc(offer.yolculukId).get();
+
+      if (!itemSnapshot.exists) {
+        return res.status(404).json({ message: "Yolculuk bulunamadı." });
+      }
+
+      ownerId = itemSnapshot.data().kullaniciId;
+      itemType = "yolculuk";
     } else {
-      return res.status(400).json({
-        message: "Teklifin talep veya yolculuk bağlantısı bulunamadı.",
-      });
+      return res.status(400).json({ message: "Teklifin bağlı olduğu kayıt bulunamadı." });
     }
 
-    const hedefDoc = await db
-      .collection(hedefKoleksiyon)
-      .doc(hedefId)
-      .get();
-
-    if (!hedefDoc.exists) {
-      return res.status(404).json({
-        message: "Talep veya yolculuk bulunamadı.",
-      });
+    if (!ownerId || ownerId === senderId) {
+      return res.status(200).json({ sent: false, message: "Bildirim gönderilmedi." });
     }
 
-    const hedefData = hedefDoc.data();
-    const sahipId = hedefData.kullaniciId;
+    const owner = await auth.getUser(ownerId);
 
-    if (!sahipId || sahipId === kullaniciId) {
-      return res.status(400).json({
-        message: "Bildirim alıcısı geçersiz.",
-      });
-    }
-
-    // Alıcının Firebase Authentication bilgileri
-    const alici = await adminAuth.getUser(sahipId);
-
-    if (!alici.email || !alici.emailVerified) {
+    if (!owner.email || !owner.emailVerified || owner.disabled) {
       return res.status(200).json({
-        message: "Alıcının doğrulanmış e-posta adresi bulunamadı.",
         sent: false,
+        message: "Alıcının doğrulanmış e-posta adresi bulunamadı.",
       });
     }
 
-    // Aynı teklif için mükerrer e-posta gönderimini engelle
-    const bildirimRef = db
+    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+      throw new Error("E-posta ortam değişkenleri eksik.");
+    }
+
+    const notificationRef = db
       .collection("offerEmailNotifications")
       .doc(offerId);
 
-    const bildirimAlindi = await db.runTransaction(async (transaction) => {
-      const bildirimDoc = await transaction.get(bildirimRef);
+    const shouldSend = await db.runTransaction(async (transaction) => {
+      const notificationSnapshot = await transaction.get(notificationRef);
 
-      if (
-        bildirimDoc.exists &&
-        ["processing", "sent"].includes(bildirimDoc.data().status)
-      ) {
-        return false;
+      if (notificationSnapshot.exists) {
+        const notification = notificationSnapshot.data();
+
+        if (notification.status === "sent") {
+          return false;
+        }
+
+        if (
+          notification.status === "processing" &&
+          notification.lockedAtMs &&
+          Date.now() - notification.lockedAtMs < 5 * 60 * 1000
+        ) {
+          return false;
+        }
       }
 
       transaction.set(
-        bildirimRef,
+        notificationRef,
         {
           status: "processing",
-          recipientId: sahipId,
-          updatedAt: new Date(),
+          lockedAtMs: Date.now(),
+          updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true }
       );
@@ -172,98 +140,94 @@ export default async function handler(req, res) {
       return true;
     });
 
-    if (!bildirimAlindi) {
+    if (!shouldSend) {
       return res.status(200).json({
-        message: "Bu teklif için bildirim zaten gönderilmiş veya işleniyor.",
         sent: false,
+        message: "Bildirim daha önce gönderilmiş veya işlemde.",
       });
     }
 
-    const tur = hedefTuru === "talep" ? "talebinize" : "yolculuğunuza";
-    const turEn = hedefTuru === "talep" ? "your request" : "your journey";
-
-    const konu = "Yeni teklif aldınız! | You received a new offer!";
-
-    const html = `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#333;line-height:1.6;">
-
-        <h2>Merhaba!</h2>
-
-        <p>
-          <strong>${escapeHtml(tur)}</strong> yeni bir teklif geldi.
-          Detayları görmek için Yolcu Beraberi hesabınızı ziyaret edebilirsiniz.
-        </p>
-
-        <hr style="border:none;border-top:1px solid #ddd;margin:28px 0;">
-
-        <h2>Hello!</h2>
-
-        <p>
-          You have received a new offer for
-          <strong>${escapeHtml(turEn)}</strong>.
-          Please visit your Yolcu Beraberi account to see the details.
-        </p>
-
-        <hr style="border:none;border-top:1px solid #ddd;margin:28px 0;">
-
-        <p style="font-size:13px;color:#777;">
-          Bu otomatik bir bilgilendirme mesajıdır. / This is an automated notification.
-        </p>
-
-        <p><strong>Yolcu Beraberi</strong></p>
-      </div>
-    `;
-
-    const text = `
-YOLCU BERABERİ
-
-Merhaba!
-
-${tur} yeni bir teklif geldi.
-Detayları görmek için hesabınızı ziyaret edebilirsiniz.
-
----
-
-Hello!
-
-You have received a new offer for ${turEn}.
-Please visit your account to see the details.
-
-Yolcu Beraberi
-    `;
-
     try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.MAIL_USER,
+          pass: process.env.MAIL_PASS,
+        },
+      });
+
+      const subject = "Yolcu Beraberi | Yeni Teklif / New Offer";
+
+      const recordName =
+        itemType === "talep" ? "talebinize / your request" : "yolculuğunuza / your journey";
+
       await transporter.sendMail({
         from: `"Yolcu Beraberi" <${process.env.MAIL_USER}>`,
-        to: alici.email,
-        subject: konu,
-        text,
-        html,
+        to: owner.email,
+        subject,
+        text: `
+Merhaba,
+
+Yolcu Beraberi'nde ${recordName} yeni bir teklif geldi.
+
+Teklifinizi görüntülemek için hesabınıza giriş yapabilirsiniz.
+
+Hello,
+
+You have received a new offer for ${recordName} on Yolcu Beraberi.
+
+Please log in to your account to view the offer.
+
+Yolcu Beraberi
+        `,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#333;line-height:1.6">
+            <h2>Yolcu Beraberi</h2>
+
+            <h3>Yeni Teklif Aldınız!</h3>
+            <p>Merhaba,</p>
+            <p>Yolcu Beraberi'nde ${recordName} yeni bir teklif geldi.</p>
+            <p>Teklifinizi görüntülemek için hesabınıza giriş yapabilirsiniz.</p>
+
+            <hr style="border:none;border-top:1px solid #ddd;margin:24px 0">
+
+            <h3>You Have a New Offer!</h3>
+            <p>Hello,</p>
+            <p>You have received a new offer for ${recordName} on Yolcu Beraberi.</p>
+            <p>Please log in to your account to view the offer.</p>
+
+            <hr style="border:none;border-top:1px solid #ddd;margin:24px 0">
+            <p style="color:#777;font-size:12px">Yolcu Beraberi</p>
+          </div>
+        `,
       });
 
-      await bildirimRef.update({
-        status: "sent",
-        sentAt: new Date(),
-      });
+      await notificationRef.set(
+        {
+          status: "sent",
+          sentAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
 
-      return res.status(200).json({
-        message: "Bildirim e-postası gönderildi.",
-        sent: true,
-      });
+      return res.status(200).json({ sent: true });
     } catch (mailError) {
-      await bildirimRef.update({
-        status: "failed",
-        error: String(mailError.message || mailError),
-        updatedAt: new Date(),
-      });
+      await notificationRef.set(
+        {
+          status: "failed",
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
 
       throw mailError;
     }
   } catch (error) {
-    console.error("Teklif bildirim hatası:", error);
+    console.error("Teklif e-posta bildirimi hatası:", error.message);
 
     return res.status(500).json({
-      message: "Bildirim e-postası gönderilemedi.",
+      message: "E-posta bildirimi gönderilemedi.",
     });
   }
 }
