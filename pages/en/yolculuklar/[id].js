@@ -236,9 +236,34 @@ export default function TripDetail() {
         olusturmaZamani: serverTimestamp(),
       });
 
-      await batch.commit();
+await batch.commit();
 
-      alert("Your offer and match have been created successfully.");
+// Send email notification to the request owner.
+try {
+  const idToken = await currentUser.getIdToken();
+
+  const response = await fetch("/api/teklif-bildir", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({
+      offerId: offerRef.id,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error(
+      "Offer email notification failed:",
+      await response.text()
+    );
+  }
+} catch (notificationError) {
+  console.error("Email notification error:", notificationError);
+}
+
+alert("Your offer and match have been created successfully.");
 
       setPrice("");
       setNote("");
