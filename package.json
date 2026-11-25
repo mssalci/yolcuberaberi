@@ -7,6 +7,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "firebase-admin": "^13.5.0",
     "@vercel/analytics": "^2.0.1",
     "date-fns": "^3.6.0",
     "firebase": "^11.6.0",
