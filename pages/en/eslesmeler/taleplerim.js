@@ -144,9 +144,29 @@ const offers = await Promise.all(
 
       const offerSnap = await getDocs(offerQuery);
 
-      for (const offerDoc of offerSnap.docs) {
-        await deleteDoc(doc(db, "teklifler", offerDoc.id));
-      }
+      // Delete related matches, chat messages, and offers
+for (const offerDoc of offerSnap.docs) {
+  const matchSnap = await getDocs(
+    query(
+      collection(db, "eslesmeler"),
+      where("teklifId", "==", offerDoc.id)
+    )
+  );
+
+  for (const matchDoc of matchSnap.docs) {
+    const messagesSnap = await getDocs(
+      collection(db, "chat", matchDoc.id, "messages")
+    );
+
+    for (const messageDoc of messagesSnap.docs) {
+      await deleteDoc(messageDoc.ref);
+    }
+
+    await deleteDoc(doc(db, "eslesmeler", matchDoc.id));
+  }
+
+  await deleteDoc(doc(db, "teklifler", offerDoc.id));
+}
 
       await deleteDoc(
         doc(db, itemType === "talep" ? "talepler" : "yolculuklar", itemId)
