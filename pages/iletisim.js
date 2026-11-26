@@ -1,5 +1,4 @@
-//pages/iletisim.js
-  
+
 import Head from "next/head";
 import { useState } from "react";
 import { db } from "../firebase/firebaseConfig";
@@ -8,28 +7,53 @@ import { collection, addDoc, Timestamp } from "firebase/firestore";
 export default function Iletisim() {
   const [form, setForm] = useState({ ad: "", email: "", mesaj: "" });
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    setSuccess(false);
+    setError("");
+    setSending(true);
+
+    let kaydedildi = false;
+
     try {
-      // Firebase'e kaydet
+      // Mesajı Firebase'e kaydet
       await addDoc(collection(db, "iletisimMesajlari"), {
         ...form,
-        tarih: Timestamp.now()
+        tarih: Timestamp.now(),
       });
 
-      // Mail gönder
-      await fetch("/api/mail-gonder", {
+      kaydedildi = true;
+
+      // E-posta gönder
+      const response = await fetch("/api/mail-gonder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
+        body: JSON.stringify(form),
       });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.message || "E-posta gönderilemedi.");
+      }
 
       setForm({ ad: "", email: "", mesaj: "" });
       setSuccess(true);
+
     } catch (err) {
-      console.error("Hata oluştu:", err);
+      console.error("İletişim formu hatası:", err);
+
+      setError(
+        kaydedildi
+          ? "Mesajınız kaydedildi ancak e-posta gönderilemedi. Lütfen daha sonra tekrar deneyin."
+          : "Mesajınız kaydedilemedi. Lütfen tekrar deneyin."
+      );
+    } finally {
+      setSending(false);
     }
   };
 
@@ -55,7 +79,15 @@ export default function Iletisim() {
           <h2 className="text-xl font-semibold mb-2">Bize Mesaj Gönderin</h2>
 
           {success && (
-            <p className="text-green-600 mb-4">Mesajınız başarıyla gönderildi!</p>
+            <p className="text-green-600 mb-4">
+              Mesajınız başarıyla gönderildi!
+            </p>
+          )}
+
+          {error && (
+            <p className="text-red-600 mb-4">
+              {error}
+            </p>
           )}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
@@ -67,6 +99,7 @@ export default function Iletisim() {
               value={form.ad}
               onChange={(e) => setForm({ ...form, ad: e.target.value })}
             />
+
             <input
               type="email"
               placeholder="E-posta adresiniz"
@@ -75,6 +108,7 @@ export default function Iletisim() {
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
+
             <textarea
               placeholder="Mesajınız"
               rows={5}
@@ -82,12 +116,14 @@ export default function Iletisim() {
               required
               value={form.mesaj}
               onChange={(e) => setForm({ ...form, mesaj: e.target.value })}
-            ></textarea>
+            />
+
             <button
               type="submit"
-              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+              disabled={sending}
+              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
             >
-              Gönder
+              {sending ? "Gönderiliyor..." : "Gönder"}
             </button>
           </form>
         </div>
