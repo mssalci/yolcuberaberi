@@ -125,9 +125,32 @@ const teklifler = await Promise.all(
       const teklifSnap = await getDocs(teklifQuery);
 
       // Teklifleri sil
-      for (const teklifDoc of teklifSnap.docs) {
-        await deleteDoc(doc(db, "teklifler", teklifDoc.id));
-      }
+      // İlgili eşleşmeleri, sohbet mesajlarını ve teklifleri sil
+for (const teklifDoc of teklifSnap.docs) {
+  // Teklife bağlı eşleşmeleri bul
+  const eslesmeSnap = await getDocs(
+    query(
+      collection(db, "eslesmeler"),
+      where("teklifId", "==", teklifDoc.id)
+    )
+  );
+
+  // Her eşleşmenin sohbet mesajlarını ve eşleşme kaydını sil
+  for (const eslesmeDoc of eslesmeSnap.docs) {
+    const mesajlarSnap = await getDocs(
+      collection(db, "chat", eslesmeDoc.id, "messages")
+    );
+
+    for (const mesajDoc of mesajlarSnap.docs) {
+      await deleteDoc(mesajDoc.ref);
+    }
+
+    await deleteDoc(doc(db, "eslesmeler", eslesmeDoc.id));
+  }
+
+  // Son olarak teklifi sil
+  await deleteDoc(doc(db, "teklifler", teklifDoc.id));
+}
 
       // Talep veya yolculuğu sil
       await deleteDoc(doc(db, itemType === "talep" ? "talepler" : "yolculuklar", itemId));
