@@ -168,13 +168,13 @@ export default async function handler(req, res) {
         text: `
 Merhaba,
 
-Yolcu Beraberi'nde ${recordName} yeni bir teklif geldi.
+Yolcu Beraberi'nde yeni bir teklifiniz var.
 
 Teklifinizi görüntülemek için hesabınıza giriş yapabilirsiniz.
 
 Hello,
 
-You have received a new offer for ${recordName} on Yolcu Beraberi.
+You have a new offer on Yolcu Beraberi.
 
 Please log in to your account to view the offer.
 
@@ -186,7 +186,7 @@ Yolcu Beraberi
 
             <h3>Yeni Teklif Aldınız!</h3>
             <p>Merhaba,</p>
-            <p>Yolcu Beraberi'nde yeni bir teklifüniz var.</p>
+            <p>Yolcu Beraberi'nde yeni bir teklifiniz var.</p>
             <p>Teklifinizi görüntülemek için hesabınıza giriş yapabilirsiniz.</p>
 
             <hr style="border:none;border-top:1px solid #ddd;margin:24px 0">
