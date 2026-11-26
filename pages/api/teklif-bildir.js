@@ -186,14 +186,14 @@ Yolcu Beraberi
 
             <h3>Yeni Teklif Aldınız!</h3>
             <p>Merhaba,</p>
-            <p>Yolcu Beraberi'nde ${recordName} yeni bir teklif geldi.</p>
+            <p>Yolcu Beraberi'nde yeni bir teklifüniz var.</p>
             <p>Teklifinizi görüntülemek için hesabınıza giriş yapabilirsiniz.</p>
 
             <hr style="border:none;border-top:1px solid #ddd;margin:24px 0">
 
             <h3>You Have a New Offer!</h3>
             <p>Hello,</p>
-            <p>You have received a new offer for ${recordName} on Yolcu Beraberi.</p>
+            <p>You have a new offer on Yolcu Beraberi.</p>
             <p>Please log in to your account to view the offer.</p>
 
             <hr style="border:none;border-top:1px solid #ddd;margin:24px 0">
